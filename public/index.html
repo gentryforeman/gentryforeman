@@ -518,13 +518,17 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .record-photos { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
 .record-photos img { width: 60px; height: 60px; object-fit: cover; border-radius: 8px; cursor: pointer; }
 
+/* Ultimate Foreman Style - Modal Tabs */
+.modal-tabs { display: flex; border-bottom: 2px solid #e5e7eb; margin: -20px -20px 20px -20px; padding: 0 20px; }
+.modal-tab { padding: 14px 20px; font-size: 14px; font-weight: 600; color: #6b7280; cursor: pointer; border: none; background: none; position: relative; transition: color 0.2s; }
+.modal-tab:hover { color: #374151; }
+.modal-tab.active { color: #f97316; }
+.modal-tab.active::after { content: ''; position: absolute; bottom: -2px; left: 0; right: 0; height: 3px; background: #f97316; border-radius: 3px 3px 0 0; }
+.modal-tab-content { display: none; }
+.modal-tab-content.active { display: block; }
+
 /* Ultimate Foreman Style - Work/Items Table */
-.work-items-section { margin-top: 16px; }
-.work-items-tab-bar { display: flex; gap: 0; margin-bottom: 0; }
-.work-items-tab { flex: 1; padding: 12px 16px; background: #e5e7eb; border: none; font-size: 14px; font-weight: 600; color: #6b7280; cursor: pointer; transition: all 0.2s; }
-.work-items-tab:first-child { border-radius: 8px 0 0 0; }
-.work-items-tab:last-child { border-radius: 0 8px 0 0; }
-.work-items-tab.active { background: #f97316; color: white; }
+.work-items-section { margin-top: 0; }
 .work-items-container { background: white; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 12px 12px; overflow: hidden; }
 .work-category { border-bottom: 1px solid #e5e7eb; }
 .work-category:last-child { border-bottom: none; }
@@ -2417,53 +2421,63 @@ async function openDailyModalForDate(dateStr, presetJobId) {
           </select>\
         </div>\
         <div id="running-totals-container"></div>\
-        <div class="yards-input-group">\
-          <div class="icon">🏗️</div>\
-          <div class="input-wrapper">\
-            <label>YARDS POURED TODAY</label>\
-            <input type="number" id="record-yards" class="yards-input" placeholder="0" step="0.25" min="0" inputmode="decimal">\
+        \
+        <div class="modal-tabs">\
+          <button class="modal-tab active" onclick="switchRecordTab(\'info\')">INFO</button>\
+          <button class="modal-tab" onclick="switchRecordTab(\'detail\')">DETAIL</button>\
+          <button class="modal-tab" onclick="switchRecordTab(\'work\')">WORK / ITEMS</button>\
+        </div>\
+        \
+        <div id="tab-info" class="modal-tab-content active">\
+          <div class="yards-input-group">\
+            <div class="icon">🏗️</div>\
+            <div class="input-wrapper">\
+              <label>YARDS POURED TODAY</label>\
+              <input type="number" id="record-yards" class="yards-input" placeholder="0" step="0.25" min="0" inputmode="decimal">\
+            </div>\
+          </div>\
+          <div class="input-group">\
+            <label>Foreman / Crew</label>\
+            <select id="record-foreman">\
+              <option value="">Select Foreman</option>\
+              ' + (crewLeads || []).map(function(c) { return '<option value="' + c.id + '">' + c.name + '</option>'; }).join('') + '\
+            </select>\
+          </div>\
+          <div class="input-group">\
+            <label>Additional Notes</label>\
+            <textarea id="record-notes" rows="3" placeholder="Any additional notes for this day..."></textarea>\
           </div>\
         </div>\
-        <div class="input-group">\
-          <label>Foreman / Crew</label>\
-          <select id="record-foreman">\
-            <option value="">Select Foreman</option>\
-            ' + (crewLeads || []).map(function(c) { return '<option value="' + c.id + '">' + c.name + '</option>'; }).join('') + '\
-          </select>\
-        </div>\
-        <div class="work-items-section">\
-          <div class="work-items-tab-bar">\
-            <button class="work-items-tab active">WORK / ITEMS</button>\
+        \
+        <div id="tab-detail" class="modal-tab-content">\
+          <div class="worker-hours-section" style="margin-top:0;">\
+            <div class="worker-hours-header">\
+              <h4>👷 Worker Hours</h4>\
+              <button type="button" class="add-worker-btn" onclick="openAddWorkerHoursModal()">+ Add Worker</button>\
+            </div>\
+            <div id="worker-hours-list">\
+              <p style="color:var(--text-secondary);font-size:14px;text-align:center;padding:12px;">No workers added yet</p>\
+            </div>\
           </div>\
-          <div id="work-items-container" class="work-items-container">\
+          <div class="input-group" style="margin-top:20px;">\
+            <label>📷 Photos</label>\
+            <div class="photo-upload-area" id="photo-upload-area" onclick="document.getElementById(\'photo-input\').click()">\
+              <input type="file" id="photo-input" multiple accept="image/*" capture="environment" style="display:none;" onchange="handlePhotoSelect(event)">\
+              <div class="upload-icon">📷</div>\
+              <p>Tap to take photo or select from gallery</p>\
+            </div>\
+            <div class="photo-preview" id="photo-preview"></div>\
+          </div>\
+        </div>\
+        \
+        <div id="tab-work" class="modal-tab-content">\
+          <div id="work-items-container" class="work-items-container" style="border:1px solid #e5e7eb;border-radius:12px;">\
             <div class="work-items-empty">\
               <div class="work-items-empty-icon">📋</div>\
               <p>Select a job to see work items</p>\
               <p class="sub">Items will load from job takeoffs</p>\
             </div>\
           </div>\
-        </div>\
-        <div class="input-group" style="margin-top:16px;">\
-          <label>Additional Notes</label>\
-          <textarea id="record-notes" rows="2" placeholder="Any additional notes for this day..." style="margin-top:4px;"></textarea>\
-        </div>\
-        <div class="worker-hours-section">\
-          <div class="worker-hours-header">\
-            <h4>👷 Worker Hours</h4>\
-            <button type="button" class="add-worker-btn" onclick="openAddWorkerHoursModal()">+ Add Worker</button>\
-          </div>\
-          <div id="worker-hours-list">\
-            <p style="color:var(--text-secondary);font-size:14px;text-align:center;padding:12px;">No workers added yet</p>\
-          </div>\
-        </div>\
-        <div class="input-group">\
-          <label>📷 Photos</label>\
-          <div class="photo-upload-area" id="photo-upload-area" onclick="document.getElementById(\'photo-input\').click()">\
-            <input type="file" id="photo-input" multiple accept="image/*" capture="environment" style="display:none;" onchange="handlePhotoSelect(event)">\
-            <div class="upload-icon">📷</div>\
-            <p>Tap to take photo or select from gallery</p>\
-          </div>\
-          <div class="photo-preview" id="photo-preview"></div>\
         </div>\
       </div>\
       <div class="modal-footer">\
@@ -2484,6 +2498,22 @@ async function openDailyModalForDate(dateStr, presetJobId) {
   setupFormValidation();
   loadWeather();
   if (presetJobId) onJobSelected();
+}
+
+// Switch between INFO, DETAIL, WORK/ITEMS tabs
+function switchRecordTab(tabName) {
+  // Update tab buttons
+  document.querySelectorAll('.modal-tab').forEach(function(tab) {
+    tab.classList.remove('active');
+  });
+  event.target.classList.add('active');
+
+  // Update tab content
+  document.querySelectorAll('.modal-tab-content').forEach(function(content) {
+    content.classList.remove('active');
+  });
+  var tabContent = document.getElementById('tab-' + tabName);
+  if (tabContent) tabContent.classList.add('active');
 }
 
 async function loadWeather() {
@@ -2560,10 +2590,15 @@ async function onJobSelected() {
 
   // Load job takeoffs
   try {
-    var res = await fetch(API + '/jobs/' + jobId + '/takeoffs');
+    var res = await fetch(API_BASE + '/jobs/' + jobId + '/takeoffs');
     if (res.ok) {
       currentJobTakeoffs = await res.json();
       takeoffEntries = {}; // Reset entries
+      renderTakeoffsTable();
+      console.log('Loaded takeoffs:', currentJobTakeoffs.length);
+    } else {
+      console.log('Takeoffs response not ok:', res.status);
+      currentJobTakeoffs = [];
       renderTakeoffsTable();
     }
   } catch(e) {
