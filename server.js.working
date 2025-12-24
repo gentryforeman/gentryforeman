@@ -1,0 +1,853 @@
+// server.js - Backend API Server for Foreman System
+
+const express = require('express');
+const cors = require('cors');
+const { Pool } = require('pg');
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+const multer = require('multer');
+const pdfParse = require('pdf-parse');
+const fs = require('fs').promises;
+const path = require('path');
+require('dotenv').config();
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+// Middleware
+app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(express.static('public'));
+
+// Serve uploaded files statically
+app.use('/uploads', express.static('uploads'));
+
+// Database connection
+const pool = new Pool({
+    user: process.env.DB_USER || 'postgres',
+    host: process.env.DB_HOST || 'localhost',
+    database: process.env.DB_NAME || 'foreman_system',
+    password: process.env.DB_PASSWORD || 'your_password',
+    port: process.env.DB_PORT || 5432,
+});
+
+// Test database connection
+pool.query('SELECT NOW()', (err, res) => {
+    if (err) {
+        console.error('Database connection error:', err);
+    } else {
+        console.log('Database connected successfully');
+    }
+});
+
+// File upload configuration
+const storage = multer.diskStorage({
+    destination: async (req, file, cb) => {
+        const uploadDir = './uploads';
+        try {
+            await fs.mkdir(uploadDir, { recursive: true });
+            cb(null, uploadDir);
+        } catch (error) {
+            cb(error, null);
+        }
+    },
+    filename: (req, file, cb) => {
+        const uniqueName = Date.now() + '-' + file.originalname;
+        cb(null, uniqueName);
+    }
+});
+
+const upload = multer({ storage });
+
+// Photo upload configuration (for daily record photos)
+const photoStorage = multer.diskStorage({
+    destination: async (req, file, cb) => {
+        const uploadDir = './uploads/photos';
+        try {
+            await fs.mkdir(uploadDir, { recursive: true });
+            cb(null, uploadDir);
+        } catch (error) {
+            cb(error, null);
+        }
+    },
+    filename: (req, file, cb) => {
+        const uniqueName = Date.now() + '-' + Math.round(Math.random() * 1E9) + path.extname(file.originalname);
+        cb(null, uniqueName);
+    }
+});
+
+const photoUpload = multer({ 
+    storage: photoStorage,
+    limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+    fileFilter: (req, file, cb) => {
+        const allowedTypes = /jpeg|jpg|png|gif|heic|webp/;
+        const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+        const mimetype = allowedTypes.test(file.mimetype);
+        if (extname && mimetype) {
+            return cb(null, true);
+        }
+        cb(new Error('Only image files are allowed'));
+    }
+});
+
+// JWT Authentication Middleware
+const authenticateToken = (req, res, next) => {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+
+    if (!token) {
+        return res.status(401).json({ error: 'Access token required' });
+    }
+
+    jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key', (err, user) => {
+        if (err) {
+            return res.status(403).json({ error: 'Invalid token' });
+        }
+        req.user = user;
+        next();
+    });
+};
+
+// ========== AUTHENTICATION ROUTES ==========
+
+// Login
+app.post('/api/auth/login', async (req, res) => {
+    try {
+        const { email, password } = req.body;
+
+        const result = await pool.query(
+            'SELECT * FROM users WHERE email = $1',
+            [email]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(401).json({ error: 'Invalid credentials' });
+        }
+
+        const user = result.rows[0];
+        const validPassword = await bcrypt.compare(password, user.password_hash);
+
+        if (!validPassword) {
+            return res.status(401).json({ error: 'Invalid credentials' });
+        }
+
+        const token = jwt.sign(
+            { id: user.id, email: user.email, role: user.role },
+            process.env.JWT_SECRET || 'your-secret-key',
+            { expiresIn: '24h' }
+        );
+
+        res.json({
+            token,
+            user: {
+                id: user.id,
+                email: user.email,
+                name: user.full_name,
+                role: user.role
+            }
+        });
+    } catch (error) {
+        console.error('Login error:', error);
+        res.status(500).json({ error: 'Login failed' });
+    }
+});
+
+// Register new user
+app.post('/api/auth/register', async (req, res) => {
+    try {
+        const { email, password, full_name, role } = req.body;
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        const result = await pool.query(
+            'INSERT INTO users (email, password_hash, full_name, role) VALUES ($1, $2, $3, $4) RETURNING id, email, full_name, role',
+            [email, hashedPassword, full_name, role || 'office']
+        );
+
+        res.status(201).json({ user: result.rows[0] });
+    } catch (error) {
+        console.error('Registration error:', error);
+        res.status(500).json({ error: 'Registration failed' });
+    }
+});
+
+// ========== JOBS ROUTES ==========
+
+// Get all jobs
+app.get('/api/jobs', async (req, res) => {
+    try {
+        const { status, crew_lead_id } = req.query;
+        let query = 'SELECT j.*, cl.name as crew_lead_name, cl.color FROM jobs j LEFT JOIN crew_leads cl ON j.crew_lead_id = cl.id';
+        const params = [];
+
+        if (status || crew_lead_id) {
+            query += ' WHERE';
+            if (status) {
+                params.push(status);
+                query += ` j.status = $${params.length}`;
+            }
+            if (crew_lead_id) {
+                if (status) query += ' AND';
+                params.push(crew_lead_id);
+                query += ` j.crew_lead_id = $${params.length}`;
+            }
+        }
+
+        query += ' ORDER BY j.created_at DESC';
+
+        const result = await pool.query(query, params);
+        res.json(result.rows);
+    } catch (error) {
+        console.error('Error fetching jobs:', error);
+        res.status(500).json({ error: 'Failed to fetch jobs' });
+    }
+});
+
+// Get single job
+app.get('/api/jobs/:id', async (req, res) => {
+    try {
+        const result = await pool.query(
+            'SELECT j.*, cl.name as crew_lead_name, cl.color FROM jobs j LEFT JOIN crew_leads cl ON j.crew_lead_id = cl.id WHERE j.id = $1',
+            [req.params.id]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Job not found' });
+        }
+
+        res.json(result.rows[0]);
+    } catch (error) {
+        console.error('Error fetching job:', error);
+        res.status(500).json({ error: 'Failed to fetch job' });
+    }
+});
+
+// Create job
+app.post('/api/jobs', async (req, res) => {
+    try {
+        const { job_number, job_name, location, contractor_name, crew_lead_id, start_date, end_date, notes } = req.body;
+
+        const result = await pool.query(
+            'INSERT INTO jobs (job_number, job_name, location, contractor_name, crew_lead_id, start_date, end_date, notes) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
+            [job_number, job_name, location, contractor_name, crew_lead_id, start_date, end_date, notes]
+        );
+
+        res.status(201).json(result.rows[0]);
+    } catch (error) {
+        console.error('Error creating job:', error);
+        res.status(500).json({ error: 'Failed to create job' });
+    }
+});
+
+// Update job
+app.put('/api/jobs/:id', async (req, res) => {
+    try {
+        const { job_name, location, contractor_name, crew_lead_id, status, start_date, end_date, notes } = req.body;
+
+        const result = await pool.query(
+            'UPDATE jobs SET job_name = $1, location = $2, contractor_name = $3, crew_lead_id = $4, status = $5, start_date = $6, end_date = $7, notes = $8, updated_at = CURRENT_TIMESTAMP WHERE id = $9 RETURNING *',
+            [job_name, location, contractor_name, crew_lead_id, status, start_date, end_date, notes, req.params.id]
+        );
+
+        res.json(result.rows[0]);
+    } catch (error) {
+        console.error('Error updating job:', error);
+        res.status(500).json({ error: 'Failed to update job' });
+    }
+});
+
+// ========== CREW LEADS ROUTES ==========
+
+// Get all crew leads
+app.get('/api/crew-leads', async (req, res) => {
+    try {
+        const result = await pool.query('SELECT * FROM crew_leads ORDER BY name');
+        res.json(result.rows);
+    } catch (error) {
+        console.error('Error fetching crew leads:', error);
+        res.status(500).json({ error: 'Failed to fetch crew leads' });
+    }
+});
+
+// Create crew lead
+app.post('/api/crew-leads', async (req, res) => {
+    try {
+        const { name, color } = req.body;
+
+        const result = await pool.query(
+            'INSERT INTO crew_leads (name, color) VALUES ($1, $2) RETURNING *',
+            [name, color]
+        );
+
+        res.status(201).json(result.rows[0]);
+    } catch (error) {
+        console.error('Error creating crew lead:', error);
+        res.status(500).json({ error: 'Failed to create crew lead' });
+    }
+});
+
+// ========== WORKERS ROUTES ==========
+
+// Get all workers
+app.get('/api/workers', async (req, res) => {
+    try {
+        const result = await pool.query('SELECT * FROM workers ORDER BY full_name');
+        res.json(result.rows);
+    } catch (error) {
+        console.error('Error fetching workers:', error);
+        res.status(500).json({ error: 'Failed to fetch workers' });
+    }
+});
+
+// Create worker
+app.post('/api/workers', async (req, res) => {
+    try {
+        const { full_name, role, contact_info, hire_date } = req.body;
+
+        const result = await pool.query(
+            'INSERT INTO workers (full_name, role, contact_info, hire_date) VALUES ($1, $2, $3, $4) RETURNING *',
+            [full_name, role, contact_info, hire_date]
+        );
+
+        res.status(201).json(result.rows[0]);
+    } catch (error) {
+        console.error('Error creating worker:', error);
+        res.status(500).json({ error: 'Failed to create worker' });
+    }
+});
+
+// ========== ITEMS ROUTES ==========
+
+// Get all items
+app.get('/api/items', async (req, res) => {
+    try {
+        const result = await pool.query('SELECT * FROM items ORDER BY name');
+        res.json(result.rows);
+    } catch (error) {
+        console.error('Error fetching items:', error);
+        res.status(500).json({ error: 'Failed to fetch items' });
+    }
+});
+
+// Public items endpoint
+app.get('/api/public/items', async (req, res) => {
+    try {
+        const result = await pool.query('SELECT * FROM items ORDER BY name');
+        res.json(result.rows);
+    } catch (error) {
+        console.error('Error fetching items:', error);
+        res.status(500).json({ error: 'Failed to fetch items' });
+    }
+});
+
+// Get work items for a daily record
+app.get('/api/daily-records/:id/work-items', async (req, res) => {
+    try {
+        const result = await pool.query(
+            'SELECT wi.*, i.name as item_name, i.unit_of_measure FROM work_items wi JOIN items i ON wi.item_id = i.id WHERE wi.daily_record_id = $1 ORDER BY wi.created_at',
+            [req.params.id]
+        );
+        res.json(result.rows);
+    } catch (error) {
+        console.error('Error fetching work items:', error);
+        res.status(500).json({ error: 'Failed to fetch work items' });
+    }
+});
+
+// ========== DAILY RECORDS ROUTES ==========
+
+// Get daily records for a job
+app.get('/api/jobs/:jobId/daily-records', async (req, res) => {
+    try {
+        const result = await pool.query(
+            'SELECT dr.*, w.full_name as foreman_name FROM daily_records dr LEFT JOIN workers w ON dr.foreman_id = w.id WHERE dr.job_id = $1 ORDER BY dr.record_date DESC',
+            [req.params.jobId]
+        );
+
+        res.json(result.rows);
+    } catch (error) {
+        console.error('Error fetching daily records:', error);
+        res.status(500).json({ error: 'Failed to fetch daily records' });
+    }
+});
+
+// Create daily record
+app.post('/api/daily-records', async (req, res) => {
+    try {
+        const { job_id, foreman_id, record_date, notes, work_items, worker_hours } = req.body;
+
+        // Start transaction
+        const client = await pool.connect();
+        try {
+            await client.query('BEGIN');
+
+            // Create daily record
+            const recordResult = await client.query(
+                'INSERT INTO daily_records (job_id, foreman_id, record_date, notes) VALUES ($1, $2, $3, $4) RETURNING *',
+                [job_id, foreman_id, record_date, notes]
+            );
+
+            const dailyRecordId = recordResult.rows[0].id;
+
+            // Add work items
+            if (work_items && work_items.length > 0) {
+                for (const item of work_items) {
+                    await client.query(
+                        'INSERT INTO work_items (daily_record_id, item_id, quantity) VALUES ($1, $2, $3)',
+                        [dailyRecordId, item.item_id, item.quantity]
+                    );
+                }
+            }
+
+            // Add worker hours
+            if (worker_hours && worker_hours.length > 0) {
+                for (const wh of worker_hours) {
+                    await client.query(
+                        'INSERT INTO worker_hours (daily_record_id, worker_id, hours_worked) VALUES ($1, $2, $3)',
+                        [dailyRecordId, wh.worker_id, wh.hours_worked]
+                    );
+                }
+            }
+
+            await client.query('COMMIT');
+            res.status(201).json(recordResult.rows[0]);
+        } catch (error) {
+            await client.query('ROLLBACK');
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        console.error('Error creating daily record:', error);
+        res.status(500).json({ error: 'Failed to create daily record' });
+    }
+});
+
+// ========== PHOTO UPLOAD ROUTES ==========
+
+// Upload photos for a daily record
+app.post('/api/daily-records/:id/photos', photoUpload.array('photos', 10), async (req, res) => {
+    try {
+        const dailyRecordId = req.params.id;
+        
+        // Verify daily record exists
+        const recordCheck = await pool.query('SELECT id FROM daily_records WHERE id = $1', [dailyRecordId]);
+        if (recordCheck.rows.length === 0) {
+            return res.status(404).json({ error: 'Daily record not found' });
+        }
+
+        if (!req.files || req.files.length === 0) {
+            return res.status(400).json({ error: 'No files uploaded' });
+        }
+
+        const uploadedFiles = [];
+        for (const file of req.files) {
+            const result = await pool.query(
+                'INSERT INTO files (daily_record_id, file_path, file_type) VALUES ($1, $2, $3) RETURNING *',
+                [dailyRecordId, '/uploads/photos/' + file.filename, file.mimetype]
+            );
+            uploadedFiles.push(result.rows[0]);
+        }
+
+        res.status(201).json({ files: uploadedFiles });
+    } catch (error) {
+        console.error('Error uploading photos:', error);
+        res.status(500).json({ error: 'Failed to upload photos' });
+    }
+});
+
+// Get photos for a daily record
+app.get('/api/daily-records/:id/photos', async (req, res) => {
+    try {
+        const result = await pool.query(
+            'SELECT * FROM files WHERE daily_record_id = $1 ORDER BY created_at DESC',
+            [req.params.id]
+        );
+        res.json(result.rows);
+    } catch (error) {
+        console.error('Error fetching photos:', error);
+        res.status(500).json({ error: 'Failed to fetch photos' });
+    }
+});
+
+// Delete a photo
+app.delete('/api/photos/:id', async (req, res) => {
+    try {
+        // Get file path first
+        const fileResult = await pool.query('SELECT file_path FROM files WHERE id = $1', [req.params.id]);
+        if (fileResult.rows.length === 0) {
+            return res.status(404).json({ error: 'Photo not found' });
+        }
+
+        const filePath = '.' + fileResult.rows[0].file_path;
+        
+        // Delete from database
+        await pool.query('DELETE FROM files WHERE id = $1', [req.params.id]);
+        
+        // Try to delete file from disk (don't fail if file doesn't exist)
+        try {
+            await fs.unlink(filePath);
+        } catch (e) {
+            console.log('File not found on disk, continuing...');
+        }
+
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Error deleting photo:', error);
+        res.status(500).json({ error: 'Failed to delete photo' });
+    }
+});
+
+// ========== CONCRETE DELIVERIES ROUTES ==========
+
+// Get all concrete deliveries
+app.get('/api/concrete-deliveries', async (req, res) => {
+    try {
+        const { status, job_id } = req.query;
+        let query = `
+            SELECT cd.*, cs.name as supplier_name, j.job_name, j.job_number 
+            FROM concrete_deliveries cd 
+            LEFT JOIN concrete_suppliers cs ON cd.supplier_id = cs.id 
+            LEFT JOIN jobs j ON cd.job_id = j.id
+        `;
+        const params = [];
+
+        if (status || job_id) {
+            query += ' WHERE';
+            if (status) {
+                params.push(status);
+                query += ` cd.status = $${params.length}`;
+            }
+            if (job_id) {
+                if (status) query += ' AND';
+                params.push(job_id);
+                query += ` cd.job_id = $${params.length}`;
+            }
+        }
+
+        query += ' ORDER BY cd.delivery_date DESC';
+
+        const result = await pool.query(query, params);
+        res.json(result.rows);
+    } catch (error) {
+        console.error('Error fetching concrete deliveries:', error);
+        res.status(500).json({ error: 'Failed to fetch concrete deliveries' });
+    }
+});
+
+// Upload and parse concrete invoice
+app.post('/api/concrete-deliveries/upload', authenticateToken, upload.single('invoice'), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ error: 'No file uploaded' });
+        }
+
+        // Read and parse PDF
+        const dataBuffer = await fs.readFile(req.file.path);
+        const pdfData = await pdfParse(dataBuffer);
+        const text = pdfData.text;
+
+        // Extract data from PDF (this is a basic parser - you'll refine based on actual invoice format)
+        const invoiceData = {
+            invoice_number: extractInvoiceNumber(text),
+            delivery_date: extractDeliveryDate(text),
+            cubic_yards: extractCubicYards(text),
+            total_cost: extractTotalCost(text),
+            job_info: extractJobInfo(text),
+            invoice_pdf_path: req.file.path
+        };
+
+        // Try to match to existing job
+        let matchedJobId = null;
+        if (invoiceData.job_info) {
+            const jobResult = await pool.query(
+                'SELECT id FROM jobs WHERE job_name ILIKE $1 OR job_number ILIKE $2 OR location ILIKE $3 LIMIT 1',
+                [`%${invoiceData.job_info}%`, `%${invoiceData.job_info}%`, `%${invoiceData.job_info}%`]
+            );
+            if (jobResult.rows.length > 0) {
+                matchedJobId = jobResult.rows[0].id;
+            }
+        }
+
+        res.json({
+            parsed_data: invoiceData,
+            matched_job_id: matchedJobId,
+            file_path: req.file.path
+        });
+    } catch (error) {
+        console.error('Error parsing invoice:', error);
+        res.status(500).json({ error: 'Failed to parse invoice' });
+    }
+});
+
+// Create concrete delivery
+app.post('/api/concrete-deliveries', async (req, res) => {
+    try {
+        const {
+            invoice_number,
+            supplier_id,
+            job_id,
+            delivery_date,
+            cubic_yards,
+            cost_per_yard,
+            total_cost,
+            invoice_pdf_path,
+            notes
+        } = req.body;
+
+        const result = await pool.query(
+            `INSERT INTO concrete_deliveries 
+            (invoice_number, supplier_id, job_id, delivery_date, cubic_yards, cost_per_yard, total_cost, invoice_pdf_path, status, matched_by_user_id, matched_at, notes) 
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, CURRENT_TIMESTAMP, $11) 
+            RETURNING *`,
+            [invoice_number, supplier_id, job_id, delivery_date, cubic_yards, cost_per_yard, total_cost, invoice_pdf_path, job_id ? 'matched' : 'unmatched', req.user.id, notes]
+        );
+
+        res.status(201).json(result.rows[0]);
+    } catch (error) {
+        console.error('Error creating concrete delivery:', error);
+        res.status(500).json({ error: 'Failed to create concrete delivery' });
+    }
+});
+
+// ========== HELPER FUNCTIONS FOR PDF PARSING ==========
+
+function extractInvoiceNumber(text) {
+    const match = text.match(/Invoice\s*(?:No|Number|#)?:?\s*(\d+)/i);
+    return match ? match[1] : null;
+}
+
+function extractDeliveryDate(text) {
+    const match = text.match(/(?:Inv\s*Date|Date|Delivered):\s*(\d{1,2}\/\d{1,2}\/\d{2,4})/i);
+    return match ? match[1] : null;
+}
+
+function extractCubicYards(text) {
+    const match = text.match(/(\d+\.?\d*)\s*(?:CY|Cubic\s*Yards?|cy)/i);
+    return match ? parseFloat(match[1]) : null;
+}
+
+function extractTotalCost(text) {
+    const match = text.match(/(?:Total|Amount\s*Due)[\s:$]*(\d+\.?\d*)/i);
+    return match ? parseFloat(match[1]) : null;
+}
+
+function extractJobInfo(text) {
+    // Look for address or job number
+    const addressMatch = text.match(/(?:Delivered\s*To|Job|Address):\s*([^\n]+)/i);
+    return addressMatch ? addressMatch[1].trim() : null;
+}
+
+// ========== SERVER START ==========
+
+// Public jobs endpoint (no auth required)
+app.get("/api/public/jobs", async (req, res) => {
+  try {
+    const result = await pool.query("SELECT * FROM jobs ORDER BY job_number");
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+// Public concrete endpoints
+app.get("/api/public/concrete2", async (req, res) => {
+  try {
+    const result = await pool.query("SELECT id, invoice_number, supplier_id, job_id, delivery_date, cubic_yards as yards, total_cost as cost, status, notes FROM concrete_deliveries ORDER BY delivery_date DESC");
+    res.json(result.rows);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.post("/api/public/concrete2", async (req, res) => {
+  try {
+    const { invoice_number, supplier, delivery_date, yards, cost, job_id } = req.body;
+    const result = await pool.query(
+      "INSERT INTO concrete_deliveries (invoice_number, delivery_date, cubic_yards, total_cost, job_id, notes, status) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *",
+      [invoice_number, delivery_date, yards, cost, job_id, "Supplier: " + supplier, job_id ? "matched" : "unmatched"]
+    );
+    res.json(result.rows[0]);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Public workers endpoints
+app.get("/api/public/workers", async (req, res) => {
+  try {
+    const result = await pool.query("SELECT * FROM workers ORDER BY full_name");
+    res.json(result.rows);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.post("/api/public/workers", async (req, res) => {
+  try {
+    const { full_name, role, contact_info } = req.body;
+    const result = await pool.query(
+      "INSERT INTO workers (full_name, role, contact_info, hire_date) VALUES ($1, $2, $3, CURRENT_DATE) RETURNING *",
+      [full_name, role, contact_info]
+    );
+    res.json(result.rows[0]);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Daily Records endpoints
+app.get("/api/public/daily-records", async (req, res) => {
+  try {
+    const result = await pool.query("SELECT dr.*, j.job_number, j.job_name, w.full_name as foreman_name FROM daily_records dr LEFT JOIN jobs j ON dr.job_id = j.id LEFT JOIN workers w ON dr.foreman_id = w.id ORDER BY dr.record_date DESC LIMIT 50");
+    res.json(result.rows);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Helper function to fetch weather data
+async function fetchWeather(date, lat = 40.76, lon = -111.89) {
+  // Default coords are Salt Lake City area - adjust as needed
+  try {
+    const response = await fetch(
+      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,weathercode&timezone=America/Denver&start_date=${date}&end_date=${date}`
+    );
+    const data = await response.json();
+    
+    if (data.daily) {
+      const weatherCodes = {
+        0: 'Clear', 1: 'Mainly Clear', 2: 'Partly Cloudy', 3: 'Overcast',
+        45: 'Foggy', 48: 'Depositing Rime Fog',
+        51: 'Light Drizzle', 53: 'Moderate Drizzle', 55: 'Dense Drizzle',
+        61: 'Slight Rain', 63: 'Moderate Rain', 65: 'Heavy Rain',
+        71: 'Slight Snow', 73: 'Moderate Snow', 75: 'Heavy Snow',
+        77: 'Snow Grains', 80: 'Slight Rain Showers', 81: 'Moderate Rain Showers',
+        82: 'Violent Rain Showers', 85: 'Slight Snow Showers', 86: 'Heavy Snow Showers',
+        95: 'Thunderstorm', 96: 'Thunderstorm with Slight Hail', 99: 'Thunderstorm with Heavy Hail'
+      };
+      
+      return {
+        high: Math.round(data.daily.temperature_2m_max[0] * 9/5 + 32), // Convert to Fahrenheit
+        low: Math.round(data.daily.temperature_2m_min[0] * 9/5 + 32),
+        precipitation: data.daily.precipitation_sum[0],
+        condition: weatherCodes[data.daily.weathercode[0]] || 'Unknown',
+        code: data.daily.weathercode[0]
+      };
+    }
+    return null;
+  } catch (e) {
+    console.error('Weather fetch error:', e);
+    return null;
+  }
+}
+
+app.post("/api/public/daily-records", async (req, res) => {
+  try {
+    const { job_id, foreman_id, record_date, notes, work_items } = req.body;
+    
+    // Auto-fetch weather for the record date
+    const weather = await fetchWeather(record_date);
+    
+    // Start transaction for record + work items
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      
+      const result = await client.query(
+        "INSERT INTO daily_records (job_id, foreman_id, record_date, notes, weather_data) VALUES ($1, $2, $3, $4, $5) RETURNING *",
+        [job_id, foreman_id, record_date, notes, weather ? JSON.stringify(weather) : null]
+      );
+      
+      const recordId = result.rows[0].id;
+      
+      // Insert work items if any
+      if (work_items && work_items.length > 0) {
+        for (const item of work_items) {
+          await client.query(
+            'INSERT INTO work_items (daily_record_id, item_id, quantity) VALUES ($1, $2, $3)',
+            [recordId, item.item_id, item.quantity]
+          );
+        }
+      }
+      
+      await client.query('COMMIT');
+      res.json(result.rows[0]);
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// GET /api/job-costing
+app.get("/api/job-costing", async (req, res) => {
+  try {
+    const result = await pool.query("SELECT j.id, j.job_number, j.job_name, j.contractor_name, j.status, COALESCE(SUM(cd.cubic_yards), 0) as total_yards, COALESCE(SUM(cd.total_cost), 0) as total_concrete_cost, COUNT(cd.invoice_number) as delivery_count FROM jobs j LEFT JOIN concrete_deliveries cd ON cd.job_id = j.id GROUP BY j.id, j.job_number, j.job_name, j.contractor_name, j.status ORDER BY j.status ASC, total_concrete_cost DESC");
+    res.json(result.rows);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// GET /api/job-detail/:id
+app.get("/api/job-detail/:id", async (req, res) => {
+  try {
+    const jobResult = await pool.query("SELECT id, job_number, job_name, location, contractor_name, status, start_date, end_date, notes, income, planned_materials, planned_labor, planned_overhead FROM jobs WHERE id = $1", [req.params.id]);
+    if (jobResult.rows.length === 0) return res.status(404).json({ error: "Job not found" });
+    const concreteResult = await pool.query("SELECT invoice_number, supplier, delivery_date, yards, cost FROM concrete_deliveries WHERE job_id = $1 ORDER BY delivery_date DESC", [req.params.id]);
+    const dailyResult = await pool.query("SELECT delivery_date as date, supplier as activity, yards, cost FROM concrete_deliveries WHERE job_id = $1 ORDER BY delivery_date DESC", [req.params.id]);
+    res.json({ job: jobResult.rows[0], concrete: concreteResult.rows, daily: dailyResult.rows });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// PUT /api/jobs/:id/estimate
+app.put("/api/jobs/:id/estimate", async (req, res) => {
+  const { income, planned_materials, planned_labor, planned_overhead } = req.body;
+  try {
+    const result = await pool.query("UPDATE jobs SET income = $1, planned_materials = $2, planned_labor = $3, planned_overhead = $4 WHERE id = $5 RETURNING id", [income, planned_materials, planned_labor, planned_overhead, req.params.id]);
+    if (result.rows.length === 0) return res.status(404).json({ error: "Job not found" });
+    res.json({ success: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+
+
+// GET /api/job-costing-full
+app.get("/api/job-costing-full", async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT 
+        j.id, j.job_number, j.job_name, j.contractor_name, j.status,
+        j.income,
+        COALESCE(SUM(cd.cubic_yards), 0) as concrete_yards,
+        COALESCE(SUM(cd.total_cost), 0) as concrete_cost,
+        0 as labor_hours,
+        0 as labor_cost
+      FROM jobs j
+      LEFT JOIN concrete_deliveries cd ON cd.job_id = j.id
+      GROUP BY j.id
+      ORDER BY j.status ASC, j.job_number DESC
+    `);
+    res.json(result.rows);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Schedule endpoints
+app.get("/api/public/schedule", async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT js.*, j.job_number, j.job_name, j.location, cl.name as crew_lead_name, cl.color
+      FROM job_schedule js
+      LEFT JOIN jobs j ON js.job_id = j.id
+      LEFT JOIN crew_leads cl ON js.crew_lead_id = cl.id
+      ORDER BY js.scheduled_date DESC
+    `);
+    res.json(result.rows);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.post("/api/public/schedule", async (req, res) => {
+  try {
+    const { job_id, crew_lead_id, scheduled_date, notes } = req.body;
+    const result = await pool.query(
+      "INSERT INTO job_schedule (job_id, crew_lead_id, scheduled_date, notes) VALUES ($1, $2, $3, $4) RETURNING *",
+      [job_id, crew_lead_id, scheduled_date, notes]
+    );
+    res.json(result.rows[0]);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+});

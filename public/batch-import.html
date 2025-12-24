@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Batch Import - Foreman System</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+        }
+        .header {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header h1 { font-size: 24px; }
+        .header a { color: #4fd1c5; text-decoration: none; }
+        .header a:hover { text-decoration: underline; }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Current Stats */
+        .stats-bar {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .stat-card h3 { color: #666; font-size: 14px; margin-bottom: 5px; }
+        .stat-card .value { font-size: 32px; font-weight: bold; color: #1a1a2e; }
+
+        /* Main Import Area */
+        .import-section {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            padding: 30px;
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #1a1a2e;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #4fd1c5;
+        }
+
+        /* Step Indicator */
+        .steps {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 30px;
+        }
+        .step {
+            display: flex;
+            align-items: center;
+            color: #999;
+        }
+        .step.active { color: #1a1a2e; }
+        .step.completed { color: #4fd1c5; }
+        .step-number {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: #e0e0e0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 8px;
+        }
+        .step.active .step-number { background: #1a1a2e; color: white; }
+        .step.completed .step-number { background: #4fd1c5; color: white; }
+        .step-connector {
+            width: 60px;
+            height: 2px;
+            background: #e0e0e0;
+            margin: 0 15px;
+        }
+        .step.completed + .step-connector,
+        .step-connector.done { background: #4fd1c5; }
+
+        /* Data Type Selection */
+        .type-buttons {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .type-btn {
+            padding: 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s;
+        }
+        .type-btn:hover { border-color: #4fd1c5; }
+        .type-btn.active {
+            border-color: #4fd1c5;
+            background: #f0fdf9;
+        }
+        .type-btn h3 { margin-bottom: 5px; color: #1a1a2e; }
+        .type-btn p { font-size: 12px; color: #666; }
+
+        /* File Upload */
+        .upload-area {
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 20px;
+        }
+        .upload-area:hover { border-color: #4fd1c5; background: #f9fffe; }
+        .upload-area.dragover { border-color: #4fd1c5; background: #e6fffa; }
+        .upload-area input { display: none; }
+        .upload-area h3 { margin-bottom: 10px; color: #1a1a2e; }
+        .upload-area p { color: #666; }
+        .file-info {
+            background: #f0fdf9;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            display: none;
+        }
+        .file-info.show { display: block; }
+
+        /* Column Mapping */
+        .mapping-section { margin-top: 20px; }
+        .mapping-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+        .mapping-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .mapping-row label {
+            width: 120px;
+            font-weight: 500;
+            color: #333;
+        }
+        .mapping-row select {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .mapping-row .required::after {
+            content: '*';
+            color: #e53e3e;
+            margin-left: 2px;
+        }
+
+        /* Options */
+        .options-section {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .options-section h4 { margin-bottom: 10px; color: #1a1a2e; }
+        .option-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+        .option-row input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+        }
+
+        /* Preview Table */
+        .preview-section { margin-top: 20px; }
+        .preview-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .preview-header h4 { color: #1a1a2e; }
+        .preview-count { color: #666; font-size: 14px; }
+        .preview-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        .preview-table th, .preview-table td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        .preview-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #333;
+            position: sticky;
+            top: 0;
+        }
+        .preview-table tr:hover { background: #f9fffe; }
+        .table-wrapper {
+            max-height: 400px;
+            overflow: auto;
+            border: 1px solid #eee;
+            border-radius: 8px;
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 12px 24px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .btn-primary {
+            background: #4fd1c5;
+            color: white;
+        }
+        .btn-primary:hover { background: #38b2a8; }
+        .btn-primary:disabled { background: #ccc; cursor: not-allowed; }
+        .btn-secondary {
+            background: #e0e0e0;
+            color: #333;
+        }
+        .btn-secondary:hover { background: #d0d0d0; }
+        .btn-danger {
+            background: #e53e3e;
+            color: white;
+        }
+        .btn-danger:hover { background: #c53030; }
+
+        .button-row {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+
+        /* Results */
+        .results-section {
+            display: none;
+        }
+        .results-section.show { display: block; }
+        .result-summary {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .result-card {
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .result-card.success { background: #c6f6d5; color: #22543d; }
+        .result-card.updated { background: #bee3f8; color: #2a4365; }
+        .result-card.skipped { background: #feebc8; color: #744210; }
+        .result-card.error { background: #fed7d7; color: #742a2a; }
+        .result-card h3 { font-size: 14px; margin-bottom: 5px; }
+        .result-card .value { font-size: 28px; font-weight: bold; }
+
+        .error-list {
+            background: #fff5f5;
+            border: 1px solid #feb2b2;
+            border-radius: 8px;
+            padding: 15px;
+            max-height: 200px;
+            overflow: auto;
+        }
+        .error-list h4 { color: #c53030; margin-bottom: 10px; }
+        .error-item {
+            padding: 8px;
+            border-bottom: 1px solid #feb2b2;
+            font-size: 13px;
+        }
+        .error-item:last-child { border-bottom: none; }
+
+        /* Loading */
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+        .loading.show { display: block; }
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid #e0e0e0;
+            border-top-color: #4fd1c5;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 15px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Instructions */
+        .instructions {
+            background: #ebf8ff;
+            border: 1px solid #90cdf4;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .instructions h4 { color: #2b6cb0; margin-bottom: 10px; }
+        .instructions ol {
+            margin-left: 20px;
+            color: #2c5282;
+        }
+        .instructions li { margin-bottom: 5px; }
+
+        @media (max-width: 768px) {
+            .stats-bar, .type-buttons { grid-template-columns: repeat(2, 1fr); }
+            .mapping-grid { grid-template-columns: 1fr; }
+            .result-summary { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Batch Import</h1>
+        <div>
+            <a href="index.html">Dashboard</a> |
+            <a href="job-costing.html">Job Costing</a> |
+            <a href="qb-import.html">QB Import</a>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Current Stats -->
+        <div class="stats-bar">
+            <div class="stat-card">
+                <h3>Total Jobs</h3>
+                <div class="value" id="statJobs">-</div>
+            </div>
+            <div class="stat-card">
+                <h3>Total Workers</h3>
+                <div class="value" id="statWorkers">-</div>
+            </div>
+            <div class="stat-card">
+                <h3>Daily Records</h3>
+                <div class="value" id="statRecords">-</div>
+            </div>
+            <div class="stat-card">
+                <h3>Concrete Deliveries</h3>
+                <div class="value" id="statConcrete">-</div>
+            </div>
+        </div>
+
+        <!-- Instructions -->
+        <div class="instructions">
+            <h4>How to Import from Ultimate Foreman (or any system)</h4>
+            <ol>
+                <li>Export your data from your current system as CSV or Excel files</li>
+                <li>Select the type of data you're importing (Jobs, Workers, Daily Records, or Concrete)</li>
+                <li>Upload your file - the system will auto-detect column mappings</li>
+                <li>Review and adjust the column mappings if needed</li>
+                <li>Preview the data and click Import to bring it into the system</li>
+            </ol>
+        </div>
+
+        <div class="import-section">
+            <!-- Steps -->
+            <div class="steps">
+                <div class="step active" id="step1">
+                    <span class="step-number">1</span>
+                    <span>Select Type</span>
+                </div>
+                <div class="step-connector"></div>
+                <div class="step" id="step2">
+                    <span class="step-number">2</span>
+                    <span>Upload File</span>
+                </div>
+                <div class="step-connector"></div>
+                <div class="step" id="step3">
+                    <span class="step-number">3</span>
+                    <span>Map Columns</span>
+                </div>
+                <div class="step-connector"></div>
+                <div class="step" id="step4">
+                    <span class="step-number">4</span>
+                    <span>Import</span>
+                </div>
+            </div>
+
+            <!-- Step 1: Data Type Selection -->
+            <div id="typeSection">
+                <h3 class="section-title">Select Data Type to Import</h3>
+                <div class="type-buttons">
+                    <div class="type-btn active" data-type="jobs" onclick="selectType('jobs')">
+                        <h3>Jobs</h3>
+                        <p>Job numbers, names, locations, contractors, dates</p>
+                    </div>
+                    <div class="type-btn" data-type="workers" onclick="selectType('workers')">
+                        <h3>Workers</h3>
+                        <p>Employee names, roles, contact info, hire dates</p>
+                    </div>
+                    <div class="type-btn" data-type="daily_records" onclick="selectType('daily_records')">
+                        <h3>Daily Records</h3>
+                        <p>Work logs, dates, notes, foremen</p>
+                    </div>
+                    <div class="type-btn" data-type="concrete" onclick="selectType('concrete')">
+                        <h3>Concrete</h3>
+                        <p>Deliveries, yards, costs, suppliers</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 2: File Upload -->
+            <div id="uploadSection">
+                <h3 class="section-title">Upload Your Export File</h3>
+                <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
+                    <input type="file" id="fileInput" accept=".csv,.xlsx,.xls" onchange="handleFileSelect(event)">
+                    <h3>Drop your file here or click to browse</h3>
+                    <p>Supports CSV and Excel files (.csv, .xlsx, .xls)</p>
+                </div>
+                <div class="file-info" id="fileInfo">
+                    <strong>File:</strong> <span id="fileName"></span><br>
+                    <strong>Detected Type:</strong> <span id="detectedType"></span><br>
+                    <strong>Rows Found:</strong> <span id="rowCount"></span>
+                </div>
+            </div>
+
+            <!-- Loading -->
+            <div class="loading" id="loadingSection">
+                <div class="spinner"></div>
+                <p>Processing file...</p>
+            </div>
+
+            <!-- Step 3: Column Mapping -->
+            <div id="mappingSection" style="display: none;">
+                <h3 class="section-title">Map Columns to Fields</h3>
+                <p style="color: #666; margin-bottom: 15px;">Match your file's columns to the system fields. Fields marked with * are required.</p>
+
+                <div class="mapping-grid" id="mappingGrid">
+                    <!-- Populated dynamically -->
+                </div>
+
+                <div class="options-section">
+                    <h4>Import Options</h4>
+                    <div class="option-row">
+                        <input type="checkbox" id="optUpdateExisting">
+                        <label for="optUpdateExisting">Update existing records if found (based on job number/name match)</label>
+                    </div>
+                    <div class="option-row">
+                        <input type="checkbox" id="optSkipDuplicates" checked>
+                        <label for="optSkipDuplicates">Skip duplicate records</label>
+                    </div>
+                    <div class="option-row" id="optCreateMissingRow" style="display: none;">
+                        <input type="checkbox" id="optCreateMissing" checked>
+                        <label for="optCreateMissing">Create jobs/workers if not found (for daily records and concrete)</label>
+                    </div>
+                </div>
+
+                <!-- Preview -->
+                <div class="preview-section">
+                    <div class="preview-header">
+                        <h4>Data Preview</h4>
+                        <span class="preview-count">Showing first 20 of <span id="totalRows">0</span> rows</span>
+                    </div>
+                    <div class="table-wrapper">
+                        <table class="preview-table" id="previewTable">
+                            <thead id="previewHead"></thead>
+                            <tbody id="previewBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="button-row">
+                    <button class="btn btn-secondary" onclick="resetImport()">Start Over</button>
+                    <button class="btn btn-primary" onclick="executeImport()" id="importBtn">Import Data</button>
+                </div>
+            </div>
+
+            <!-- Step 4: Results -->
+            <div class="results-section" id="resultsSection">
+                <h3 class="section-title">Import Results</h3>
+
+                <div class="result-summary" id="resultSummary">
+                    <!-- Populated dynamically -->
+                </div>
+
+                <div id="errorList" style="display: none;">
+                    <!-- Errors shown here -->
+                </div>
+
+                <div class="button-row">
+                    <button class="btn btn-secondary" onclick="resetImport()">Import More Data</button>
+                    <a href="index.html" class="btn btn-primary">Go to Dashboard</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '/api';
+        let selectedType = 'jobs';
+        let uploadedData = null;
+        let currentMappings = {};
+
+        // Field definitions for each data type
+        const fieldDefs = {
+            jobs: [
+                { key: 'job_number', label: 'Job Number', required: false },
+                { key: 'job_name', label: 'Job Name', required: true },
+                { key: 'location', label: 'Location/Address', required: false },
+                { key: 'contractor', label: 'Contractor', required: false },
+                { key: 'status', label: 'Status', required: false },
+                { key: 'start_date', label: 'Start Date', required: false },
+                { key: 'end_date', label: 'End Date', required: false },
+                { key: 'income', label: 'Contract Amount', required: false },
+                { key: 'notes', label: 'Notes', required: false }
+            ],
+            workers: [
+                { key: 'full_name', label: 'Full Name', required: true },
+                { key: 'role', label: 'Role/Position', required: false },
+                { key: 'contact_info', label: 'Phone/Contact', required: false },
+                { key: 'hire_date', label: 'Hire Date', required: false },
+                { key: 'hourly_rate', label: 'Hourly Rate', required: false }
+            ],
+            daily_records: [
+                { key: 'job', label: 'Job Name/Number', required: true },
+                { key: 'date', label: 'Date', required: true },
+                { key: 'foreman', label: 'Foreman', required: false },
+                { key: 'notes', label: 'Notes/Description', required: false },
+                { key: 'weather', label: 'Weather', required: false },
+                { key: 'workers', label: 'Crew Size', required: false },
+                { key: 'hours', label: 'Hours', required: false }
+            ],
+            concrete: [
+                { key: 'invoice', label: 'Invoice/Ticket #', required: false },
+                { key: 'job', label: 'Job Name/Number', required: false },
+                { key: 'supplier', label: 'Supplier', required: false },
+                { key: 'date', label: 'Delivery Date', required: false },
+                { key: 'yards', label: 'Cubic Yards', required: true },
+                { key: 'cost', label: 'Total Cost', required: false },
+                { key: 'mix', label: 'Mix Design/PSI', required: false }
+            ]
+        };
+
+        // Load current stats
+        async function loadStats() {
+            try {
+                const res = await fetch(API_BASE + '/batch-import/summary');
+                const data = await res.json();
+                document.getElementById('statJobs').textContent = data.jobs || 0;
+                document.getElementById('statWorkers').textContent = data.workers || 0;
+                document.getElementById('statRecords').textContent = data.daily_records || 0;
+                document.getElementById('statConcrete').textContent = data.concrete_deliveries || 0;
+            } catch (e) {
+                console.error('Failed to load stats:', e);
+            }
+        }
+
+        function selectType(type) {
+            selectedType = type;
+            document.querySelectorAll('.type-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.type === type);
+            });
+
+            // Show/hide create missing option
+            const showCreateMissing = type === 'daily_records' || type === 'concrete';
+            document.getElementById('optCreateMissingRow').style.display = showCreateMissing ? 'flex' : 'none';
+
+            // If we already have data, refresh the mapping UI
+            if (uploadedData) {
+                uploadedData.detected_type = type;
+                showMappingSection();
+            }
+        }
+
+        // File upload handling
+        const uploadArea = document.getElementById('uploadArea');
+
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        });
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                handleFile(file);
+            }
+        }
+
+        async function handleFile(file) {
+            // Validate file type
+            const validTypes = ['.csv', '.xlsx', '.xls'];
+            const ext = '.' + file.name.split('.').pop().toLowerCase();
+            if (!validTypes.includes(ext)) {
+                alert('Please upload a CSV or Excel file');
+                return;
+            }
+
+            // Show loading
+            document.getElementById('loadingSection').classList.add('show');
+            document.getElementById('mappingSection').style.display = 'none';
+
+            // Upload and preview
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('type', selectedType);
+
+            try {
+                const res = await fetch(API_BASE + '/batch-import/preview', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await res.json();
+
+                if (data.error && !data.headers) {
+                    alert('Error: ' + data.error);
+                    document.getElementById('loadingSection').classList.remove('show');
+                    return;
+                }
+
+                uploadedData = data;
+
+                // Update file info
+                document.getElementById('fileName').textContent = data.file_name;
+                document.getElementById('detectedType').textContent = formatType(data.detected_type);
+                document.getElementById('rowCount').textContent = data.row_count;
+                document.getElementById('fileInfo').classList.add('show');
+
+                // Auto-select detected type
+                if (data.detected_type && data.detected_type !== selectedType) {
+                    selectType(data.detected_type);
+                }
+
+                // Update steps
+                updateSteps(3);
+
+                // Show mapping section
+                showMappingSection();
+
+            } catch (e) {
+                alert('Failed to process file: ' + e.message);
+            } finally {
+                document.getElementById('loadingSection').classList.remove('show');
+            }
+        }
+
+        function formatType(type) {
+            const names = {
+                jobs: 'Jobs',
+                workers: 'Workers',
+                daily_records: 'Daily Records',
+                concrete: 'Concrete Deliveries'
+            };
+            return names[type] || type;
+        }
+
+        function showMappingSection() {
+            const grid = document.getElementById('mappingGrid');
+            const fields = fieldDefs[selectedType];
+            const headers = uploadedData.headers;
+            const suggested = uploadedData.suggested_mappings || {};
+
+            grid.innerHTML = '';
+            currentMappings = {};
+
+            fields.forEach(field => {
+                const row = document.createElement('div');
+                row.className = 'mapping-row';
+
+                const label = document.createElement('label');
+                label.textContent = field.label;
+                if (field.required) label.classList.add('required');
+
+                const select = document.createElement('select');
+                select.id = 'map_' + field.key;
+                select.innerHTML = '<option value="">-- Not Mapped --</option>';
+
+                headers.forEach(h => {
+                    const opt = document.createElement('option');
+                    opt.value = h;
+                    opt.textContent = h;
+                    // Auto-select if suggested
+                    if (suggested[field.key] === h) {
+                        opt.selected = true;
+                        currentMappings[field.key] = h;
+                    }
+                    select.appendChild(opt);
+                });
+
+                select.onchange = () => {
+                    currentMappings[field.key] = select.value || null;
+                    updatePreview();
+                };
+
+                row.appendChild(label);
+                row.appendChild(select);
+                grid.appendChild(row);
+            });
+
+            document.getElementById('mappingSection').style.display = 'block';
+            document.getElementById('totalRows').textContent = uploadedData.row_count;
+
+            updatePreview();
+        }
+
+        function updatePreview() {
+            const thead = document.getElementById('previewHead');
+            const tbody = document.getElementById('previewBody');
+            const fields = fieldDefs[selectedType];
+
+            // Header row
+            thead.innerHTML = '<tr>' + fields.map(f => '<th>' + f.label + '</th>').join('') + '</tr>';
+
+            // Data rows
+            const preview = uploadedData.preview || [];
+            tbody.innerHTML = preview.map(row => {
+                return '<tr>' + fields.map(f => {
+                    const col = currentMappings[f.key];
+                    const val = col && row[col] !== undefined ? row[col] : '';
+                    return '<td>' + escapeHtml(String(val)) + '</td>';
+                }).join('') + '</tr>';
+            }).join('');
+        }
+
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        function updateSteps(activeStep) {
+            for (let i = 1; i <= 4; i++) {
+                const step = document.getElementById('step' + i);
+                step.classList.remove('active', 'completed');
+                if (i < activeStep) step.classList.add('completed');
+                if (i === activeStep) step.classList.add('active');
+            }
+        }
+
+        async function executeImport() {
+            // Validate required fields
+            const fields = fieldDefs[selectedType];
+            for (const field of fields) {
+                if (field.required && !currentMappings[field.key]) {
+                    alert('Please map the required field: ' + field.label);
+                    return;
+                }
+            }
+
+            const btn = document.getElementById('importBtn');
+            btn.disabled = true;
+            btn.textContent = 'Importing...';
+
+            const options = {
+                update_existing: document.getElementById('optUpdateExisting').checked,
+                skip_duplicates: document.getElementById('optSkipDuplicates').checked,
+                create_missing: document.getElementById('optCreateMissing')?.checked || false
+            };
+
+            // Determine endpoint
+            const endpoints = {
+                jobs: '/batch-import/jobs',
+                workers: '/batch-import/workers',
+                daily_records: '/batch-import/daily-records',
+                concrete: '/batch-import/concrete'
+            };
+
+            try {
+                const res = await fetch(API_BASE + endpoints[selectedType], {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        mappings: currentMappings,
+                        data: uploadedData.all_data,
+                        options: options
+                    })
+                });
+
+                const result = await res.json();
+
+                if (result.error) {
+                    alert('Import failed: ' + result.error);
+                    btn.disabled = false;
+                    btn.textContent = 'Import Data';
+                    return;
+                }
+
+                showResults(result);
+                updateSteps(4);
+                loadStats();
+
+            } catch (e) {
+                alert('Import failed: ' + e.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Import Data';
+            }
+        }
+
+        function showResults(result) {
+            document.getElementById('mappingSection').style.display = 'none';
+            document.getElementById('resultsSection').classList.add('show');
+
+            const summary = document.getElementById('resultSummary');
+            summary.innerHTML = `
+                <div class="result-card success">
+                    <h3>Imported</h3>
+                    <div class="value">${result.imported || 0}</div>
+                </div>
+                <div class="result-card updated">
+                    <h3>Updated</h3>
+                    <div class="value">${result.updated || 0}</div>
+                </div>
+                <div class="result-card skipped">
+                    <h3>Skipped</h3>
+                    <div class="value">${result.skipped || 0}</div>
+                </div>
+                <div class="result-card error">
+                    <h3>Errors</h3>
+                    <div class="value">${(result.errors || []).length}</div>
+                </div>
+            `;
+
+            // Show additional info
+            if (result.jobs_created) {
+                summary.innerHTML += `
+                    <div class="result-card" style="background: #e9d8fd; color: #553c9a;">
+                        <h3>Jobs Created</h3>
+                        <div class="value">${result.jobs_created}</div>
+                    </div>
+                `;
+            }
+            if (result.workers_created) {
+                summary.innerHTML += `
+                    <div class="result-card" style="background: #e9d8fd; color: #553c9a;">
+                        <h3>Workers Created</h3>
+                        <div class="value">${result.workers_created}</div>
+                    </div>
+                `;
+            }
+            if (result.unmatched) {
+                summary.innerHTML += `
+                    <div class="result-card" style="background: #feebc8; color: #744210;">
+                        <h3>Unmatched to Job</h3>
+                        <div class="value">${result.unmatched}</div>
+                    </div>
+                `;
+            }
+
+            // Show errors if any
+            const errorList = document.getElementById('errorList');
+            if (result.errors && result.errors.length > 0) {
+                errorList.style.display = 'block';
+                errorList.innerHTML = `
+                    <div class="error-list">
+                        <h4>Import Errors</h4>
+                        ${result.errors.map(e => `
+                            <div class="error-item">
+                                <strong>Row ${e.row}:</strong> ${e.error}
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            } else {
+                errorList.style.display = 'none';
+            }
+        }
+
+        function resetImport() {
+            uploadedData = null;
+            currentMappings = {};
+            document.getElementById('fileInput').value = '';
+            document.getElementById('fileInfo').classList.remove('show');
+            document.getElementById('mappingSection').style.display = 'none';
+            document.getElementById('resultsSection').classList.remove('show');
+            updateSteps(1);
+            loadStats();
+        }
+
+        // Initialize
+        loadStats();
+    </script>
+</body>
+</html>

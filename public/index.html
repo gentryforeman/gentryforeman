@@ -1,0 +1,3219 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Foreman System</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --primary: #f97316;
+  --primary-dark: #ea580c;
+  --primary-light: #fed7aa;
+  --bg-dark: #1e293b;
+  --bg-darker: #0f172a;
+  --bg-light: #f8fafc;
+  --text-primary: #1e293b;
+  --text-secondary: #64748b;
+  --border: #e2e8f0;
+  --success: #22c55e;
+  --error: #ef4444;
+  --shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1);
+}
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg-light); color: var(--text-primary); -webkit-tap-highlight-color: transparent; }
+.screen { display: none; }
+.screen.active { display: flex; flex-direction: column; height: 100vh; }
+
+/* Login Screen */
+.login-container { max-width: 400px; margin: 100px auto; padding: 40px; background: white; border-radius: 16px; box-shadow: var(--shadow-lg); }
+.logo { text-align: center; margin-bottom: 30px; }
+.logo h1 { font-size: 48px; margin-bottom: 10px; }
+.logo h2 { color: var(--primary); font-size: 24px; }
+.input-group { margin-bottom: 20px; }
+.input-group label { display: block; margin-bottom: 8px; font-weight: 600; color: var(--text-primary); font-size: 14px; }
+.input-group input, .input-group select, .input-group textarea {
+  width: 100%; padding: 14px 16px; border: 2px solid var(--border); border-radius: 12px;
+  font-size: 16px; background: var(--bg-light); color: var(--text-primary);
+}
+.input-group input:focus, .input-group select:focus, .input-group textarea:focus {
+  outline: none; border-color: var(--primary); background: white;
+}
+.btn { padding: 14px 24px; border: none; border-radius: 12px; font-size: 16px; cursor: pointer; font-weight: 600; transition: all 0.2s; min-height: 48px; }
+.btn-primary { background: var(--primary); color: white; }
+.btn-primary:hover { background: var(--primary-dark); }
+.btn-secondary { background: var(--border); color: var(--text-primary); }
+.btn-success { background: var(--success); color: white; }
+.btn-success:hover { background: #16a34a; }
+.btn-large { width: 100%; padding: 16px; font-size: 18px; }
+
+/* ========== THREE-PANEL LAYOUT ========== */
+.app-layout { display: flex; flex: 1; overflow: hidden; }
+
+/* Top Header Bar */
+.top-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 20px; background: var(--bg-darker); color: white;
+  box-shadow: var(--shadow);
+}
+.top-header h1 { font-size: 20px; font-weight: 700; color: var(--primary); }
+.header-nav { display: flex; gap: 8px; }
+.header-nav button {
+  background: transparent; border: none; color: white; padding: 8px 16px;
+  border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 500;
+  transition: background 0.2s;
+}
+.header-nav button:hover { background: rgba(255,255,255,0.1); }
+.header-nav button.active { background: var(--primary); }
+.mobile-menu-btn { display: none; background: none; border: none; color: white; font-size: 24px; cursor: pointer; padding: 8px; }
+
+/* Left Sidebar - Jobs List */
+.left-sidebar {
+  width: 320px; background: white; border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; flex-shrink: 0;
+  transition: transform 0.3s, width 0.3s;
+}
+.sidebar-header {
+  padding: 12px 16px; background: var(--bg-dark); color: white;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.sidebar-main-tabs { display: flex; gap: 4px; }
+.main-tab {
+  background: rgba(255,255,255,0.1); border: none; color: rgba(255,255,255,0.7);
+  padding: 8px 16px; border-radius: 8px; font-size: 14px; font-weight: 600;
+  cursor: pointer; transition: all 0.2s;
+}
+.main-tab:hover { background: rgba(255,255,255,0.2); color: white; }
+.main-tab.active { background: var(--primary); color: white; }
+.item-count {
+  background: var(--primary); padding: 4px 10px; border-radius: 20px;
+  font-size: 13px; font-weight: 600;
+}
+.sidebar-section { display: none; flex-direction: column; flex: 1; overflow: hidden; }
+.sidebar-section.active { display: flex; }
+.workers-list { flex: 1; overflow-y: auto; }
+.sidebar-search { padding: 12px 16px; border-bottom: 1px solid var(--border); }
+.sidebar-search input {
+  width: 100%; padding: 10px 14px; border: 2px solid var(--border);
+  border-radius: 10px; font-size: 14px; background: var(--bg-light);
+}
+.sidebar-search input:focus { outline: none; border-color: var(--primary); background: white; }
+.sidebar-tabs { display: flex; border-bottom: 1px solid var(--border); }
+.sidebar-tab {
+  flex: 1; padding: 12px; text-align: center; font-size: 13px; font-weight: 600;
+  color: var(--text-secondary); cursor: pointer; border-bottom: 3px solid transparent;
+  transition: all 0.2s;
+}
+.sidebar-tab:hover { background: var(--bg-light); }
+.sidebar-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+.jobs-list { flex: 1; overflow-y: auto; }
+.job-row {
+  display: grid; grid-template-columns: 12px 70px 1fr;
+  padding: 14px 16px; border-bottom: 1px solid var(--border);
+  cursor: pointer; transition: all 0.2s;
+  align-items: center; gap: 12px;
+}
+.job-row:hover { background: var(--bg-light); }
+.job-row.selected { background: var(--primary-light); border-left: 4px solid var(--primary); padding-left: 12px; }
+.job-row.closed { opacity: 0.6; }
+.job-row.closed:hover { opacity: 0.8; }
+.status-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.status-dot.active { background: var(--success); box-shadow: 0 0 6px rgba(34, 197, 94, 0.5); }
+.status-dot.closed { background: #9ca3af; }
+.job-number { font-weight: 700; color: var(--primary); font-size: 13px; }
+.job-name { font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.job-location { font-size: 11px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+.job-client { font-size: 12px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Worker rows */
+.worker-row-item {
+  display: grid; grid-template-columns: 12px 1fr auto;
+  padding: 14px 16px; border-bottom: 1px solid var(--border);
+  cursor: pointer; transition: all 0.2s;
+  align-items: center; gap: 12px;
+}
+.worker-row-item:hover { background: var(--bg-light); }
+.worker-row-item.selected { background: #f3e8ff; border-left: 4px solid #a855f7; padding-left: 12px; }
+.worker-row-item.inactive { opacity: 0.6; }
+.worker-info .worker-name-text { font-weight: 600; font-size: 14px; }
+.worker-info .worker-role { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+.worker-hours-badge { background: var(--bg-light); padding: 4px 10px; border-radius: 12px; font-size: 12px; color: var(--text-secondary); font-weight: 600; }
+
+/* Center - Calendar */
+.center-content { flex: 1; overflow-y: auto; padding: 20px; background: var(--bg-light); }
+.calendar-container { max-width: 1000px; margin: 0 auto; }
+.calendar-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 20px;
+}
+.calendar-title { font-size: 24px; font-weight: 700; color: var(--text-primary); }
+.calendar-nav { display: flex; gap: 8px; }
+.calendar-nav button {
+  padding: 10px 16px; background: white; border: 2px solid var(--border);
+  border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer;
+  transition: all 0.2s;
+}
+.calendar-nav button:hover { border-color: var(--primary); color: var(--primary); }
+.calendar-box {
+  background: white; border-radius: 16px; padding: 20px;
+  box-shadow: var(--shadow); overflow: hidden;
+}
+.calendar-grid {
+  display: grid; grid-template-columns: repeat(7, 1fr);
+  gap: 1px; background: var(--border); border-radius: 12px; overflow: hidden;
+}
+.calendar-header-cell {
+  background: var(--bg-dark); color: white; padding: 12px;
+  text-align: center; font-weight: 600; font-size: 13px;
+}
+.calendar-day {
+  background: white; padding: 10px; min-height: 100px;
+  cursor: pointer; transition: background 0.2s; position: relative;
+}
+.calendar-day:hover { background: var(--bg-light); }
+.calendar-day.today { background: #fff7ed; }
+.calendar-day.today .day-number { background: var(--primary); color: white; }
+.calendar-day.drag-over { background: var(--primary-light); border: 2px dashed var(--primary); }
+.day-number {
+  font-weight: 700; font-size: 14px; color: var(--text-primary);
+  width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
+  border-radius: 50%; margin-bottom: 6px;
+}
+.calendar-day.other-month { background: var(--bg-light); }
+.calendar-day.other-month .day-number { color: var(--text-secondary); }
+.job-tag {
+  font-size: 11px; padding: 4px 8px; border-radius: 6px;
+  margin-top: 3px; color: white; overflow: hidden;
+  white-space: nowrap; text-overflow: ellipsis;
+  font-weight: 500; transition: transform 0.1s, box-shadow 0.1s;
+}
+.job-tag:hover { transform: scale(1.05); box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+.job-tag.dragging { opacity: 0.5; transform: scale(0.95); }
+
+/* Scheduled Job Popup Menu */
+.job-popup-menu {
+  position: fixed; background: white; border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+  z-index: 1001; min-width: 200px; overflow: hidden; animation: popIn 0.15s ease-out;
+}
+@keyframes popIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.job-popup-header { padding: 14px 16px; background: var(--bg-dark); color: white; }
+.job-popup-header .job-num { color: var(--primary); font-weight: 700; font-size: 13px; }
+.job-popup-header .job-name { font-size: 15px; font-weight: 600; margin-top: 2px; }
+.job-popup-header .job-crew { font-size: 12px; opacity: 0.8; margin-top: 4px; }
+.job-popup-actions { padding: 8px; }
+.job-popup-btn {
+  display: flex; align-items: center; gap: 10px; width: 100%; padding: 12px 14px;
+  background: none; border: none; font-size: 14px; color: var(--text-primary);
+  cursor: pointer; border-radius: 8px; text-align: left; transition: background 0.2s;
+}
+.job-popup-btn:hover { background: var(--bg-light); }
+.job-popup-btn.danger { color: #dc2626; }
+.job-popup-btn.danger:hover { background: #fef2f2; }
+.job-popup-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 1000; }
+.more-jobs { font-size: 11px; color: var(--text-secondary); margin-top: 4px; font-weight: 500; }
+.crew-legend {
+  display: flex; flex-wrap: wrap; gap: 16px; padding: 16px 20px;
+  background: white; border-radius: 12px; margin-top: 16px; box-shadow: var(--shadow);
+}
+.crew-legend-title { font-weight: 600; color: var(--text-secondary); font-size: 13px; }
+.crew-item { display: flex; align-items: center; gap: 8px; }
+.crew-color { width: 14px; height: 14px; border-radius: 4px; }
+.crew-name { font-size: 13px; color: var(--text-primary); }
+
+/* Right Panel - Job Details */
+.right-panel {
+  width: 380px; background: white; border-left: 1px solid var(--border);
+  display: flex; flex-direction: column; flex-shrink: 0;
+  transform: translateX(100%); transition: transform 0.3s;
+  position: absolute; right: 0; top: 0; bottom: 0; z-index: 100;
+  box-shadow: -4px 0 20px rgba(0,0,0,0.1);
+}
+.right-panel.open { transform: translateX(0); }
+@media (min-width: 1200px) {
+  .right-panel { position: relative; transform: translateX(0); box-shadow: none; }
+  .right-panel:not(.has-job):not(.has-worker) { display: none; }
+  .right-panel.has-job, .right-panel.has-worker { display: flex; }
+}
+.panel-header {
+  padding: 20px; background: var(--bg-dark); color: white;
+  display: flex; justify-content: space-between; align-items: flex-start;
+}
+.panel-job-info h2 { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+.panel-job-number { color: var(--primary); font-weight: 600; font-size: 14px; }
+.close-panel-btn {
+  background: rgba(255,255,255,0.1); border: none; color: white;
+  width: 36px; height: 36px; border-radius: 8px; cursor: pointer;
+  font-size: 18px; transition: background 0.2s;
+}
+.close-panel-btn:hover { background: rgba(255,255,255,0.2); }
+.panel-tabs { display: flex; border-bottom: 1px solid var(--border); }
+.panel-tabs.foreman-tabs .panel-tab { font-size: 11px; padding: 12px 8px; }
+.panel-tab {
+  flex: 1; padding: 14px; text-align: center; font-size: 14px; font-weight: 600;
+  color: var(--text-secondary); cursor: pointer; border-bottom: 3px solid transparent;
+  transition: all 0.2s;
+}
+.panel-tab:hover { background: var(--bg-light); }
+.panel-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+/* Takeoffs Tab Styles */
+.takeoff-item { background: white; border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 12px; }
+.takeoff-item.complete { border-color: var(--success); background: #f0fdf4; }
+.takeoff-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.takeoff-name { font-weight: 600; font-size: 15px; color: var(--text-primary); }
+.takeoff-remaining { font-size: 13px; color: var(--text-secondary); }
+.takeoff-remaining.complete { color: var(--success); font-weight: 600; }
+.progress-bar { height: 10px; background: #e5e7eb; border-radius: 5px; overflow: hidden; margin-bottom: 8px; }
+.progress-fill { height: 100%; background: var(--primary); border-radius: 5px; transition: width 0.3s; }
+.progress-fill.complete { background: var(--success); }
+.progress-text { font-size: 12px; color: var(--text-secondary); display: flex; justify-content: space-between; }
+.takeoff-action { margin-top: 12px; }
+.takeoff-action .btn { width: 100%; padding: 12px; font-size: 14px; min-height: 48px; }
+
+/* Production Log Styles */
+.production-item { display: flex; align-items: center; padding: 16px; background: white; border: 2px solid var(--border); border-radius: 12px; margin-bottom: 10px; cursor: pointer; transition: all 0.2s; min-height: 60px; }
+.production-item:hover { border-color: var(--primary); background: #fff7ed; }
+.production-item:active { transform: scale(0.98); }
+.production-icon { font-size: 24px; margin-right: 12px; }
+.production-info { flex: 1; }
+.production-name { font-weight: 600; font-size: 15px; }
+.production-remaining { font-size: 13px; color: var(--text-secondary); margin-top: 2px; }
+.production-arrow { font-size: 20px; color: var(--text-secondary); }
+
+/* Comparison Tab Styles */
+.comparison-item { display: flex; align-items: center; padding: 14px; background: white; border-radius: 10px; margin-bottom: 10px; border-left: 4px solid var(--border); }
+.comparison-item.ahead { border-left-color: var(--success); background: #f0fdf4; }
+.comparison-item.behind { border-left-color: var(--error); background: #fef2f2; }
+.comparison-item.on_track { border-left-color: var(--primary); background: #fff7ed; }
+.comparison-name { flex: 1; font-weight: 500; }
+.comparison-value { font-weight: 700; font-size: 14px; }
+.comparison-value.ahead { color: var(--success); }
+.comparison-value.behind { color: var(--error); }
+.comparison-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
+.summary-stat { text-align: center; padding: 12px; background: var(--bg-light); border-radius: 10px; }
+.summary-stat .value { font-size: 24px; font-weight: 700; }
+.summary-stat .label { font-size: 11px; color: var(--text-secondary); text-transform: uppercase; }
+.summary-stat.complete .value { color: var(--success); }
+.summary-stat.in-progress .value { color: var(--primary); }
+.summary-stat.pending .value { color: var(--text-secondary); }
+
+/* Plans Tab Styles */
+.plans-upload { border: 2px dashed var(--border); border-radius: 12px; padding: 30px; text-align: center; cursor: pointer; transition: all 0.2s; margin-bottom: 16px; }
+.plans-upload:hover { border-color: var(--primary); background: #fff7ed; }
+.plans-upload-icon { font-size: 40px; margin-bottom: 10px; }
+.plans-upload-text { color: var(--text-secondary); font-size: 14px; }
+.plan-item { display: flex; align-items: center; padding: 14px; background: white; border: 1px solid var(--border); border-radius: 10px; margin-bottom: 10px; cursor: pointer; }
+.plan-item:hover { border-color: var(--primary); }
+.plan-icon { font-size: 28px; margin-right: 12px; }
+.plan-name { flex: 1; font-weight: 500; font-size: 14px; }
+.plan-date { font-size: 12px; color: var(--text-secondary); }
+.plan-delete { background: none; border: none; color: var(--error); font-size: 18px; cursor: pointer; padding: 8px; }
+
+/* PDF Viewer */
+.pdf-viewer { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); z-index: 2000; flex-direction: column; }
+.pdf-toolbar { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; background: #1e293b; color: white; flex-wrap: wrap; gap: 8px; }
+.pdf-btn { background: rgba(255,255,255,0.1); border: none; color: white; font-size: 14px; padding: 8px 14px; cursor: pointer; border-radius: 6px; transition: background 0.2s; }
+.pdf-btn:hover { background: rgba(255,255,255,0.2); }
+.pdf-controls { display: flex; align-items: center; gap: 8px; }
+.pdf-zoom { display: flex; gap: 4px; }
+.pdf-canvas-container { flex: 1; overflow: auto; display: flex; align-items: flex-start; justify-content: center; padding: 20px; }
+.pdf-canvas-wrapper { position: relative; display: inline-block; }
+.pdf-canvas-wrapper canvas { display: block; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
+.annotation-canvas { position: absolute; top: 0; left: 0; pointer-events: none; cursor: crosshair; }
+.annotation-canvas.active { pointer-events: auto; }
+.pdf-markup-tools { display: flex; align-items: center; gap: 8px; }
+.markup-colors { display: flex; gap: 4px; }
+.color-btn { width: 24px; height: 24px; border: 2px solid transparent; border-radius: 50%; cursor: pointer; transition: transform 0.15s; }
+.color-btn:hover { transform: scale(1.1); }
+.color-btn.active { border-color: white; transform: scale(1.15); }
+.markup-toggle.active { background: #22c55e !important; }
+
+/* Production Modal */
+.production-modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1500; display: none; align-items: flex-end; justify-content: center; }
+.production-modal.active { display: flex; }
+.production-modal-content { background: white; width: 100%; max-width: 500px; border-radius: 20px 20px 0 0; padding: 24px; max-height: 80vh; overflow-y: auto; }
+.production-modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.production-modal-title { font-size: 18px; font-weight: 700; }
+.production-modal-close { background: none; border: none; font-size: 24px; cursor: pointer; padding: 4px; }
+.production-input-group { margin-bottom: 20px; }
+.production-input-group label { display: block; font-size: 14px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px; }
+.production-input { width: 100%; padding: 16px; font-size: 24px; font-weight: 700; text-align: center; border: 2px solid var(--border); border-radius: 12px; }
+.production-input:focus { outline: none; border-color: var(--primary); }
+.production-unit { font-size: 14px; color: var(--text-secondary); text-align: center; margin-top: 8px; }
+.production-save-btn { width: 100%; padding: 16px; font-size: 16px; font-weight: 600; background: var(--success); color: white; border: none; border-radius: 12px; cursor: pointer; min-height: 56px; }
+.panel-content { flex: 1; overflow-y: auto; padding: 20px; }
+.info-card {
+  background: var(--bg-light); border-radius: 12px; padding: 16px;
+  margin-bottom: 12px;
+}
+.info-card-title { font-size: 12px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase; margin-bottom: 8px; }
+.info-card-value { font-size: 24px; font-weight: 700; color: var(--text-primary); }
+.info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.stat-card {
+  background: white; border: 1px solid var(--border); border-radius: 12px;
+  padding: 16px; text-align: center;
+}
+.stat-value { font-size: 28px; font-weight: 700; color: var(--primary); }
+.stat-label { font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
+.panel-actions { padding: 16px 20px; border-top: 1px solid var(--border); background: white; }
+.panel-actions .btn { width: 100%; margin-bottom: 8px; }
+.panel-actions .btn:last-child { margin-bottom: 0; }
+.detail-section { margin-bottom: 20px; }
+.detail-section h4 { font-size: 13px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase; margin-bottom: 10px; }
+.detail-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); }
+.detail-row:last-child { border-bottom: none; }
+.detail-label { color: var(--text-secondary); font-size: 14px; }
+.detail-value { font-weight: 600; font-size: 14px; }
+
+/* Mobile Responsive */
+@media (max-width: 1024px) {
+  .left-sidebar { position: absolute; left: 0; top: 0; bottom: 0; z-index: 200; transform: translateX(-100%); }
+  .left-sidebar.open { transform: translateX(0); box-shadow: 4px 0 20px rgba(0,0,0,0.2); }
+  .mobile-menu-btn { display: block; }
+  .right-panel { width: 100%; max-width: 400px; }
+}
+@media (max-width: 640px) {
+  .right-panel { max-width: 100%; }
+  .job-row { grid-template-columns: 70px 1fr; }
+  .job-row .job-client { display: none; }
+  .calendar-day { min-height: 70px; padding: 6px; }
+  .day-number { width: 24px; height: 24px; font-size: 12px; }
+  .job-tag { font-size: 10px; padding: 2px 6px; }
+}
+
+/* Overlay for mobile */
+.sidebar-overlay {
+  display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.5); z-index: 150;
+}
+.sidebar-overlay.open { display: block; }
+
+/* ========== MODALS ========== */
+.modal {
+  display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0,0,0,0.5); justify-content: center; align-items: flex-end; z-index: 1002;
+}
+.modal-content {
+  background: white; border-radius: 20px 20px 0 0; width: 100%; max-width: 600px;
+  max-height: 95vh; overflow: auto; animation: slideUp 0.3s ease-out;
+}
+@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+.modal-header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 16px 20px; border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; background: white; z-index: 10;
+}
+.modal-header h2 { margin: 0; font-size: 18px; }
+.modal-body { padding: 20px; }
+.modal-footer {
+  display: flex; gap: 10px; padding: 16px 20px; border-top: 1px solid var(--border);
+  position: sticky; bottom: 0; background: white;
+}
+.modal-footer .btn { flex: 1; }
+.icon-btn {
+  background: none; border: none; font-size: 24px; cursor: pointer;
+  padding: 8px; color: var(--text-primary); min-width: 44px; min-height: 44px;
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* Toast Notifications */
+.toast-container {
+  position: fixed; top: 20px; right: 20px; z-index: 9999;
+  display: flex; flex-direction: column; gap: 10px; max-width: 90%;
+}
+.toast {
+  padding: 14px 20px; border-radius: 12px; color: white; font-size: 14px; font-weight: 500;
+  box-shadow: var(--shadow-lg); animation: toastIn 0.3s ease-out;
+  display: flex; align-items: center; gap: 10px; min-width: 280px;
+}
+.toast.success { background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); }
+.toast.error { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); }
+.toast.warning { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
+.toast.info { background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); }
+.toast-icon { font-size: 20px; }
+.toast-message { flex: 1; }
+.toast-close { background: none; border: none; color: white; opacity: 0.7; cursor: pointer; font-size: 18px; padding: 0 4px; }
+.toast-close:hover { opacity: 1; }
+@keyframes toastIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+@keyframes toastOut { from { transform: translateX(0); opacity: 1; } to { transform: translateX(100%); opacity: 0; } }
+
+/* Form Validation Styles */
+.input-group.error input, .input-group.error select, .input-group.error textarea { border-color: var(--error); background: #fef2f2; }
+.input-group.error label { color: #dc2626; }
+.error-message { color: #dc2626; font-size: 12px; margin-top: 6px; display: flex; align-items: center; gap: 4px; }
+.error-message::before { content: '!'; background: #dc2626; color: white; width: 16px; height: 16px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; }
+.input-group.success input, .input-group.success select { border-color: var(--success); }
+.required::after { content: ' *'; color: var(--error); }
+
+/* Loading States */
+.btn.loading { position: relative; color: transparent !important; pointer-events: none; }
+.btn.loading::after { content: ''; position: absolute; width: 20px; height: 20px; top: 50%; left: 50%; margin-left: -10px; margin-top: -10px; border: 2px solid transparent; border-top-color: white; border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* Daily Record Form Styles */
+.photo-upload-area { border: 2px dashed var(--border); border-radius: 12px; padding: 24px; text-align: center; cursor: pointer; transition: all 0.2s; background: var(--bg-light); min-height: 80px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; }
+.photo-upload-area:hover { border-color: var(--primary); background: #fff7ed; }
+.photo-upload-area.dragover { border-color: var(--primary); background: var(--primary-light); }
+.photo-upload-area .upload-icon { font-size: 32px; }
+.photo-upload-area p { margin: 0; color: var(--text-secondary); font-size: 14px; }
+.photo-preview { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
+.photo-thumb { position: relative; width: 80px; height: 80px; border-radius: 12px; overflow: hidden; }
+.photo-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.photo-thumb .remove-photo { position: absolute; top: 4px; right: 4px; background: rgba(239,68,68,0.9); color: white; border: none; border-radius: 50%; width: 24px; height: 24px; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.worker-hours-section { background: var(--bg-light); border-radius: 12px; padding: 16px; margin-top: 12px; }
+.worker-hours-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.worker-hours-header h4 { font-size: 14px; font-weight: 600; color: var(--text-secondary); }
+.worker-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+.worker-row:last-child { border-bottom: none; }
+.worker-name { flex: 1; font-size: 15px; }
+.worker-hours-input { width: 80px; padding: 10px 12px; border: 2px solid var(--border); border-radius: 10px; font-size: 16px; text-align: center; background: white; }
+.worker-hours-input:focus { outline: none; border-color: var(--primary); }
+.add-worker-btn { padding: 10px 16px; background: var(--border); color: var(--text-secondary); border: none; border-radius: 10px; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 6px; min-height: 44px; }
+.add-worker-btn:hover { background: #cbd5e1; }
+.quick-notes { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.note-chip { padding: 10px 16px; background: var(--border); border: none; border-radius: 20px; font-size: 14px; cursor: pointer; color: var(--text-secondary); transition: all 0.2s; min-height: 40px; }
+.note-chip:hover { background: #cbd5e1; }
+.note-chip.selected { background: var(--primary); color: white; }
+
+/* Multi-select dropdown for work done */
+.multiselect-container { position: relative; }
+.multiselect-trigger { width: 100%; padding: 14px 16px; background: white; border: 2px solid var(--border); border-radius: 12px; font-size: 15px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; min-height: 52px; }
+.multiselect-trigger:hover { border-color: var(--primary); }
+.multiselect-trigger.open { border-color: var(--primary); border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+.multiselect-dropdown { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 2px solid var(--primary); border-top: none; border-radius: 0 0 12px 12px; max-height: 250px; overflow-y: auto; z-index: 100; display: none; }
+.multiselect-dropdown.open { display: block; }
+.multiselect-option { display: flex; align-items: center; padding: 12px 16px; cursor: pointer; transition: background 0.15s; gap: 12px; }
+.multiselect-option:hover { background: var(--bg-secondary); }
+.multiselect-option input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--primary); cursor: pointer; }
+.multiselect-option label { flex: 1; cursor: pointer; font-size: 14px; }
+.selected-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.selected-tag { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; background: var(--primary); color: white; border-radius: 20px; font-size: 13px; }
+.selected-tag .remove-tag { cursor: pointer; font-weight: bold; opacity: 0.8; }
+.selected-tag .remove-tag:hover { opacity: 1; }
+
+/* Work item with quantity input */
+.work-item-row { display: flex; align-items: center; gap: 12px; padding: 12px; background: var(--bg-secondary); border-radius: 10px; margin-bottom: 8px; }
+.work-item-name { flex: 1; font-weight: 500; font-size: 14px; }
+.work-item-qty { display: flex; align-items: center; gap: 6px; }
+.work-item-qty input { width: 80px; padding: 8px 10px; border: 2px solid var(--border); border-radius: 8px; font-size: 15px; font-weight: 600; text-align: center; }
+.work-item-qty input:focus { outline: none; border-color: var(--primary); }
+.work-item-unit { font-size: 13px; color: var(--text-secondary); font-weight: 600; min-width: 30px; }
+.work-item-remove { background: none; border: none; color: var(--error); font-size: 18px; cursor: pointer; padding: 4px 8px; }
+.running-totals { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; padding: 16px; background: linear-gradient(135deg, var(--bg-dark) 0%, var(--bg-darker) 100%); border-radius: 16px; color: white; }
+.total-item { text-align: center; }
+.total-value { font-size: 28px; font-weight: 700; }
+.total-label { font-size: 12px; opacity: 0.9; margin-top: 4px; }
+.weather-display { display: flex; align-items: center; gap: 10px; padding: 12px 16px; background: linear-gradient(135deg, #0ea5e9 0%, #38bdf8 100%); border-radius: 12px; color: white; margin-bottom: 16px; }
+.weather-icon { font-size: 32px; }
+.weather-info { flex: 1; }
+.weather-condition { font-size: 15px; font-weight: 600; }
+.weather-temps { font-size: 13px; opacity: 0.9; }
+.yards-input-group { display: flex; align-items: center; gap: 12px; padding: 16px; background: #fef3c7; border-radius: 12px; margin-bottom: 16px; }
+.yards-input-group .icon { font-size: 32px; }
+.yards-input-group .input-wrapper { flex: 1; }
+.yards-input-group label { display: block; font-size: 12px; color: #92400e; font-weight: 600; margin-bottom: 4px; }
+.yards-input { width: 100%; padding: 12px; border: 2px solid #fcd34d; border-radius: 10px; font-size: 20px; font-weight: 700; text-align: center; background: white; }
+.yards-input:focus { outline: none; border-color: #f59e0b; }
+.record-photos { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.record-photos img { width: 60px; height: 60px; object-fit: cover; border-radius: 8px; cursor: pointer; }
+
+/* Ultimate Foreman Style - Work/Items Table */
+.work-items-section { margin-top: 16px; }
+.work-items-tab-bar { display: flex; gap: 0; margin-bottom: 0; }
+.work-items-tab { flex: 1; padding: 12px 16px; background: #e5e7eb; border: none; font-size: 14px; font-weight: 600; color: #6b7280; cursor: pointer; transition: all 0.2s; }
+.work-items-tab:first-child { border-radius: 8px 0 0 0; }
+.work-items-tab:last-child { border-radius: 0 8px 0 0; }
+.work-items-tab.active { background: #f97316; color: white; }
+.work-items-container { background: white; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 12px 12px; overflow: hidden; }
+.work-category { border-bottom: 1px solid #e5e7eb; }
+.work-category:last-child { border-bottom: none; }
+.work-category-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; background: #f9fafb; cursor: pointer; user-select: none; transition: background 0.2s; }
+.work-category-header:hover { background: #f3f4f6; }
+.work-category-header .category-left { display: flex; align-items: center; gap: 10px; }
+.work-category-header .category-icon { font-size: 18px; }
+.work-category-header .category-name { font-weight: 600; font-size: 14px; color: #1f2937; }
+.work-category-header .category-count { font-size: 12px; color: #6b7280; background: #e5e7eb; padding: 2px 8px; border-radius: 10px; }
+.work-category-header .category-arrow { font-size: 12px; color: #9ca3af; transition: transform 0.2s; }
+.work-category.collapsed .category-arrow { transform: rotate(-90deg); }
+.work-category.collapsed .work-items-list { display: none; }
+.work-items-list { }
+.work-item-row { display: flex; align-items: center; padding: 12px 16px; border-top: 1px solid #f3f4f6; transition: background 0.15s; }
+.work-item-row:hover { background: #fefce8; }
+.work-item-row.checked { background: #fff7ed; }
+.work-item-checkbox { width: 22px; height: 22px; border: 2px solid #d1d5db; border-radius: 4px; margin-right: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; flex-shrink: 0; }
+.work-item-checkbox:hover { border-color: #f97316; }
+.work-item-checkbox.checked { background: #f97316; border-color: #f97316; }
+.work-item-checkbox.checked::after { content: '✓'; color: white; font-size: 14px; font-weight: bold; }
+.work-item-name { flex: 1; font-size: 14px; color: #374151; font-weight: 500; }
+.work-item-qty { width: 50px; text-align: center; font-size: 13px; color: #6b7280; }
+.work-item-uom { width: 45px; text-align: center; font-size: 12px; color: #9ca3af; text-transform: uppercase; }
+.work-item-done { width: 70px; }
+.work-item-done input { width: 100%; padding: 8px 6px; border: 2px solid #e5e7eb; border-radius: 6px; font-size: 14px; font-weight: 600; text-align: center; background: white; transition: all 0.2s; }
+.work-item-done input:focus { outline: none; border-color: #f97316; box-shadow: 0 0 0 3px rgba(249,115,22,0.1); }
+.work-item-done input.has-value { background: #fff7ed; border-color: #fdba74; }
+.work-items-header { display: flex; align-items: center; padding: 10px 16px; background: #f9fafb; border-bottom: 1px solid #e5e7eb; font-size: 11px; font-weight: 600; color: #6b7280; text-transform: uppercase; }
+.work-items-header .col-check { width: 34px; }
+.work-items-header .col-name { flex: 1; }
+.work-items-header .col-qty { width: 50px; text-align: center; }
+.work-items-header .col-uom { width: 45px; text-align: center; }
+.work-items-header .col-done { width: 70px; text-align: center; }
+.work-items-empty { padding: 50px 20px; text-align: center; color: #9ca3af; }
+.work-items-empty-icon { font-size: 48px; margin-bottom: 12px; opacity: 0.4; }
+.work-items-empty p { margin: 0; font-size: 14px; }
+.work-items-empty p.sub { font-size: 12px; margin-top: 4px; color: #d1d5db; }
+
+/* Mobile Quick Actions Bar */
+.mobile-actions {
+  display: none; position: fixed; bottom: 0; left: 0; right: 0;
+  background: white; border-top: 1px solid var(--border);
+  padding: 12px 16px; z-index: 100;
+  box-shadow: 0 -4px 12px rgba(0,0,0,0.1);
+}
+@media (max-width: 1024px) {
+  .mobile-actions { display: flex; gap: 8px; }
+  .mobile-actions .btn { flex: 1; font-size: 14px; padding: 12px; }
+  .center-content { padding-bottom: 80px; }
+}
+</style>
+</head>
+<body>
+<script>
+// Immediate session check - runs before DOM renders to prevent login flash
+if (localStorage.getItem('foreman_logged_in') === 'true') {
+  document.write('<style>#login-screen{display:none!important}#dashboard-screen{display:flex!important}</style>');
+}
+</script>
+<div id="app">
+
+<!-- Login Screen -->
+<div id="login-screen" class="screen active">
+<div class="login-container">
+<div class="logo"><h1>🏗️</h1><h2>Foreman System</h2></div>
+<div class="input-group"><label>Email</label><input type="email" id="email"></div>
+<div class="input-group"><label>Password</label><input type="password" id="password"></div>
+<button class="btn btn-primary btn-large" onclick="doLogin()">Login</button>
+</div>
+</div>
+
+<!-- Dashboard Screen - Three Panel Layout -->
+<div id="dashboard-screen" class="screen">
+
+  <!-- Top Header -->
+  <header class="top-header">
+    <button class="mobile-menu-btn" onclick="toggleSidebar()">☰</button>
+    <h1>FOREMAN SYSTEM</h1>
+    <div class="header-nav">
+      <button class="active" onclick="showView('calendar')">Calendar</button>
+      <button onclick="showView('today')">Today</button>
+      <button onclick="window.location.href='/job-costing.html'">Costing</button>
+      <button onclick="doLogout()">Logout</button>
+    </div>
+  </header>
+
+  <div class="app-layout">
+
+    <!-- Left Sidebar - Jobs & Workers List -->
+    <aside class="left-sidebar" id="left-sidebar">
+      <!-- Main toggle: Jobs vs Workers -->
+      <div class="sidebar-header">
+        <div class="sidebar-main-tabs">
+          <button class="main-tab active" id="jobs-main-tab" onclick="showSidebarSection('jobs')">Jobs</button>
+          <button class="main-tab" id="workers-main-tab" onclick="showSidebarSection('workers')">Workers</button>
+        </div>
+        <span class="item-count" id="item-count">0</span>
+      </div>
+
+      <!-- Jobs Section -->
+      <div id="jobs-section" class="sidebar-section active">
+        <div class="sidebar-search">
+          <input type="text" id="job-search" placeholder="Search jobs..." oninput="filterJobs()">
+        </div>
+        <div class="sidebar-tabs">
+          <div class="sidebar-tab active" onclick="setJobFilter('active')">Active</div>
+          <div class="sidebar-tab" onclick="setJobFilter('closed')">Closed</div>
+          <div class="sidebar-tab" onclick="setJobFilter('all')">All</div>
+        </div>
+        <div class="jobs-list" id="jobs-list"></div>
+      </div>
+
+      <!-- Workers Section -->
+      <div id="workers-section" class="sidebar-section">
+        <div class="sidebar-search">
+          <input type="text" id="worker-search" placeholder="Search workers..." oninput="filterWorkersSidebar()">
+        </div>
+        <div class="sidebar-tabs">
+          <div class="sidebar-tab active" id="workers-active-tab" onclick="setWorkerFilter('active')">Active</div>
+          <div class="sidebar-tab" id="workers-inactive-tab" onclick="setWorkerFilter('inactive')">Inactive</div>
+          <div class="sidebar-tab" id="workers-all-tab" onclick="setWorkerFilter('all')">All</div>
+        </div>
+        <div class="workers-list" id="workers-list"></div>
+      </div>
+    </aside>
+
+    <!-- Sidebar Overlay (mobile) -->
+    <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+    <!-- Center - Calendar -->
+    <main class="center-content" id="center-content">
+      <div id="calendar-view" class="view active"></div>
+      <div id="today-view" class="view"></div>
+      <div id="jobs-view" class="view"></div>
+      <div id="concrete-view" class="view"></div>
+      <div id="workers-view" class="view"></div>
+    </main>
+
+    <!-- Right Panel - Job Details -->
+    <aside class="right-panel" id="right-panel">
+      <div class="panel-header">
+        <div class="panel-job-info">
+          <div class="panel-job-number" id="panel-job-number">#00000</div>
+          <h2 id="panel-job-name">Select a Job</h2>
+        </div>
+        <button class="close-panel-btn" onclick="closeRightPanel()">✕</button>
+      </div>
+      <div class="panel-tabs foreman-tabs">
+        <div class="panel-tab active" onclick="setPanelTab('plans')">PLANS</div>
+        <div class="panel-tab" onclick="setPanelTab('takeoffs')">TAKEOFFS</div>
+        <div class="panel-tab" onclick="setPanelTab('record')">RECORD</div>
+        <div class="panel-tab" onclick="setPanelTab('compare')">COMPARE</div>
+      </div>
+      <div class="panel-content" id="panel-content">
+        <!-- Dynamic content here -->
+      </div>
+      <div class="panel-actions" id="panel-actions">
+        <button class="btn btn-success" onclick="openDailyModalForSelectedJob()">+ Daily Record</button>
+        <button class="btn btn-primary" onclick="scheduleSelectedJob()">Schedule</button>
+        <button class="btn btn-secondary" onclick="viewJobCosting()">Costing</button>
+      </div>
+    </aside>
+
+  </div>
+
+  <!-- Mobile Quick Actions -->
+  <div class="mobile-actions">
+    <button class="btn btn-primary" onclick="toggleSidebar()">Jobs</button>
+    <button class="btn btn-success" onclick="openDailyModal()">+ Record</button>
+  </div>
+
+</div>
+
+</div>
+
+<!-- Toast Container -->
+<div id="toast-container" class="toast-container"></div>
+
+<!-- PDF Viewer Modal -->
+<div id="pdf-viewer" class="pdf-viewer" style="display:none;">
+  <div class="pdf-toolbar">
+    <button class="pdf-btn" onclick="closePdfViewer()">✕ Close</button>
+    <div class="pdf-controls">
+      <button class="pdf-btn" onclick="pdfPrevPage()">◀ Prev</button>
+      <span id="pdf-page-info">Page 1 of 1</span>
+      <button class="pdf-btn" onclick="pdfNextPage()">Next ▶</button>
+    </div>
+    <div class="pdf-zoom">
+      <button class="pdf-btn" onclick="pdfZoomOut()">−</button>
+      <button class="pdf-btn" onclick="pdfZoomIn()">+</button>
+    </div>
+    <div class="pdf-markup-tools">
+      <button class="pdf-btn markup-toggle" id="markup-toggle" onclick="toggleMarkupMode()">✏️ Markup</button>
+      <div id="markup-colors" class="markup-colors" style="display:none;">
+        <button class="color-btn active" style="background:#ef4444;" onclick="setMarkupColor('#ef4444')"></button>
+        <button class="color-btn" style="background:#22c55e;" onclick="setMarkupColor('#22c55e')"></button>
+        <button class="color-btn" style="background:#3b82f6;" onclick="setMarkupColor('#3b82f6')"></button>
+        <button class="color-btn" style="background:#eab308;" onclick="setMarkupColor('#eab308')"></button>
+        <button class="color-btn" style="background:#000000;" onclick="setMarkupColor('#000000')"></button>
+      </div>
+      <button class="pdf-btn" id="markup-save" style="display:none;background:#22c55e;" onclick="saveMarkup()">Save</button>
+      <button class="pdf-btn" id="markup-clear" style="display:none;" onclick="clearMarkup()">Clear</button>
+    </div>
+  </div>
+  <div class="pdf-canvas-container">
+    <div class="pdf-canvas-wrapper">
+      <canvas id="pdf-canvas"></canvas>
+      <canvas id="annotation-canvas" class="annotation-canvas"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- Production Modal -->
+<div id="production-modal" class="production-modal" style="display:none;" onclick="if(event.target===this)closeProductionModal()">
+  <div class="production-modal-content">
+    <div class="production-modal-header">
+      <h3 class="production-item-name">Item Name</h3>
+      <span class="production-remaining">0 units remaining</span>
+    </div>
+    <div class="production-modal-body">
+      <div class="input-group" style="margin-bottom:16px;">
+        <label>Quantity Done Today</label>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input type="number" id="production-quantity" placeholder="0" step="0.1" min="0" style="flex:1;">
+          <span class="production-unit" style="color:var(--text-secondary);">units</span>
+        </div>
+      </div>
+      <div class="input-group">
+        <label>Notes (optional)</label>
+        <textarea id="production-notes" rows="2" placeholder="Add notes..."></textarea>
+      </div>
+    </div>
+    <div class="production-modal-footer">
+      <button class="btn btn-secondary" onclick="closeProductionModal()">Cancel</button>
+      <button class="btn btn-success" onclick="saveProduction()">Save Production</button>
+    </div>
+  </div>
+</div>
+
+<script>
+var API = '/api/public';
+var API_BASE = '/api';
+var defaultColors = ['#f97316','#22c55e','#a855f7','#ef4444','#3b82f6','#eab308'];
+var jobs = [], concreteDeliveries = [], workers = [], dailyRecords = [], crewLeads = [], schedule = [], items = [], todaysJobs = [];
+var currentMonth = new Date().getMonth();
+var currentYear = new Date().getFullYear();
+var draggedJobId = null;
+var pendingPhotos = [];
+var pendingWorkItems = [];
+var pendingWorkerHours = [];
+var selectedNotes = [];
+var currentWeather = null;
+var currentJobTotals = null;
+var selectedJobId = null;
+var selectedWorkerId = null;
+var jobFilter = 'active';
+var workerFilter = 'active';
+var panelTab = 'plans';
+var sidebarSection = 'jobs';
+
+var QUICK_NOTES = [
+  'Poured footer', 'Poured stem wall', 'Poured flatwork', 'Set forms',
+  'Stripped forms', 'Curb & gutter', 'Sidewalk', 'Driveway',
+  'Garage floor', 'Basement floor', 'Finished concrete', 'Prep work'
+];
+
+// Work items with units for production tracking
+var WORK_ITEMS = [
+  { name: 'Curb & gutter', unit: 'LF', category: 'concrete' },
+  { name: 'Sidewalk', unit: 'SF', category: 'concrete' },
+  { name: 'Poured flatwork', unit: 'SF', category: 'concrete' },
+  { name: 'Driveway', unit: 'SF', category: 'concrete' },
+  { name: 'Poured footer', unit: 'LF', category: 'concrete' },
+  { name: 'Poured stem wall', unit: 'LF', category: 'concrete' },
+  { name: 'Garage floor', unit: 'SF', category: 'concrete' },
+  { name: 'Basement floor', unit: 'SF', category: 'concrete' },
+  { name: 'Set forms', unit: 'LF', category: 'labor' },
+  { name: 'Stripped forms', unit: 'LF', category: 'labor' },
+  { name: 'Finished concrete', unit: 'SF', category: 'labor' },
+  { name: 'Prep work', unit: 'HR', category: 'labor' }
+];
+
+// Selected work items with quantities
+var selectedWorkItems = [];
+
+// Job takeoffs for daily record
+var currentJobTakeoffs = [];
+var takeoffEntries = {}; // { takeoff_id: quantity_today }
+
+var formErrors = {};
+var isSaving = false;
+
+// ========== TOAST NOTIFICATIONS ==========
+function showToast(message, type, duration) {
+  type = type || 'info';
+  duration = duration || 4000;
+  var container = document.getElementById('toast-container');
+  var toast = document.createElement('div');
+  toast.className = 'toast ' + type;
+  var icons = { success: '✓', error: '✕', warning: '⚠', info: 'ℹ' };
+  toast.innerHTML = '<span class="toast-icon">' + icons[type] + '</span>' +
+    '<span class="toast-message">' + message + '</span>' +
+    '<button class="toast-close" onclick="this.parentElement.remove()">✕</button>';
+  container.appendChild(toast);
+  setTimeout(function() {
+    if (toast.parentElement) {
+      toast.style.animation = 'toastOut 0.3s ease-out forwards';
+      setTimeout(function() { toast.remove(); }, 300);
+    }
+  }, duration);
+}
+
+// ========== FORM VALIDATION ==========
+function validateRequired(value, fieldName) {
+  if (!value || (typeof value === 'string' && !value.trim())) return fieldName + ' is required';
+  return null;
+}
+
+function validateNumber(value, fieldName, min, max) {
+  if (value === '' || value === null || value === undefined) return null;
+  var num = parseFloat(value);
+  if (isNaN(num)) return fieldName + ' must be a valid number';
+  if (min !== undefined && num < min) return fieldName + ' must be at least ' + min;
+  if (max !== undefined && num > max) return fieldName + ' cannot exceed ' + max;
+  return null;
+}
+
+function validateDate(value, fieldName) {
+  if (!value) return fieldName + ' is required';
+  var date = new Date(value);
+  if (isNaN(date.getTime())) return 'Invalid date format';
+  var tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  if (date > tomorrow) return 'Date cannot be in the future';
+  return null;
+}
+
+function showFieldError(fieldId, message) {
+  var field = document.getElementById(fieldId);
+  if (!field) return;
+  var inputGroup = field.closest('.input-group') || field.closest('.yards-input-group');
+  if (inputGroup) {
+    inputGroup.classList.add('error');
+    inputGroup.classList.remove('success');
+    var existingError = inputGroup.querySelector('.error-message');
+    if (existingError) existingError.remove();
+    if (message) {
+      var errorDiv = document.createElement('div');
+      errorDiv.className = 'error-message';
+      errorDiv.textContent = message;
+      inputGroup.appendChild(errorDiv);
+    }
+  }
+  formErrors[fieldId] = message;
+}
+
+function clearFieldError(fieldId) {
+  var field = document.getElementById(fieldId);
+  if (!field) return;
+  var inputGroup = field.closest('.input-group') || field.closest('.yards-input-group');
+  if (inputGroup) {
+    inputGroup.classList.remove('error');
+    var errorMsg = inputGroup.querySelector('.error-message');
+    if (errorMsg) errorMsg.remove();
+  }
+  delete formErrors[fieldId];
+}
+
+function markFieldSuccess(fieldId) {
+  var field = document.getElementById(fieldId);
+  if (!field) return;
+  var inputGroup = field.closest('.input-group');
+  if (inputGroup) {
+    inputGroup.classList.remove('error');
+    inputGroup.classList.add('success');
+  }
+  delete formErrors[fieldId];
+}
+
+function clearAllErrors() {
+  document.querySelectorAll('.input-group.error, .yards-input-group.error').forEach(function(el) {
+    el.classList.remove('error');
+  });
+  document.querySelectorAll('.error-message').forEach(function(el) { el.remove(); });
+  formErrors = {};
+}
+
+function validateDailyRecordForm() {
+  clearAllErrors();
+  var isValid = true;
+  var jobId = document.getElementById('record-job').value;
+  var jobError = validateRequired(jobId, 'Job');
+  if (jobError) { showFieldError('record-job', jobError); isValid = false; }
+  else { markFieldSuccess('record-job'); }
+  var recordDate = document.getElementById('record-date').value;
+  var dateError = validateDate(recordDate, 'Date');
+  if (dateError) { showFieldError('record-date', dateError); isValid = false; }
+  else { markFieldSuccess('record-date'); }
+  var yards = document.getElementById('record-yards').value;
+  var yardsError = validateNumber(yards, 'Yards', 0, 9999);
+  if (yardsError) { showFieldError('record-yards', yardsError); isValid = false; }
+  var invalidHours = false;
+  pendingWorkerHours.forEach(function(wh) {
+    if (wh.hours_worked < 0 || wh.hours_worked > 24 || isNaN(wh.hours_worked)) invalidHours = true;
+  });
+  if (invalidHours) { showToast('Worker hours must be between 0 and 24', 'error'); isValid = false; }
+  var hasYards = yards && parseFloat(yards) > 0;
+  var hasNotes = selectedNotes.length > 0 || document.getElementById('record-notes').value.trim();
+  var hasWorkers = pendingWorkerHours.length > 0 && pendingWorkerHours.some(function(wh) { return wh.hours_worked > 0; });
+  var hasWorkItems = pendingWorkItems.length > 0;
+  var hasProduction = selectedWorkItems.length > 0 && selectedWorkItems.some(function(w) { return w.quantity > 0; });
+  var hasPhotos = pendingPhotos.length > 0;
+  if (!hasYards && !hasNotes && !hasWorkers && !hasWorkItems && !hasProduction && !hasPhotos) {
+    showToast('Please add some content: yards, work done, worker hours, or photos', 'warning');
+    isValid = false;
+  }
+  return isValid;
+}
+
+function setButtonLoading(buttonEl, loading) {
+  if (loading) { buttonEl.classList.add('loading'); buttonEl.disabled = true; }
+  else { buttonEl.classList.remove('loading'); buttonEl.disabled = false; }
+}
+
+async function apiRequest(url, options) {
+  options = options || {};
+  try {
+    var response = await fetch(url, options);
+    if (!response.ok) {
+      var errorData;
+      try { errorData = await response.json(); } catch(e) { errorData = { error: 'Request failed with status ' + response.status }; }
+      throw new Error(errorData.error || errorData.message || 'Request failed');
+    }
+    var contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) return await response.json();
+    return null;
+  } catch (error) {
+    if (error.name === 'TypeError' && error.message.includes('fetch')) throw new Error('Network error. Please check your connection.');
+    throw error;
+  }
+}
+
+// ========== AUTH ==========
+async function doLogin() {
+  localStorage.setItem('foreman_logged_in', 'true');
+  document.getElementById('login-screen').classList.remove('active');
+  document.getElementById('dashboard-screen').classList.add('active');
+  await loadAllData();
+  showView('calendar');
+}
+
+function doLogout() {
+  localStorage.removeItem('foreman_logged_in');
+  document.getElementById('dashboard-screen').classList.remove('active');
+  document.getElementById('login-screen').classList.add('active');
+}
+
+// Auto-login if session exists - run immediately since script is at end of body
+(function checkSession() {
+  if (localStorage.getItem('foreman_logged_in') === 'true') {
+    document.getElementById('login-screen').classList.remove('active');
+    document.getElementById('dashboard-screen').classList.add('active');
+    loadAllData().then(function() {
+      showView('calendar');
+    });
+  }
+})();
+
+// ========== DATA LOADING ==========
+async function loadAllData() {
+  try { jobs = await (await fetch(API+'/jobs')).json(); } catch(e) { jobs = []; }
+  try { concreteDeliveries = await (await fetch(API+'/concrete2')).json(); } catch(e) { concreteDeliveries = []; }
+  try { workers = await (await fetch(API+'/workers')).json(); } catch(e) { workers = []; }
+  try { dailyRecords = await (await fetch(API+'/daily-records')).json(); } catch(e) { dailyRecords = []; }
+  try { crewLeads = await (await fetch(API_BASE+'/crew-leads')).json(); } catch(e) { crewLeads = []; }
+  try { schedule = await (await fetch(API+'/schedule')).json(); } catch(e) { schedule = []; }
+  try { items = await (await fetch(API+'/items')).json(); } catch(e) { items = []; }
+  try { todaysJobs = await (await fetch(API+'/schedule/today')).json(); } catch(e) { todaysJobs = []; }
+  renderJobsSidebar();
+  renderWorkersSidebar();
+  updateItemCount();
+}
+
+// ========== SIDEBAR ==========
+function toggleSidebar() {
+  document.getElementById('left-sidebar').classList.toggle('open');
+  document.getElementById('sidebar-overlay').classList.toggle('open');
+}
+
+function showSidebarSection(section) {
+  sidebarSection = section;
+  document.querySelectorAll('.sidebar-section').forEach(function(s) { s.classList.remove('active'); });
+  document.querySelectorAll('.main-tab').forEach(function(t) { t.classList.remove('active'); });
+  document.getElementById(section + '-section').classList.add('active');
+  document.getElementById(section + '-main-tab').classList.add('active');
+  updateItemCount();
+}
+
+function updateItemCount() {
+  var count = 0;
+  if (sidebarSection === 'jobs') {
+    count = jobs.filter(function(j) { return j.status !== 'closed'; }).length;
+  } else {
+    count = workers.filter(function(w) { return w.status !== 'inactive'; }).length;
+  }
+  document.getElementById('item-count').textContent = count;
+}
+
+function setJobFilter(filter) {
+  jobFilter = filter;
+  document.querySelectorAll('#jobs-section .sidebar-tab').forEach(function(t) { t.classList.remove('active'); });
+  event.target.classList.add('active');
+  renderJobsSidebar();
+}
+
+function filterJobs() {
+  renderJobsSidebar(document.getElementById('job-search').value);
+}
+
+function setWorkerFilter(filter) {
+  workerFilter = filter;
+  document.querySelectorAll('#workers-section .sidebar-tab').forEach(function(t) { t.classList.remove('active'); });
+  event.target.classList.add('active');
+  renderWorkersSidebar();
+}
+
+function filterWorkersSidebar() {
+  renderWorkersSidebar(document.getElementById('worker-search').value);
+}
+
+function renderWorkersSidebar(search) {
+  var filteredWorkers = workers.slice();
+  if (workerFilter === 'active') filteredWorkers = workers.filter(function(w) { return w.status !== 'inactive'; });
+  else if (workerFilter === 'inactive') filteredWorkers = workers.filter(function(w) { return w.status === 'inactive'; });
+  if (search) {
+    var s = search.toLowerCase();
+    filteredWorkers = filteredWorkers.filter(function(w) {
+      return w.full_name.toLowerCase().includes(s) || (w.role && w.role.toLowerCase().includes(s));
+    });
+  }
+  var html = '';
+  filteredWorkers.forEach(function(w) {
+    var isSelected = selectedWorkerId === w.id;
+    var isInactive = w.status === 'inactive';
+    var statusClass = isInactive ? 'closed' : 'active';
+    html += '<div class="worker-row-item' + (isSelected ? ' selected' : '') + (isInactive ? ' inactive' : '') + '" onclick="selectWorker(' + w.id + ')">';
+    html += '<div class="status-dot ' + statusClass + '" title="' + (isInactive ? 'Inactive' : 'Active') + '"></div>';
+    html += '<div class="worker-info"><div class="worker-name-text">' + w.full_name + '</div><div class="worker-role">' + (w.role || 'No role') + '</div></div>';
+    html += '</div>';
+  });
+  document.getElementById('workers-list').innerHTML = html || '<p style="padding:20px;color:var(--text-secondary);text-align:center;">No workers found</p>';
+}
+
+function renderJobsSidebar(search) {
+  var filteredJobs = jobs.slice();
+  if (jobFilter === 'active') filteredJobs = jobs.filter(function(j) { return j.status !== 'closed'; });
+  else if (jobFilter === 'closed') filteredJobs = jobs.filter(function(j) { return j.status === 'closed'; });
+  if (search) {
+    var s = search.toLowerCase();
+    filteredJobs = filteredJobs.filter(function(j) {
+      return j.job_number.toLowerCase().includes(s) || j.job_name.toLowerCase().includes(s) || (j.contractor_name && j.contractor_name.toLowerCase().includes(s));
+    });
+  }
+  var html = '';
+  filteredJobs.forEach(function(j) {
+    var isSelected = selectedJobId === j.id;
+    var isClosed = j.status === 'closed';
+    var statusClass = isClosed ? 'closed' : 'active';
+    html += '<div class="job-row' + (isSelected ? ' selected' : '') + (isClosed ? ' closed' : '') + '" draggable="true" ondragstart="dragStart(event,' + j.id + ')" ondragend="dragEnd(event)" onclick="selectJob(' + j.id + ')" style="cursor:grab;">';
+    html += '<div class="status-dot ' + statusClass + '" title="' + (isClosed ? 'Closed' : 'Active') + '"></div>';
+    html += '<div class="job-number">#' + j.job_number + '</div>';
+    html += '<div><div class="job-name">' + j.job_name + '</div><div class="job-location">' + (j.location || j.contractor_name || 'No location') + '</div></div>';
+    html += '</div>';
+  });
+  document.getElementById('jobs-list').innerHTML = html || '<p style="padding:20px;color:var(--text-secondary);text-align:center;">No jobs found</p>';
+}
+
+// ========== JOB SELECTION & RIGHT PANEL ==========
+function selectJob(jobId) {
+  selectedJobId = jobId;
+  selectedWorkerId = null; // Deselect any worker
+  renderJobsSidebar(document.getElementById('job-search').value);
+  renderWorkersSidebar(document.getElementById('worker-search').value);
+  openRightPanel();
+  loadJobDetails(jobId);
+  // Close sidebar on mobile
+  if (window.innerWidth <= 1024) toggleSidebar();
+}
+
+function openRightPanel() {
+  var panel = document.getElementById('right-panel');
+  panel.classList.add('open');
+  panel.classList.add('has-job');
+  panel.classList.remove('has-worker');
+}
+
+function closeRightPanel() {
+  var panel = document.getElementById('right-panel');
+  panel.classList.remove('open');
+  panel.classList.remove('has-job');
+  panel.classList.remove('has-worker');
+  selectedJobId = null;
+  selectedWorkerId = null;
+  renderJobsSidebar(document.getElementById('job-search').value);
+  renderWorkersSidebar(document.getElementById('worker-search').value);
+}
+
+function setPanelTab(tab) {
+  panelTab = tab;
+  document.querySelectorAll('.panel-tab').forEach(function(t) { t.classList.remove('active'); });
+  event.target.classList.add('active');
+  if (selectedJobId) loadJobDetails(selectedJobId);
+  else if (selectedWorkerId) loadWorkerDetails(selectedWorkerId);
+}
+
+// ========== WORKER SELECTION ==========
+function selectWorker(workerId) {
+  selectedWorkerId = workerId;
+  selectedJobId = null; // Deselect any job
+  renderWorkersSidebar(document.getElementById('worker-search').value);
+  renderJobsSidebar(document.getElementById('job-search').value);
+  openRightPanelForWorker();
+  loadWorkerDetails(workerId);
+  if (window.innerWidth <= 1024) toggleSidebar();
+}
+
+function openRightPanelForWorker() {
+  var panel = document.getElementById('right-panel');
+  panel.classList.add('open');
+  panel.classList.add('has-worker');
+  panel.classList.remove('has-job');
+}
+
+async function loadWorkerDetails(workerId) {
+  var worker = workers.find(function(w) { return w.id === workerId; });
+  if (!worker) return;
+
+  document.getElementById('panel-job-number').textContent = worker.role || 'Worker';
+  document.getElementById('panel-job-name').textContent = worker.full_name;
+
+  // Calculate worker stats from daily records
+  var workerRecords = [];
+  var totalHours = 0;
+  var jobsWorked = new Set();
+
+  // Fetch worker hours across all records
+  try {
+    var res = await fetch(API_BASE + '/workers/' + workerId + '/stats');
+    if (res.ok) {
+      var stats = await res.json();
+      totalHours = stats.total_hours || 0;
+      jobsWorked = new Set(stats.jobs_worked || []);
+    }
+  } catch(e) {
+    // Stats endpoint might not exist, use defaults
+  }
+
+  var isActive = worker.status !== 'inactive';
+
+  if (panelTab === 'info') {
+    document.getElementById('panel-content').innerHTML = '\
+      <div class="info-card">\
+        <div class="info-card-title">Status</div>\
+        <div style="display:flex;align-items:center;gap:8px;">\
+          <div class="status-dot ' + (isActive ? 'active' : 'closed') + '"></div>\
+          <span style="font-size:16px;font-weight:600;">' + (isActive ? 'Active' : 'Inactive') + '</span>\
+        </div>\
+      </div>\
+      <div class="info-card">\
+        <div class="info-card-title">Contact</div>\
+        <div style="font-size:16px;font-weight:500;">' + (worker.contact_info || 'No contact info') + '</div>\
+      </div>\
+      <div class="info-grid">\
+        <div class="stat-card">\
+          <div class="stat-value" style="color:#a855f7;">' + totalHours.toFixed(0) + '</div>\
+          <div class="stat-label">Total Hours</div>\
+        </div>\
+        <div class="stat-card">\
+          <div class="stat-value" style="color:#a855f7;">' + jobsWorked.size + '</div>\
+          <div class="stat-label">Jobs Worked</div>\
+        </div>\
+      </div>\
+    ';
+  } else {
+    document.getElementById('panel-content').innerHTML = '\
+      <div class="detail-section">\
+        <h4>Worker Information</h4>\
+        <div class="detail-row"><span class="detail-label">Name</span><span class="detail-value">' + worker.full_name + '</span></div>\
+        <div class="detail-row"><span class="detail-label">Role</span><span class="detail-value">' + (worker.role || '-') + '</span></div>\
+        <div class="detail-row"><span class="detail-label">Contact</span><span class="detail-value">' + (worker.contact_info || '-') + '</span></div>\
+        <div class="detail-row"><span class="detail-label">Status</span><span class="detail-value">' + (isActive ? 'Active' : 'Inactive') + '</span></div>\
+      </div>\
+      ' + (isActive ? '<button class="btn btn-secondary" onclick="setWorkerInactive(' + worker.id + ')" style="width:100%;margin-top:16px;">Mark Inactive</button>' : '<button class="btn btn-success" onclick="setWorkerActive(' + worker.id + ')" style="width:100%;margin-top:16px;">Mark Active</button>') + '\
+    ';
+  }
+
+  // Update panel actions for worker
+  document.getElementById('panel-actions').innerHTML = '\
+    <button class="btn btn-primary" onclick="editWorker(' + worker.id + ')">Edit Worker</button>\
+    <button class="btn btn-secondary" onclick="closeRightPanel()">Close</button>\
+  ';
+}
+
+async function setWorkerInactive(workerId) {
+  try {
+    await fetch(API_BASE + '/workers/' + workerId, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'inactive' })
+    });
+    await loadAllData();
+    loadWorkerDetails(workerId);
+    showToast('Worker marked inactive', 'success');
+  } catch(e) {
+    showToast('Failed to update worker', 'error');
+  }
+}
+
+async function setWorkerActive(workerId) {
+  try {
+    await fetch(API_BASE + '/workers/' + workerId, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'active' })
+    });
+    await loadAllData();
+    loadWorkerDetails(workerId);
+    showToast('Worker marked active', 'success');
+  } catch(e) {
+    showToast('Failed to update worker', 'error');
+  }
+}
+
+function editWorker(workerId) {
+  var worker = workers.find(function(w) { return w.id === workerId; });
+  if (!worker) return;
+
+  var modal = document.createElement('div');
+  modal.id = 'edit-worker-modal';
+  modal.className = 'modal';
+  modal.style.display = 'flex';
+  modal.innerHTML = '<div class="modal-content"><div class="modal-header"><h2>Edit Worker</h2><button onclick="document.getElementById(\'edit-worker-modal\').remove()" class="icon-btn">✕</button></div><div class="modal-body"><div class="input-group"><label>Name</label><input type="text" id="edit-worker-name" value="' + worker.full_name + '"></div><div class="input-group"><label>Role</label><input type="text" id="edit-worker-role" value="' + (worker.role || '') + '"></div><div class="input-group"><label>Contact</label><input type="text" id="edit-worker-contact" value="' + (worker.contact_info || '') + '"></div></div><div class="modal-footer"><button onclick="document.getElementById(\'edit-worker-modal\').remove()" class="btn btn-secondary">Cancel</button><button onclick="saveWorkerEdit(' + workerId + ')" class="btn btn-primary">Save</button></div></div>';
+  document.body.appendChild(modal);
+}
+
+async function saveWorkerEdit(workerId) {
+  var data = {
+    full_name: document.getElementById('edit-worker-name').value.trim(),
+    role: document.getElementById('edit-worker-role').value.trim(),
+    contact_info: document.getElementById('edit-worker-contact').value.trim()
+  };
+  if (!data.full_name) { showToast('Name is required', 'error'); return; }
+  try {
+    var res = await fetch(API_BASE + '/workers/' + workerId, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    if (res.ok) {
+      document.getElementById('edit-worker-modal').remove();
+      await loadAllData();
+      loadWorkerDetails(workerId);
+      showToast('Worker updated', 'success');
+    }
+  } catch(e) {
+    showToast('Failed to update worker', 'error');
+  }
+}
+
+async function loadJobDetails(jobId) {
+  var job = jobs.find(function(j) { return j.id === jobId; });
+  if (!job) return;
+  document.getElementById('panel-job-number').textContent = '#' + job.job_number;
+  document.getElementById('panel-job-name').textContent = job.job_name;
+
+  var panelContent = document.getElementById('panel-content');
+
+  if (panelTab === 'plans') {
+    await renderPlansTab(jobId, panelContent);
+  } else if (panelTab === 'takeoffs') {
+    await renderTakeoffsTab(jobId, panelContent);
+  } else if (panelTab === 'record') {
+    await renderRecordTab(jobId, panelContent);
+  } else if (panelTab === 'compare') {
+    await renderComparisonTab(jobId, panelContent);
+  }
+
+  // Restore job panel actions
+  document.getElementById('panel-actions').innerHTML = '\
+    <button class="btn btn-success" onclick="openDailyModalForSelectedJob()">+ Add Daily Record</button>\
+    <button class="btn btn-primary" onclick="scheduleSelectedJob()">Schedule Job</button>\
+    <button class="btn btn-secondary" onclick="viewJobCosting()">View Costing</button>\
+  ';
+}
+
+// ========== PLANS TAB ==========
+var currentPlans = [];
+var currentPlanId = null;
+var pdfDoc = null;
+var currentPage = 1;
+var pdfScale = 1;
+
+async function renderPlansTab(jobId, container) {
+  try {
+    var response = await fetch(API + '/jobs/' + jobId + '/plans');
+    currentPlans = response.ok ? await response.json() : [];
+  } catch(e) { currentPlans = []; }
+
+  var html = '<div class="plans-tab">';
+  html += '<div class="plans-upload">';
+  html += '<input type="file" accept=".pdf" id="plan-upload-input" style="display:none" onchange="uploadPlan(' + jobId + ')">';
+  html += '<button class="btn btn-primary" onclick="document.getElementById(\'plan-upload-input\').click()" style="width:100%">';
+  html += '<span style="font-size:20px;margin-right:8px;">📄</span> Upload PDF Plans</button>';
+  html += '</div>';
+
+  if (currentPlans.length > 0) {
+    html += '<div class="plans-list" style="margin-top:16px;">';
+    currentPlans.forEach(function(plan) {
+      html += '<div class="plan-item" onclick="openPlanViewer(' + plan.id + ', \'' + encodeURIComponent(plan.file_path) + '\')">';
+      html += '<div class="plan-icon">📋</div>';
+      html += '<div class="plan-info"><div class="plan-name">' + (plan.file_name || 'Plan') + '</div>';
+      html += '<div class="plan-date">' + new Date(plan.created_at).toLocaleDateString() + '</div></div>';
+      html += '<button class="btn btn-icon" onclick="event.stopPropagation();deletePlan(' + jobId + ',' + plan.id + ')" title="Delete">🗑️</button>';
+      html += '</div>';
+    });
+    html += '</div>';
+  } else {
+    html += '<div class="empty-state" style="margin-top:24px;text-align:center;color:var(--text-secondary);">';
+    html += '<div style="font-size:48px;margin-bottom:12px;">📄</div>';
+    html += '<div>No plans uploaded yet</div>';
+    html += '<div style="font-size:13px;margin-top:4px;">Upload PDF plans for this job</div>';
+    html += '</div>';
+  }
+  html += '</div>';
+  container.innerHTML = html;
+}
+
+async function uploadPlan(jobId) {
+  var input = document.getElementById('plan-upload-input');
+  if (!input.files || !input.files[0]) return;
+  var formData = new FormData();
+  formData.append('plan', input.files[0]);
+  try {
+    var response = await fetch(API + '/jobs/' + jobId + '/plans', { method: 'POST', body: formData });
+    if (response.ok) {
+      showToast('Plan uploaded successfully', 'success');
+      loadJobDetails(jobId);
+    } else {
+      showToast('Failed to upload plan', 'error');
+    }
+  } catch(e) {
+    showToast('Upload error: ' + e.message, 'error');
+  }
+  input.value = '';
+}
+
+async function deletePlan(jobId, planId) {
+  if (!confirm('Delete this plan?')) return;
+  try {
+    await fetch(API + '/jobs/' + jobId + '/plans/' + planId, { method: 'DELETE' });
+    showToast('Plan deleted', 'success');
+    loadJobDetails(jobId);
+  } catch(e) {
+    showToast('Failed to delete plan', 'error');
+  }
+}
+
+function openPlanViewer(planId, filePath) {
+  currentPlanId = planId;
+  var viewer = document.getElementById('pdf-viewer');
+  viewer.style.display = 'flex';
+  loadPdf(decodeURIComponent(filePath));
+}
+
+function closePdfViewer() {
+  document.getElementById('pdf-viewer').style.display = 'none';
+  pdfDoc = null;
+  currentPage = 1;
+  pdfScale = 1;
+}
+
+async function loadPdf(filePath) {
+  var canvas = document.getElementById('pdf-canvas');
+  var pageInfo = document.getElementById('pdf-page-info');
+  try {
+    if (typeof pdfjsLib === 'undefined') {
+      pageInfo.textContent = 'Loading PDF.js...';
+      await loadScript('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js');
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    }
+    pageInfo.textContent = 'Loading PDF...';
+    pdfDoc = await pdfjsLib.getDocument(filePath).promise;
+    renderPdfPage();
+  } catch(e) {
+    pageInfo.textContent = 'Error loading PDF';
+    console.error('PDF load error:', e);
+  }
+}
+
+function loadScript(src) {
+  return new Promise(function(resolve, reject) {
+    var script = document.createElement('script');
+    script.src = src;
+    script.onload = resolve;
+    script.onerror = reject;
+    document.head.appendChild(script);
+  });
+}
+
+async function renderPdfPage() {
+  if (!pdfDoc) return;
+  var page = await pdfDoc.getPage(currentPage);
+  var canvas = document.getElementById('pdf-canvas');
+  var ctx = canvas.getContext('2d');
+  var viewport = page.getViewport({ scale: pdfScale });
+  canvas.width = viewport.width;
+  canvas.height = viewport.height;
+  await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+  document.getElementById('pdf-page-info').textContent = 'Page ' + currentPage + ' of ' + pdfDoc.numPages;
+}
+
+function pdfPrevPage() {
+  if (currentPage > 1) { currentPage--; renderPdfPage(); }
+}
+
+function pdfNextPage() {
+  if (pdfDoc && currentPage < pdfDoc.numPages) { currentPage++; renderPdfPage(); }
+}
+
+function pdfZoomIn() {
+  pdfScale = Math.min(pdfScale + 0.25, 3);
+  renderPdfPage();
+}
+
+function pdfZoomOut() {
+  pdfScale = Math.max(pdfScale - 0.25, 0.5);
+  renderPdfPage();
+}
+
+// Pinch-zoom touch handling
+var initialPinchDistance = 0;
+var initialPinchScale = 1;
+
+function initPdfTouchZoom() {
+  var container = document.querySelector('.pdf-canvas-container');
+  if (!container) return;
+
+  container.addEventListener('touchstart', function(e) {
+    if (e.touches.length === 2) {
+      e.preventDefault();
+      initialPinchDistance = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      initialPinchScale = pdfScale;
+    }
+  }, { passive: false });
+
+  container.addEventListener('touchmove', function(e) {
+    if (e.touches.length === 2 && initialPinchDistance > 0) {
+      e.preventDefault();
+      var currentDistance = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      var scaleChange = currentDistance / initialPinchDistance;
+      pdfScale = Math.min(3, Math.max(0.5, initialPinchScale * scaleChange));
+      renderPdfPage();
+    }
+  }, { passive: false });
+
+  container.addEventListener('touchend', function() {
+    initialPinchDistance = 0;
+  });
+}
+
+// Initialize touch zoom when PDF viewer opens
+var originalOpenPlanViewer = openPlanViewer;
+openPlanViewer = function(planId, filePath) {
+  originalOpenPlanViewer(planId, filePath);
+  setTimeout(function() {
+    initPdfTouchZoom();
+    loadAnnotations();
+  }, 100);
+};
+
+// ========== PDF MARKUP ==========
+var markupMode = false;
+var markupColor = '#ef4444';
+var isDrawing = false;
+var currentPath = [];
+var allPaths = [];
+var annotationCtx = null;
+
+function toggleMarkupMode() {
+  markupMode = !markupMode;
+  var toggle = document.getElementById('markup-toggle');
+  var colors = document.getElementById('markup-colors');
+  var saveBtn = document.getElementById('markup-save');
+  var clearBtn = document.getElementById('markup-clear');
+  var annotCanvas = document.getElementById('annotation-canvas');
+
+  if (markupMode) {
+    toggle.classList.add('active');
+    colors.style.display = 'flex';
+    saveBtn.style.display = 'block';
+    clearBtn.style.display = 'block';
+    annotCanvas.classList.add('active');
+    initAnnotationCanvas();
+  } else {
+    toggle.classList.remove('active');
+    colors.style.display = 'none';
+    saveBtn.style.display = 'none';
+    clearBtn.style.display = 'none';
+    annotCanvas.classList.remove('active');
+  }
+}
+
+function setMarkupColor(color) {
+  markupColor = color;
+  document.querySelectorAll('.color-btn').forEach(function(btn) {
+    btn.classList.remove('active');
+    if (btn.style.background === color || btn.style.backgroundColor === color) {
+      btn.classList.add('active');
+    }
+  });
+}
+
+function initAnnotationCanvas() {
+  var pdfCanvas = document.getElementById('pdf-canvas');
+  var annotCanvas = document.getElementById('annotation-canvas');
+  annotCanvas.width = pdfCanvas.width;
+  annotCanvas.height = pdfCanvas.height;
+  annotationCtx = annotCanvas.getContext('2d');
+  redrawAnnotations();
+
+  annotCanvas.onmousedown = startDrawing;
+  annotCanvas.onmousemove = draw;
+  annotCanvas.onmouseup = stopDrawing;
+  annotCanvas.onmouseleave = stopDrawing;
+
+  annotCanvas.ontouchstart = function(e) { e.preventDefault(); startDrawing(e.touches[0]); };
+  annotCanvas.ontouchmove = function(e) { e.preventDefault(); draw(e.touches[0]); };
+  annotCanvas.ontouchend = stopDrawing;
+}
+
+function startDrawing(e) {
+  if (!markupMode) return;
+  isDrawing = true;
+  var rect = document.getElementById('annotation-canvas').getBoundingClientRect();
+  var x = (e.clientX - rect.left) * (document.getElementById('annotation-canvas').width / rect.width);
+  var y = (e.clientY - rect.top) * (document.getElementById('annotation-canvas').height / rect.height);
+  currentPath = [{ x: x, y: y, color: markupColor }];
+}
+
+function draw(e) {
+  if (!isDrawing || !markupMode) return;
+  var rect = document.getElementById('annotation-canvas').getBoundingClientRect();
+  var x = (e.clientX - rect.left) * (document.getElementById('annotation-canvas').width / rect.width);
+  var y = (e.clientY - rect.top) * (document.getElementById('annotation-canvas').height / rect.height);
+  currentPath.push({ x: x, y: y, color: markupColor });
+  redrawAnnotations();
+  drawPath(currentPath, markupColor);
+}
+
+function stopDrawing() {
+  if (isDrawing && currentPath.length > 1) {
+    allPaths.push({ points: currentPath, color: markupColor, page: currentPage, scale: pdfScale });
+  }
+  isDrawing = false;
+  currentPath = [];
+}
+
+function drawPath(points, color) {
+  if (!annotationCtx || points.length < 2) return;
+  annotationCtx.beginPath();
+  annotationCtx.strokeStyle = color;
+  annotationCtx.lineWidth = 3;
+  annotationCtx.lineCap = 'round';
+  annotationCtx.lineJoin = 'round';
+  annotationCtx.moveTo(points[0].x, points[0].y);
+  for (var i = 1; i < points.length; i++) {
+    annotationCtx.lineTo(points[i].x, points[i].y);
+  }
+  annotationCtx.stroke();
+}
+
+function redrawAnnotations() {
+  if (!annotationCtx) return;
+  var canvas = document.getElementById('annotation-canvas');
+  annotationCtx.clearRect(0, 0, canvas.width, canvas.height);
+  var pageAnnotations = allPaths.filter(function(p) { return p.page === currentPage; });
+  pageAnnotations.forEach(function(path) {
+    var scaleFactor = pdfScale / path.scale;
+    var scaledPoints = path.points.map(function(pt) {
+      return { x: pt.x * scaleFactor, y: pt.y * scaleFactor };
+    });
+    drawPath(scaledPoints, path.color);
+  });
+}
+
+function clearMarkup() {
+  allPaths = allPaths.filter(function(p) { return p.page !== currentPage; });
+  redrawAnnotations();
+  showToast('Page annotations cleared', 'info');
+}
+
+async function saveMarkup() {
+  if (!currentPlanId) return;
+  try {
+    var annotationData = allPaths.filter(function(p) { return p.page === currentPage; });
+    var response = await fetch(API + '/plans/' + currentPlanId + '/annotations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        page_number: currentPage,
+        annotation_data: annotationData
+      })
+    });
+    if (response.ok) {
+      showToast('Annotations saved', 'success');
+    } else {
+      showToast('Failed to save annotations', 'error');
+    }
+  } catch(e) {
+    showToast('Error saving: ' + e.message, 'error');
+  }
+}
+
+async function loadAnnotations() {
+  if (!currentPlanId) return;
+  try {
+    var response = await fetch(API + '/plans/' + currentPlanId + '/annotations');
+    if (response.ok) {
+      var annotations = await response.json();
+      allPaths = [];
+      annotations.forEach(function(annot) {
+        if (annot.annotation_data && Array.isArray(annot.annotation_data)) {
+          annot.annotation_data.forEach(function(path) {
+            allPaths.push({
+              points: path.points,
+              color: path.color,
+              page: annot.page_number,
+              scale: path.scale || 1
+            });
+          });
+        }
+      });
+      if (markupMode) redrawAnnotations();
+    }
+  } catch(e) {
+    console.error('Failed to load annotations:', e);
+  }
+}
+
+// Update renderPdfPage to also update annotation canvas
+var originalRenderPdfPage = renderPdfPage;
+renderPdfPage = async function() {
+  await originalRenderPdfPage();
+  if (markupMode) {
+    initAnnotationCanvas();
+  }
+};
+
+// ========== TAKEOFFS TAB ==========
+var currentTakeoffs = [];
+
+async function renderTakeoffsTab(jobId, container) {
+  try {
+    var response = await fetch(API + '/jobs/' + jobId + '/takeoffs');
+    currentTakeoffs = response.ok ? await response.json() : [];
+  } catch(e) { currentTakeoffs = []; }
+
+  var html = '<div class="takeoffs-tab">';
+
+  if (currentTakeoffs.length > 0) {
+    currentTakeoffs.forEach(function(item) {
+      var completed = parseFloat(item.quantity_completed) || 0;
+      var total = parseFloat(item.quantity) || 0;
+      var remaining = Math.max(0, total - completed);
+      var percent = total > 0 ? Math.min(100, (completed / total) * 100) : 0;
+      var isComplete = percent >= 100;
+      var unit = item.unit || 'units';
+
+      html += '<div class="takeoff-item' + (isComplete ? ' complete' : '') + '" onclick="openProductionModal(' + item.id + ')">';
+      html += '<div class="takeoff-header">';
+      html += '<span class="item-name">' + (item.item_name || 'Item') + '</span>';
+      html += '<span class="item-remaining">' + remaining.toFixed(1) + ' ' + unit + ' remaining</span>';
+      html += '</div>';
+      html += '<div class="progress-bar"><div class="progress-fill" style="width:' + percent + '%"></div></div>';
+      html += '<div class="progress-text">' + completed.toFixed(1) + '/' + total.toFixed(1) + ' ' + unit + ' (' + percent.toFixed(0) + '%)</div>';
+      html += '<button class="btn btn-sm btn-primary" onclick="event.stopPropagation();openProductionModal(' + item.id + ')" style="margin-top:8px;width:100%">+ Log Production</button>';
+      html += '</div>';
+    });
+  } else {
+    html += '<div class="empty-state" style="text-align:center;padding:40px 20px;color:var(--text-secondary);">';
+    html += '<div style="font-size:48px;margin-bottom:12px;">📦</div>';
+    html += '<div>No takeoff items yet</div>';
+    html += '<div style="font-size:13px;margin-top:4px;">Import from STACK or add manually</div>';
+    html += '</div>';
+  }
+  html += '</div>';
+  container.innerHTML = html;
+}
+
+// ========== PRODUCTION MODAL ==========
+var currentProductionTakeoff = null;
+
+function openProductionModal(takeoffId) {
+  var item = currentTakeoffs.find(function(t) { return t.id === takeoffId; });
+  if (!item) return;
+  currentProductionTakeoff = item;
+
+  var completed = parseFloat(item.quantity_completed) || 0;
+  var total = parseFloat(item.quantity) || 0;
+  var remaining = Math.max(0, total - completed);
+  var unit = item.unit || 'units';
+
+  var modal = document.getElementById('production-modal');
+  modal.querySelector('.production-item-name').textContent = item.item_name || 'Item';
+  modal.querySelector('.production-remaining').textContent = remaining.toFixed(1) + ' ' + unit + ' remaining';
+  modal.querySelector('.production-unit').textContent = unit;
+  document.getElementById('production-quantity').value = '';
+  document.getElementById('production-notes').value = '';
+  modal.style.display = 'flex';
+}
+
+function closeProductionModal() {
+  document.getElementById('production-modal').style.display = 'none';
+  currentProductionTakeoff = null;
+}
+
+async function saveProduction() {
+  if (!currentProductionTakeoff || !selectedJobId) return;
+  var qty = parseFloat(document.getElementById('production-quantity').value);
+  if (!qty || qty <= 0) {
+    showToast('Please enter a valid quantity', 'warning');
+    return;
+  }
+  var notes = document.getElementById('production-notes').value;
+  try {
+    var response = await fetch(API + '/jobs/' + selectedJobId + '/production-logs', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        takeoff_id: currentProductionTakeoff.id,
+        quantity_done: qty,
+        notes: notes
+      })
+    });
+    if (response.ok) {
+      showToast('Production logged', 'success');
+      closeProductionModal();
+      loadJobDetails(selectedJobId);
+    } else {
+      showToast('Failed to save production', 'error');
+    }
+  } catch(e) {
+    showToast('Error: ' + e.message, 'error');
+  }
+}
+
+// ========== RECORD TAB ==========
+async function renderRecordTab(jobId, container) {
+  try {
+    var response = await fetch(API + '/jobs/' + jobId + '/takeoffs');
+    currentTakeoffs = response.ok ? await response.json() : [];
+  } catch(e) { currentTakeoffs = []; }
+
+  var html = '<div class="record-tab">';
+  html += '<h4 style="margin:0 0 16px 0;font-size:16px;font-weight:600;">Log Today\'s Production</h4>';
+
+  var incomplete = currentTakeoffs.filter(function(t) {
+    var completed = parseFloat(t.quantity_completed) || 0;
+    var total = parseFloat(t.quantity) || 0;
+    return completed < total;
+  });
+
+  if (incomplete.length > 0) {
+    incomplete.forEach(function(item) {
+      var completed = parseFloat(item.quantity_completed) || 0;
+      var total = parseFloat(item.quantity) || 0;
+      var remaining = total - completed;
+      var unit = item.unit || 'units';
+
+      html += '<div class="production-item" onclick="openProductionModal(' + item.id + ')">';
+      html += '<div class="production-item-icon">📋</div>';
+      html += '<div class="production-item-details">';
+      html += '<div class="production-item-name">' + (item.item_name || 'Item') + '</div>';
+      html += '<div class="production-item-remaining">' + remaining.toFixed(1) + ' ' + unit + ' left</div>';
+      html += '</div>';
+      html += '<div class="production-item-arrow">→</div>';
+      html += '</div>';
+    });
+  } else if (currentTakeoffs.length > 0) {
+    html += '<div class="empty-state" style="text-align:center;padding:40px 20px;color:var(--success);">';
+    html += '<div style="font-size:48px;margin-bottom:12px;">✅</div>';
+    html += '<div style="font-weight:600;">All items complete!</div>';
+    html += '</div>';
+  } else {
+    html += '<div class="empty-state" style="text-align:center;padding:40px 20px;color:var(--text-secondary);">';
+    html += '<div style="font-size:48px;margin-bottom:12px;">📦</div>';
+    html += '<div>No takeoff items to track</div>';
+    html += '<div style="font-size:13px;margin-top:4px;">Import takeoffs first</div>';
+    html += '</div>';
+  }
+  html += '</div>';
+  container.innerHTML = html;
+}
+
+// ========== COMPARISON TAB ==========
+async function renderComparisonTab(jobId, container) {
+  var comparison = { items: [], summary: { total_estimated: 0, total_completed: 0 } };
+  try {
+    var response = await fetch(API + '/jobs/' + jobId + '/comparison');
+    if (response.ok) comparison = await response.json();
+  } catch(e) {}
+
+  var html = '<div class="comparison-tab">';
+
+  if (comparison.items && comparison.items.length > 0) {
+    html += '<div class="comparison-summary" style="background:var(--bg-secondary);padding:16px;border-radius:12px;margin-bottom:16px;">';
+    html += '<div style="display:flex;justify-content:space-between;margin-bottom:8px;">';
+    html += '<span style="color:var(--text-secondary);">Total Estimated</span>';
+    html += '<span style="font-weight:600;">' + comparison.summary.total_estimated.toFixed(1) + '</span></div>';
+    html += '<div style="display:flex;justify-content:space-between;">';
+    html += '<span style="color:var(--text-secondary);">Total Completed</span>';
+    html += '<span style="font-weight:600;">' + comparison.summary.total_completed.toFixed(1) + '</span></div>';
+    html += '</div>';
+
+    comparison.items.forEach(function(item) {
+      var estimated = parseFloat(item.quantity) || 0;
+      var actual = parseFloat(item.quantity_completed) || 0;
+      var diff = actual - estimated;
+      var diffPercent = estimated > 0 ? ((actual - estimated) / estimated * 100) : 0;
+      var status = diff >= 0 ? 'ahead' : 'behind';
+      var unit = item.unit || 'units';
+
+      html += '<div class="comparison-item ' + status + '">';
+      html += '<div class="comparison-header">';
+      html += '<span class="comparison-name">' + (item.item_name || 'Item') + '</span>';
+      html += '<span class="comparison-diff ' + status + '">' + (diff >= 0 ? '+' : '') + diff.toFixed(1) + ' ' + unit + '</span>';
+      html += '</div>';
+      html += '<div class="comparison-bars">';
+      html += '<div class="comparison-bar-row">';
+      html += '<span class="comparison-bar-label">Est:</span>';
+      html += '<div class="comparison-bar estimated" style="width:' + Math.min(100, (estimated / Math.max(estimated, actual)) * 100) + '%"></div>';
+      html += '<span class="comparison-bar-value">' + estimated.toFixed(1) + '</span></div>';
+      html += '<div class="comparison-bar-row">';
+      html += '<span class="comparison-bar-label">Act:</span>';
+      html += '<div class="comparison-bar actual" style="width:' + Math.min(100, (actual / Math.max(estimated, actual)) * 100) + '%"></div>';
+      html += '<span class="comparison-bar-value">' + actual.toFixed(1) + '</span></div>';
+      html += '</div></div>';
+    });
+  } else {
+    html += '<div class="empty-state" style="text-align:center;padding:40px 20px;color:var(--text-secondary);">';
+    html += '<div style="font-size:48px;margin-bottom:12px;">📊</div>';
+    html += '<div>No comparison data yet</div>';
+    html += '<div style="font-size:13px;margin-top:4px;">Import takeoffs and log production to compare</div>';
+    html += '</div>';
+  }
+  html += '</div>';
+  container.innerHTML = html;
+}
+
+async function closeJobFromPanel(id) {
+  await fetch(API_BASE + '/jobs/' + id, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: 'closed' }) });
+  await loadAllData();
+  loadJobDetails(id);
+  showToast('Job closed', 'success');
+}
+
+async function reopenJobFromPanel(id) {
+  await fetch(API_BASE + '/jobs/' + id, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: 'active' }) });
+  await loadAllData();
+  loadJobDetails(id);
+  showToast('Job reopened', 'success');
+}
+
+function openDailyModalForSelectedJob() {
+  if (selectedJobId) openDailyModalForDate(new Date().toISOString().split('T')[0], selectedJobId);
+  else showToast('Please select a job first', 'warning');
+}
+
+function scheduleSelectedJob() {
+  if (selectedJobId) openScheduleModal(new Date().toISOString().split('T')[0], selectedJobId);
+  else showToast('Please select a job first', 'warning');
+}
+
+function viewJobCosting() {
+  if (selectedJobId) window.location.href = '/job-costing.html?job=' + selectedJobId;
+  else window.location.href = '/job-costing.html';
+}
+
+// ========== VIEW SWITCHING ==========
+async function showView(view) {
+  if (view === 'calendar') { try { schedule = await (await fetch(API + '/schedule')).json(); } catch(e) { schedule = []; } }
+  if (view === 'today') { try { todaysJobs = await (await fetch(API + '/schedule/today')).json(); } catch(e) { todaysJobs = []; } }
+  document.querySelectorAll('.view').forEach(function(v) { v.style.display = 'none'; });
+  document.querySelectorAll('.header-nav button').forEach(function(b) { b.classList.remove('active'); });
+  document.getElementById(view + '-view').style.display = 'block';
+  event && event.target && event.target.classList.add('active');
+  if (view === 'today') renderToday();
+  else if (view === 'calendar') renderCalendar();
+  else if (view === 'jobs') renderJobs();
+  else if (view === 'concrete') renderConcrete();
+  else if (view === 'workers') renderWorkers();
+}
+
+// ========== CALENDAR ==========
+function renderCalendar() {
+  var monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  var firstDay = new Date(currentYear, currentMonth, 1).getDay();
+  var daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+  var todayStr = new Date().toISOString().split('T')[0];
+
+  var html = '<div class="calendar-container">';
+  html += '<div class="calendar-header">';
+  html += '<h2 class="calendar-title">' + monthNames[currentMonth] + ' ' + currentYear + '</h2>';
+  html += '<div class="calendar-nav">';
+  html += '<button onclick="prevMonth()">◀ Prev</button>';
+  html += '<button onclick="goToToday()">Today</button>';
+  html += '<button onclick="nextMonth()">Next ▶</button>';
+  html += '</div></div>';
+
+  html += '<div class="calendar-box">';
+  html += '<div class="calendar-grid">';
+  html += '<div class="calendar-header-cell">Sun</div><div class="calendar-header-cell">Mon</div><div class="calendar-header-cell">Tue</div><div class="calendar-header-cell">Wed</div><div class="calendar-header-cell">Thu</div><div class="calendar-header-cell">Fri</div><div class="calendar-header-cell">Sat</div>';
+
+  // Empty cells for days before month starts
+  for (var i = 0; i < firstDay; i++) {
+    html += '<div class="calendar-day other-month"></div>';
+  }
+
+  // Days of the month
+  for (var day = 1; day <= daysInMonth; day++) {
+    var dateStr = currentYear + '-' + String(currentMonth + 1).padStart(2, '0') + '-' + String(day).padStart(2, '0');
+    var daySchedule = schedule.filter(function(s) { return s.scheduled_date && s.scheduled_date.split('T')[0] === dateStr; });
+    var isToday = dateStr === todayStr;
+
+    var tags = daySchedule.slice(0, 3).map(function(s) {
+      return '<div class="job-tag" draggable="true" ondragstart="dragScheduledJob(event,' + s.id + ')" ondragend="dragEnd(event)" onclick="event.stopPropagation();openScheduledJobMenu(' + s.id + ',event)" style="background:' + (s.color || '#f97316') + ';cursor:grab;" title="Click for options, drag to reschedule">' + (s.job_number || 'Job') + '</div>';
+    }).join('');
+    if (daySchedule.length > 3) tags += '<div class="more-jobs" onclick="event.stopPropagation();openDayView(\'' + dateStr + '\')">+' + (daySchedule.length - 3) + ' more</div>';
+
+    html += '<div class="calendar-day' + (isToday ? ' today' : '') + '" onclick="openDayView(\'' + dateStr + '\')" ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="dropJob(event,\'' + dateStr + '\')">';
+    html += '<div class="day-number">' + day + '</div>';
+    html += tags;
+    html += '</div>';
+  }
+
+  html += '</div></div>';
+
+  // Crew Legend
+  html += '<div class="crew-legend"><span class="crew-legend-title">Crew Leads:</span>';
+  crewLeads.forEach(function(c) {
+    html += '<div class="crew-item"><div class="crew-color" style="background:' + c.color + ';"></div><span class="crew-name">' + c.name + '</span></div>';
+  });
+  html += '</div></div>';
+
+  document.getElementById('calendar-view').innerHTML = html;
+}
+
+function prevMonth() { currentMonth--; if (currentMonth < 0) { currentMonth = 11; currentYear--; } renderCalendar(); }
+function nextMonth() { currentMonth++; if (currentMonth > 11) { currentMonth = 0; currentYear++; } renderCalendar(); }
+function goToToday() { currentMonth = new Date().getMonth(); currentYear = new Date().getFullYear(); renderCalendar(); }
+
+var draggedScheduleId = null; // For rescheduling existing scheduled jobs
+
+function dragStart(e, id) {
+  draggedJobId = id;
+  draggedScheduleId = null;
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', 'job-' + id);
+  e.target.classList.add('dragging');
+}
+function dragScheduledJob(e, scheduleId) {
+  e.stopPropagation();
+  draggedScheduleId = scheduleId;
+  draggedJobId = null;
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', 'schedule-' + scheduleId);
+  e.target.classList.add('dragging');
+}
+function dragEnd(e) {
+  e.target.classList.remove('dragging');
+  document.querySelectorAll('.calendar-day.drag-over').forEach(function(el) { el.classList.remove('drag-over'); });
+}
+function dragOver(e) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  e.currentTarget.classList.add('drag-over');
+}
+function dragLeave(e) { e.currentTarget.classList.remove('drag-over'); }
+async function dropJob(e, dateStr) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  document.querySelectorAll('.job-tag.dragging').forEach(function(el) { el.classList.remove('dragging'); });
+
+  if (draggedScheduleId) {
+    // Rescheduling an existing scheduled job
+    try {
+      var res = await fetch(API + '/schedule/' + draggedScheduleId, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scheduled_date: dateStr })
+      });
+      if (res.ok) {
+        schedule = await (await fetch(API + '/schedule')).json();
+        renderCalendar();
+        showToast('Job rescheduled to ' + dateStr, 'success');
+      } else {
+        showToast('Failed to reschedule job', 'error');
+      }
+    } catch(err) {
+      showToast('Error rescheduling: ' + err.message, 'error');
+    }
+    draggedScheduleId = null;
+  } else if (draggedJobId) {
+    // Scheduling a new job from the sidebar
+    openScheduleModal(dateStr, draggedJobId);
+    draggedJobId = null;
+  }
+}
+
+// ========== SCHEDULED JOB POPUP MENU ==========
+function openScheduledJobMenu(scheduleId, event) {
+  closeScheduledJobMenu(); // Close any existing menu
+  var sched = schedule.find(function(s) { return s.id === scheduleId; });
+  if (!sched) return;
+
+  var x = event.clientX;
+  var y = event.clientY;
+
+  // Create overlay to close menu when clicking outside
+  var overlay = document.createElement('div');
+  overlay.className = 'job-popup-overlay';
+  overlay.onclick = closeScheduledJobMenu;
+  document.body.appendChild(overlay);
+
+  // Create popup menu
+  var popup = document.createElement('div');
+  popup.id = 'job-popup-menu';
+  popup.className = 'job-popup-menu';
+  popup.innerHTML = '\
+    <div class="job-popup-header">\
+      <div class="job-num">#' + (sched.job_number || '') + '</div>\
+      <div class="job-name">' + (sched.job_name || 'Unnamed Job') + '</div>\
+      <div class="job-crew">👷 ' + (sched.crew_lead_name || 'No crew assigned') + '</div>\
+    </div>\
+    <div class="job-popup-actions">\
+      <button class="job-popup-btn" onclick="editScheduledJob(' + scheduleId + ')">✏️ Edit Schedule</button>\
+      <button class="job-popup-btn" onclick="addDailyRecordForSchedule(' + scheduleId + ')">📝 Add Daily Record</button>\
+      <button class="job-popup-btn" onclick="viewJobFromSchedule(' + sched.job_id + ')">👁️ View Job Details</button>\
+      <button class="job-popup-btn danger" onclick="removeScheduledJob(' + scheduleId + ')">🗑️ Remove from Calendar</button>\
+    </div>';
+
+  // Position the popup
+  popup.style.left = Math.min(x, window.innerWidth - 220) + 'px';
+  popup.style.top = Math.min(y, window.innerHeight - 250) + 'px';
+
+  document.body.appendChild(popup);
+}
+
+function closeScheduledJobMenu() {
+  var popup = document.getElementById('job-popup-menu');
+  if (popup) popup.remove();
+  var overlay = document.querySelector('.job-popup-overlay');
+  if (overlay) overlay.remove();
+}
+
+async function editScheduledJob(scheduleId) {
+  closeScheduledJobMenu();
+  var sched = schedule.find(function(s) { return s.id === scheduleId; });
+  if (!sched) return;
+
+  // Open schedule modal with pre-filled values
+  var dateStr = sched.scheduled_date ? sched.scheduled_date.split('T')[0] : new Date().toISOString().split('T')[0];
+
+  // Always fetch fresh crew leads
+  try {
+    var response = await fetch(API_BASE + '/crew-leads');
+    if (response.ok) {
+      crewLeads = await response.json();
+    }
+  } catch(e) {
+    console.error('Failed to load crew leads:', e);
+  }
+
+  var jobOpts = jobs.map(function(j) { return '<option value="' + j.id + '"' + (sched.job_id == j.id ? ' selected' : '') + '>#' + j.job_number + ' - ' + j.job_name + '</option>'; }).join('');
+  var crewOpts = (crewLeads || []).map(function(c) { return '<option value="' + c.id + '"' + (sched.crew_lead_id == c.id ? ' selected' : '') + '>' + c.name + '</option>'; }).join('');
+
+  var modal = document.createElement('div');
+  modal.id = 'edit-schedule-modal';
+  modal.className = 'modal';
+  modal.style.display = 'flex';
+  modal.innerHTML = '<div class="modal-content"><div class="modal-header"><h2>Edit Scheduled Job</h2><button onclick="document.getElementById(\'edit-schedule-modal\').remove()" class="icon-btn">✕</button></div><div class="modal-body"><div class="input-group"><label>Date</label><input type="date" id="edit-schedule-date" value="' + dateStr + '"></div><div class="input-group"><label>Job</label><select id="edit-schedule-job">' + jobOpts + '</select></div><div class="input-group"><label>Crew Lead</label><select id="edit-schedule-crew"><option value="">Select Crew Lead</option>' + crewOpts + '</select></div><div class="input-group"><label>Notes</label><textarea id="edit-schedule-notes" rows="3" placeholder="Notes...">' + (sched.notes || '') + '</textarea></div></div><div class="modal-footer"><button onclick="document.getElementById(\'edit-schedule-modal\').remove()" class="btn btn-secondary">Cancel</button><button onclick="saveScheduleEdit(' + scheduleId + ')" class="btn btn-primary">Save Changes</button></div></div>';
+  document.body.appendChild(modal);
+}
+
+async function saveScheduleEdit(scheduleId) {
+  var data = {
+    job_id: document.getElementById('edit-schedule-job').value,
+    scheduled_date: document.getElementById('edit-schedule-date').value,
+    crew_lead_id: document.getElementById('edit-schedule-crew').value || null,
+    notes: document.getElementById('edit-schedule-notes').value.trim()
+  };
+
+  try {
+    var res = await fetch(API + '/schedule/' + scheduleId, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    if (res.ok) {
+      document.getElementById('edit-schedule-modal').remove();
+      schedule = await (await fetch(API + '/schedule')).json();
+      renderCalendar();
+      showToast('Schedule updated successfully', 'success');
+    } else {
+      showToast('Failed to update schedule', 'error');
+    }
+  } catch(err) {
+    showToast('Error: ' + err.message, 'error');
+  }
+}
+
+async function removeScheduledJob(scheduleId) {
+  closeScheduledJobMenu();
+  if (!confirm('Remove this job from the calendar?')) return;
+
+  try {
+    var res = await fetch(API + '/schedule/' + scheduleId, { method: 'DELETE' });
+    if (res.ok) {
+      schedule = await (await fetch(API + '/schedule')).json();
+      renderCalendar();
+      showToast('Job removed from calendar', 'success');
+    } else {
+      showToast('Failed to remove job', 'error');
+    }
+  } catch(err) {
+    showToast('Error: ' + err.message, 'error');
+  }
+}
+
+function addDailyRecordForSchedule(scheduleId) {
+  closeScheduledJobMenu();
+  var sched = schedule.find(function(s) { return s.id === scheduleId; });
+  if (sched) {
+    var dateStr = sched.scheduled_date ? sched.scheduled_date.split('T')[0] : new Date().toISOString().split('T')[0];
+    openDailyModalForDate(dateStr, sched.job_id);
+  }
+}
+
+function viewJobFromSchedule(jobId) {
+  closeScheduledJobMenu();
+  selectJob(jobId);
+}
+
+function openDayView(dateStr) {
+  var daySchedule = schedule.filter(function(s) { return s.scheduled_date && s.scheduled_date.split('T')[0] === dateStr; });
+  var formatted = new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+  var jobsHtml = daySchedule.length > 0 ? daySchedule.map(function(s) {
+    return '<div style="background:var(--bg-light);border-left:4px solid ' + (s.color || '#f97316') + ';padding:15px;margin:10px 0;border-radius:8px;">' +
+      '<div style="font-weight:bold;">#' + (s.job_number || '') + ' - ' + (s.job_name || '') + '</div>' +
+      '<div style="color:var(--text-secondary);margin:5px 0;">📍 ' + (s.location || 'No location') + '</div>' +
+      '<div style="color:' + (s.color || '#f97316') + ';font-weight:bold;">👷 ' + (s.crew_lead_name || 'No crew lead') + '</div>' +
+      (s.notes ? '<div style="margin-top:8px;padding:8px;background:var(--border);border-radius:6px;">' + s.notes + '</div>' : '') +
+      '</div>';
+  }).join('') : '<p style="color:var(--text-secondary);">No jobs scheduled for this day.</p>';
+
+  var modal = document.createElement('div');
+  modal.id = 'day-modal';
+  modal.className = 'modal';
+  modal.style.display = 'flex';
+  modal.innerHTML = '<div class="modal-content" style="max-width:500px;"><div class="modal-header"><h2>' + formatted + '</h2><button onclick="document.getElementById(\'day-modal\').remove()" class="icon-btn">✕</button></div><div class="modal-body">' + jobsHtml + '<button onclick="document.getElementById(\'day-modal\').remove();openScheduleModal(\'' + dateStr + '\')" style="width:100%;margin-top:15px;padding:14px;background:var(--primary);color:white;border:none;border-radius:12px;font-size:16px;cursor:pointer;min-height:52px;">+ Schedule Job</button><button onclick="document.getElementById(\'day-modal\').remove();openDailyModalForDate(\'' + dateStr + '\')" style="width:100%;margin-top:10px;padding:14px;background:var(--success);color:white;border:none;border-radius:12px;font-size:16px;cursor:pointer;min-height:52px;">+ Add Daily Record</button></div></div>';
+  document.body.appendChild(modal);
+}
+
+// ========== TODAY VIEW ==========
+async function renderToday() {
+  var today = new Date().toISOString().split('T')[0];
+  var todayRecords = dailyRecords.filter(function(r) { return r.record_date && r.record_date.split('T')[0] === today; });
+
+  var html = '<div class="calendar-container">';
+  html += '<h2 class="calendar-title" style="margin-bottom:20px;">Today\'s Work</h2>';
+
+  // Today's Scheduled Jobs
+  html += '<div style="background:white;border-radius:16px;padding:20px;margin-bottom:20px;box-shadow:var(--shadow);">';
+  html += '<h3 style="font-size:16px;color:var(--text-secondary);margin-bottom:16px;">📋 SCHEDULED JOBS (' + todaysJobs.length + ')</h3>';
+
+  if (todaysJobs.length > 0) {
+    todaysJobs.forEach(function(job) {
+      var hasRecord = parseInt(job.has_record) > 0;
+      html += '<div style="background:var(--bg-light);border-left:4px solid ' + (hasRecord ? 'var(--success)' : 'var(--primary)') + ';padding:16px;margin-bottom:12px;border-radius:12px;' + (hasRecord ? 'opacity:0.7;' : '') + '">';
+      html += '<div style="display:flex;justify-content:space-between;align-items:center;">';
+      html += '<div><div style="font-weight:700;color:var(--primary);">#' + job.job_number + '</div><div style="font-size:16px;font-weight:600;">' + job.job_name + '</div><div style="font-size:13px;color:var(--text-secondary);margin-top:4px;">📍 ' + (job.location || 'No location') + '</div></div>';
+      if (hasRecord) {
+        html += '<span style="background:var(--success);color:white;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;">✓ Recorded</span>';
+      } else {
+        html += '<button onclick="openDailyModalForJob(' + job.job_id + ')" style="background:var(--primary);color:white;padding:12px 20px;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;">+ Add Record</button>';
+      }
+      html += '</div></div>';
+    });
+  } else {
+    html += '<div style="text-align:center;padding:30px;color:var(--text-secondary);"><div style="font-size:48px;margin-bottom:12px;">📅</div><p>No jobs scheduled for today</p></div>';
+  }
+  html += '</div>';
+
+  // Today's Records
+  html += '<div style="background:white;border-radius:16px;padding:20px;box-shadow:var(--shadow);">';
+  html += '<h3 style="font-size:16px;color:var(--text-secondary);margin-bottom:16px;">📝 TODAY\'S RECORDS (' + todayRecords.length + ')</h3>';
+
+  if (todayRecords.length > 0) {
+    for (var i = 0; i < todayRecords.length; i++) {
+      var r = todayRecords[i];
+      var photosHtml = await getRecordPhotosHtml(r.id);
+      var weatherHtml = getWeatherHtml(r.weather_data);
+      var workerHoursHtml = await getWorkerHoursHtml(r.id);
+
+      html += '<div style="background:var(--bg-light);border-left:4px solid var(--success);padding:16px;margin-bottom:12px;border-radius:12px;">';
+      html += '<div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:12px;">';
+      html += '<div><div style="font-weight:bold;color:var(--success);font-size:15px;">#' + (r.job_number || '') + ' - ' + (r.job_name || '') + '</div>';
+      html += '<div style="color:var(--text-secondary);font-size:13px;margin-top:4px;">👷 ' + (r.foreman_name || 'No foreman') + '</div></div>';
+      html += weatherHtml;
+      html += '</div>';
+      if (r.yards_poured && r.yards_poured > 0) {
+        html += '<div style="background:white;padding:10px;border-radius:8px;margin-bottom:8px;display:inline-block;"><strong style="color:var(--primary);">' + r.yards_poured + '</strong> yards poured</div>';
+      }
+      html += workerHoursHtml;
+      if (r.notes) {
+        html += '<div style="margin-top:12px;padding:12px;background:white;border-radius:10px;font-size:14px;color:var(--text-secondary);">' + r.notes + '</div>';
+      }
+      html += photosHtml;
+      html += '<button onclick="openAddPhotosModal(' + r.id + ')" style="margin-top:12px;padding:10px 16px;background:var(--primary);color:white;border:none;border-radius:8px;font-size:13px;cursor:pointer;">📷 Add Photos</button>';
+      html += '</div>';
+    }
+  } else {
+    html += '<p style="color:var(--text-secondary);text-align:center;padding:20px;">No records for today yet.</p>';
+  }
+  html += '</div>';
+
+  html += '</div>';
+  document.getElementById('today-view').innerHTML = html;
+}
+
+async function getWorkerHoursHtml(recordId) {
+  try {
+    var res = await fetch(API_BASE + '/daily-records/' + recordId + '/worker-hours');
+    if (!res.ok) return '';
+    var workerHours = await res.json();
+    if (workerHours.length === 0) return '';
+    var totalHours = workerHours.reduce(function(sum, wh) { return sum + parseFloat(wh.hours_worked); }, 0);
+    var html = '<div style="margin-top:12px;"><strong style="font-size:12px;color:var(--text-secondary);text-transform:uppercase;">Worker Hours (' + totalHours.toFixed(1) + ' total):</strong><div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;">';
+    workerHours.forEach(function(wh) {
+      html += '<span style="background:#fef3c7;color:#92400e;padding:6px 12px;border-radius:8px;font-size:13px;font-weight:500;">' + wh.full_name + ': ' + wh.hours_worked + 'h</span>';
+    });
+    html += '</div></div>';
+    return html;
+  } catch(e) { return ''; }
+}
+
+function getWeatherHtml(weatherData) {
+  if (!weatherData) return '';
+  var w = typeof weatherData === 'string' ? JSON.parse(weatherData) : weatherData;
+  var icon = getWeatherIcon(w.code);
+  return '<div style="background:linear-gradient(135deg,#0ea5e9,#38bdf8);padding:8px 12px;border-radius:10px;font-size:13px;display:flex;align-items:center;gap:8px;color:white;"><span style="font-size:20px;">' + icon + '</span><span>' + w.condition + '</span><span style="opacity:0.9;">' + w.high + '°/' + w.low + '°F</span></div>';
+}
+
+function getWeatherIcon(code) {
+  if (code === 0 || code === 1) return '☀️';
+  if (code === 2) return '⛅';
+  if (code === 3) return '☁️';
+  if (code >= 45 && code <= 48) return '🌫️';
+  if (code >= 51 && code <= 55) return '🌧️';
+  if (code >= 61 && code <= 65) return '🌧️';
+  if (code >= 71 && code <= 77) return '❄️';
+  if (code >= 80 && code <= 82) return '🌦️';
+  if (code >= 85 && code <= 86) return '🌨️';
+  if (code >= 95) return '⛈️';
+  return '🌡️';
+}
+
+async function getRecordPhotosHtml(recordId) {
+  try {
+    var photos = await (await fetch(API_BASE + '/daily-records/' + recordId + '/photos')).json();
+    if (photos.length === 0) return '';
+    var html = '<div class="record-photos" style="margin-top:12px;">';
+    photos.forEach(function(p) {
+      html += '<img src="' + p.file_path + '" onclick="openPhotoViewer(\'' + p.file_path + '\')" alt="Photo">';
+    });
+    html += '</div>';
+    return html;
+  } catch(e) { return ''; }
+}
+
+function openPhotoViewer(src) {
+  var modal = document.createElement('div');
+  modal.id = 'photo-viewer';
+  modal.className = 'modal';
+  modal.style.display = 'flex';
+  modal.style.alignItems = 'center';
+  modal.innerHTML = '<div style="position:relative;max-width:90%;max-height:90%;"><img src="' + src + '" style="max-width:100%;max-height:90vh;border-radius:12px;"><button onclick="document.getElementById(\'photo-viewer\').remove()" style="position:absolute;top:-12px;right:-12px;background:var(--error);color:white;border:none;border-radius:50%;width:36px;height:36px;font-size:20px;cursor:pointer;">✕</button></div>';
+  modal.onclick = function(e) { if (e.target === modal) modal.remove(); };
+  document.body.appendChild(modal);
+}
+
+// ========== SCHEDULE MODAL ==========
+async function openScheduleModal(presetDate, presetJobId, presetCrewId) {
+  // Always fetch fresh crew leads to ensure dropdown is populated
+  try {
+    var response = await fetch(API_BASE + '/crew-leads');
+    if (response.ok) {
+      crewLeads = await response.json();
+      console.log('Loaded crew leads:', crewLeads.length);
+    }
+  } catch(e) {
+    console.error('Failed to load crew leads:', e);
+  }
+
+  var jobOpts = jobs.map(function(j) { return '<option value="' + j.id + '"' + (presetJobId == j.id ? ' selected' : '') + '>#' + j.job_number + ' - ' + j.job_name + '</option>'; }).join('');
+  var crewOpts = (crewLeads || []).map(function(c) { return '<option value="' + c.id + '"' + (presetCrewId == c.id ? ' selected' : '') + '>' + c.name + '</option>'; }).join('');
+  var modal = document.createElement('div');
+  modal.id = 'schedule-modal';
+  modal.className = 'modal';
+  modal.style.display = 'flex';
+  modal.innerHTML = '<div class="modal-content"><div class="modal-header"><h2>Schedule Job</h2><button onclick="document.getElementById(\'schedule-modal\').remove()" class="icon-btn">✕</button></div><div class="modal-body"><div class="input-group"><label>Date</label><input type="date" id="schedule-date" value="' + (presetDate || new Date().toISOString().split('T')[0]) + '"></div><div class="input-group"><label>Job</label><select id="schedule-job"><option value="">Select Job</option>' + jobOpts + '</select></div><div class="input-group"><label>Crew Lead</label><select id="schedule-crew"><option value="">Select Crew Lead</option>' + crewOpts + '</select></div><div class="input-group"><label>Notes</label><textarea id="schedule-notes" rows="3" placeholder="Notes..."></textarea></div></div><div class="modal-footer"><button onclick="document.getElementById(\'schedule-modal\').remove()" class="btn btn-secondary">Cancel</button><button onclick="saveSchedule()" class="btn btn-primary">Schedule</button></div></div>';
+  document.body.appendChild(modal);
+}
+
+async function saveSchedule() {
+  var data = { job_id: document.getElementById('schedule-job').value, scheduled_date: document.getElementById('schedule-date').value, crew_lead_id: document.getElementById('schedule-crew').value || null, notes: document.getElementById('schedule-notes').value.trim() };
+  if (!data.job_id || !data.scheduled_date) { showToast('Job and Date are required', 'error'); return; }
+  var res = await fetch(API + '/schedule', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+  if (res.ok) {
+    document.getElementById('schedule-modal').remove();
+    if (document.getElementById('day-modal')) document.getElementById('day-modal').remove();
+    schedule = await (await fetch(API + '/schedule')).json();
+    renderCalendar();
+    showToast('Job scheduled successfully', 'success');
+  }
+}
+
+// ========== DAILY RECORD MODAL ==========
+function openDailyModal() { openDailyModalForDate(new Date().toISOString().split('T')[0]); }
+function openDailyModalForJob(jobId) { openDailyModalForDate(new Date().toISOString().split('T')[0], jobId); }
+
+async function openDailyModalForDate(dateStr, presetJobId) {
+  pendingPhotos = [];
+  pendingWorkItems = [];
+  pendingWorkerHours = [];
+  selectedNotes = [];
+  selectedWorkItems = [];
+  currentWeather = null;
+  currentJobTotals = null;
+
+  var jobOpts = jobs.map(function(j) {
+    var selected = presetJobId && presetJobId == j.id ? ' selected' : '';
+    return '<option value="' + j.id + '"' + selected + '>#' + j.job_number + ' - ' + j.job_name + '</option>';
+  }).join('');
+
+  var modal = document.createElement('div');
+  modal.id = 'daily-modal';
+  modal.className = 'modal';
+  modal.style.display = 'flex';
+
+  modal.innerHTML = '\
+    <div class="modal-content">\
+      <div class="modal-header">\
+        <h2>📋 Daily Record</h2>\
+        <button onclick="document.getElementById(\'daily-modal\').remove()" class="icon-btn">✕</button>\
+      </div>\
+      <div class="modal-body" style="padding-bottom:100px;">\
+        <div id="weather-display" class="weather-display">\
+          <div class="weather-icon">🌡️</div>\
+          <div class="weather-info">\
+            <div class="weather-condition" style="opacity:0.7;">Loading weather...</div>\
+          </div>\
+        </div>\
+        <div class="input-group">\
+          <label class="required">Date</label>\
+          <input type="date" id="record-date" value="' + dateStr + '" required>\
+        </div>\
+        <div class="input-group">\
+          <label class="required">Job</label>\
+          <select id="record-job" onchange="onJobSelected()" required>\
+            <option value="">Select Job</option>\
+            ' + jobOpts + '\
+          </select>\
+        </div>\
+        <div id="running-totals-container"></div>\
+        <div class="yards-input-group">\
+          <div class="icon">🏗️</div>\
+          <div class="input-wrapper">\
+            <label>YARDS POURED TODAY</label>\
+            <input type="number" id="record-yards" class="yards-input" placeholder="0" step="0.25" min="0" inputmode="decimal">\
+          </div>\
+        </div>\
+        <div class="input-group">\
+          <label>Foreman / Crew</label>\
+          <select id="record-foreman">\
+            <option value="">Select Foreman</option>\
+            ' + (crewLeads || []).map(function(c) { return '<option value="' + c.id + '">' + c.name + '</option>'; }).join('') + '\
+          </select>\
+        </div>\
+        <div class="work-items-section">\
+          <div class="work-items-tab-bar">\
+            <button class="work-items-tab active">WORK / ITEMS</button>\
+          </div>\
+          <div id="work-items-container" class="work-items-container">\
+            <div class="work-items-empty">\
+              <div class="work-items-empty-icon">📋</div>\
+              <p>Select a job to see work items</p>\
+              <p class="sub">Items will load from job takeoffs</p>\
+            </div>\
+          </div>\
+        </div>\
+        <div class="input-group" style="margin-top:16px;">\
+          <label>Additional Notes</label>\
+          <textarea id="record-notes" rows="2" placeholder="Any additional notes for this day..." style="margin-top:4px;"></textarea>\
+        </div>\
+        <div class="worker-hours-section">\
+          <div class="worker-hours-header">\
+            <h4>👷 Worker Hours</h4>\
+            <button type="button" class="add-worker-btn" onclick="openAddWorkerHoursModal()">+ Add Worker</button>\
+          </div>\
+          <div id="worker-hours-list">\
+            <p style="color:var(--text-secondary);font-size:14px;text-align:center;padding:12px;">No workers added yet</p>\
+          </div>\
+        </div>\
+        <div class="input-group">\
+          <label>📷 Photos</label>\
+          <div class="photo-upload-area" id="photo-upload-area" onclick="document.getElementById(\'photo-input\').click()">\
+            <input type="file" id="photo-input" multiple accept="image/*" capture="environment" style="display:none;" onchange="handlePhotoSelect(event)">\
+            <div class="upload-icon">📷</div>\
+            <p>Tap to take photo or select from gallery</p>\
+          </div>\
+          <div class="photo-preview" id="photo-preview"></div>\
+        </div>\
+      </div>\
+      <div class="modal-footer">\
+        <button onclick="document.getElementById(\'daily-modal\').remove()" class="btn btn-secondary">Cancel</button>\
+        <button onclick="saveDailyRecord()" class="btn btn-success">Save Record</button>\
+      </div>\
+    </div>\
+  ';
+
+  document.body.appendChild(modal);
+
+  var uploadArea = document.getElementById('photo-upload-area');
+  uploadArea.addEventListener('dragover', function(e) { e.preventDefault(); this.classList.add('dragover'); });
+  uploadArea.addEventListener('dragleave', function(e) { e.preventDefault(); this.classList.remove('dragover'); });
+  uploadArea.addEventListener('drop', function(e) { e.preventDefault(); this.classList.remove('dragover'); handlePhotoSelect({ target: { files: e.dataTransfer.files } }); });
+
+  renderItemDropdown();
+  setupFormValidation();
+  loadWeather();
+  if (presetJobId) onJobSelected();
+}
+
+async function loadWeather() {
+  try {
+    var res = await fetch(API + '/weather');
+    if (res.ok) {
+      currentWeather = await res.json();
+      var icon = getWeatherIcon(currentWeather.code);
+      document.getElementById('weather-display').innerHTML = '<div class="weather-icon">' + icon + '</div><div class="weather-info"><div class="weather-condition">' + currentWeather.condition + '</div><div class="weather-temps">High: ' + currentWeather.high + '°F • Low: ' + currentWeather.low + '°F</div></div>';
+    }
+  } catch(e) {
+    document.getElementById('weather-display').innerHTML = '<div class="weather-icon">🌡️</div><div class="weather-info"><div class="weather-condition">Weather unavailable</div></div>';
+  }
+}
+
+async function onJobSelected() {
+  var jobId = document.getElementById('record-job').value;
+  var dateStr = document.getElementById('record-date').value;
+  var foremanSelect = document.getElementById('record-foreman');
+
+  if (!jobId) {
+    document.getElementById('running-totals-container').innerHTML = '';
+    pendingWorkerHours = [];
+    renderWorkerHoursList();
+    if (foremanSelect) foremanSelect.value = '';
+    // Reset work items
+    currentJobTakeoffs = [];
+    takeoffEntries = {};
+    var container = document.getElementById('work-items-container');
+    if (container) {
+      container.innerHTML = '<div class="work-items-empty"><div class="work-items-empty-icon">📋</div><p>Select a job to see work items</p><p class="sub">Items will load from job takeoffs</p></div>';
+    }
+    return;
+  }
+
+  // Auto-populate foreman from schedule if job is scheduled for this date
+  if (foremanSelect) {
+    var scheduledEntry = schedule.find(function(s) {
+      return s.job_id == jobId && s.scheduled_date && s.scheduled_date.split('T')[0] === dateStr;
+    });
+    if (scheduledEntry && scheduledEntry.crew_lead_id) {
+      foremanSelect.value = scheduledEntry.crew_lead_id;
+    } else {
+      // Check if job has any scheduled entry with a crew lead
+      var anyScheduled = schedule.find(function(s) {
+        return s.job_id == jobId && s.crew_lead_id;
+      });
+      if (anyScheduled && anyScheduled.crew_lead_id) {
+        foremanSelect.value = anyScheduled.crew_lead_id;
+      }
+    }
+  }
+
+  try {
+    var res = await fetch(API + '/jobs/' + jobId + '/totals');
+    if (res.ok) {
+      currentJobTotals = await res.json();
+      document.getElementById('running-totals-container').innerHTML = '<div class="running-totals"><div class="total-item"><div class="total-value">' + currentJobTotals.total_yards.toFixed(1) + '</div><div class="total-label">Total Yards Poured</div></div><div class="total-item"><div class="total-value">' + currentJobTotals.total_hours.toFixed(1) + '</div><div class="total-label">Total Hours Logged</div></div></div>';
+    }
+  } catch(e) {}
+  try {
+    var res = await fetch(API + '/jobs/' + jobId + '/crew/' + dateStr);
+    if (res.ok) {
+      var crewData = await res.json();
+      pendingWorkerHours = [];
+      if (crewData.suggested_workers && crewData.suggested_workers.length > 0) {
+        crewData.suggested_workers.slice(0, 5).forEach(function(w) {
+          pendingWorkerHours.push({ worker_id: w.id, worker_name: w.full_name, hours_worked: 8 });
+        });
+      }
+      renderWorkerHoursList();
+    }
+  } catch(e) {}
+
+  // Load job takeoffs
+  try {
+    var res = await fetch(API + '/jobs/' + jobId + '/takeoffs');
+    if (res.ok) {
+      currentJobTakeoffs = await res.json();
+      takeoffEntries = {}; // Reset entries
+      renderTakeoffsTable();
+    }
+  } catch(e) {
+    console.error('Error loading takeoffs:', e);
+    currentJobTakeoffs = [];
+    renderTakeoffsTable();
+  }
+}
+
+function toggleNote(btn, note) {
+  btn.classList.toggle('selected');
+  var idx = selectedNotes.indexOf(note);
+  if (idx >= 0) selectedNotes.splice(idx, 1);
+  else selectedNotes.push(note);
+}
+
+// Render work items table for daily record (Ultimate Foreman style)
+function renderTakeoffsTable() {
+  var container = document.getElementById('work-items-container');
+  if (!container) return;
+
+  if (!currentJobTakeoffs || currentJobTakeoffs.length === 0) {
+    container.innerHTML = '<div class="work-items-empty"><div class="work-items-empty-icon">📋</div><p>No work items for this job</p><p class="sub">Add takeoff items in Job Costing to track production</p></div>';
+    return;
+  }
+
+  // Categorize takeoffs
+  var categories = {
+    items: { label: 'Items', icon: '📦', items: [] },
+    material: { label: "Mat'l", icon: '🧱', items: [] },
+    misc: { label: 'Misc', icon: '📝', items: [] }
+  };
+
+  currentJobTakeoffs.forEach(function(t) {
+    var unit = (t.unit || 'EA').toUpperCase();
+    if (unit === 'CYD' || unit === 'CY' || unit === 'YD' || unit === 'YARD') {
+      categories.material.items.push(t);
+    } else if (unit === 'MI' || unit === 'MILE' || unit === 'HR' || unit === 'DAY') {
+      categories.misc.items.push(t);
+    } else {
+      categories.items.items.push(t);
+    }
+  });
+
+  // Header row
+  var html = '<div class="work-items-header">';
+  html += '<div class="col-check"></div>';
+  html += '<div class="col-name">Name</div>';
+  html += '<div class="col-qty">Qty</div>';
+  html += '<div class="col-uom">UOM</div>';
+  html += '<div class="col-done">Done</div>';
+  html += '</div>';
+
+  // Render each category
+  ['items', 'material', 'misc'].forEach(function(catKey) {
+    var cat = categories[catKey];
+    if (cat.items.length === 0) return;
+
+    html += '<div class="work-category" id="work-cat-' + catKey + '">';
+    html += '<div class="work-category-header" onclick="toggleWorkCategory(\'' + catKey + '\')">';
+    html += '<div class="category-left">';
+    html += '<span class="category-icon">' + cat.icon + '</span>';
+    html += '<span class="category-name">' + cat.label + '</span>';
+    html += '<span class="category-count">' + cat.items.length + '</span>';
+    html += '</div>';
+    html += '<span class="category-arrow">▼</span>';
+    html += '</div>';
+    html += '<div class="work-items-list">';
+
+    cat.items.forEach(function(t) {
+      var qty = parseFloat(t.quantity) || 0;
+      var isChecked = takeoffEntries[t.id] !== undefined;
+
+      html += '<div class="work-item-row' + (isChecked ? ' checked' : '') + '" data-takeoff-id="' + t.id + '">';
+      html += '<div class="work-item-checkbox' + (isChecked ? ' checked' : '') + '" onclick="toggleWorkItemCheck(' + t.id + ')"></div>';
+      html += '<div class="work-item-name">' + (t.item_name || t.source || 'Unknown') + '</div>';
+      html += '<div class="work-item-qty">' + qty.toLocaleString() + '</div>';
+      html += '<div class="work-item-uom">' + (t.unit || 'EA') + '</div>';
+      html += '<div class="work-item-done">';
+      html += '<input type="number" placeholder="0" min="0" step="0.01" inputmode="decimal" ';
+      html += 'value="' + (takeoffEntries[t.id] || '') + '" ';
+      html += 'onchange="updateWorkItemDone(' + t.id + ', this)" ';
+      html += 'onfocus="this.parentElement.parentElement.querySelector(\'.work-item-checkbox\').classList.add(\'checked\');this.parentElement.parentElement.classList.add(\'checked\')" ';
+      html += 'class="' + (isChecked ? 'has-value' : '') + '">';
+      html += '</div>';
+      html += '</div>';
+    });
+
+    html += '</div></div>';
+  });
+
+  container.innerHTML = html;
+}
+
+// Toggle work category collapse
+function toggleWorkCategory(catKey) {
+  var cat = document.getElementById('work-cat-' + catKey);
+  if (cat) cat.classList.toggle('collapsed');
+}
+
+// Toggle work item checkbox
+function toggleWorkItemCheck(takeoffId) {
+  var row = document.querySelector('.work-item-row[data-takeoff-id="' + takeoffId + '"]');
+  var checkbox = row ? row.querySelector('.work-item-checkbox') : null;
+  var input = row ? row.querySelector('.work-item-done input') : null;
+
+  if (checkbox && row) {
+    var isChecked = checkbox.classList.toggle('checked');
+    row.classList.toggle('checked', isChecked);
+
+    if (!isChecked && input) {
+      input.value = '';
+      input.classList.remove('has-value');
+      delete takeoffEntries[takeoffId];
+    } else if (isChecked && input) {
+      input.focus();
+    }
+  }
+}
+
+// Update work item done value
+function updateWorkItemDone(takeoffId, input) {
+  var qty = parseFloat(input.value) || 0;
+  var row = input.closest('.work-item-row');
+  var checkbox = row ? row.querySelector('.work-item-checkbox') : null;
+
+  if (qty > 0) {
+    takeoffEntries[takeoffId] = qty;
+    input.classList.add('has-value');
+    if (checkbox) checkbox.classList.add('checked');
+    if (row) row.classList.add('checked');
+  } else {
+    delete takeoffEntries[takeoffId];
+    input.classList.remove('has-value');
+    if (checkbox) checkbox.classList.remove('checked');
+    if (row) row.classList.remove('checked');
+  }
+}
+
+// Legacy function name for compatibility
+function updateTakeoffEntry(takeoffId, value) {
+  var qty = parseFloat(value) || 0;
+  if (qty > 0) {
+    takeoffEntries[takeoffId] = qty;
+  } else {
+    delete takeoffEntries[takeoffId];
+  }
+}
+
+// Multi-select dropdown functions
+function toggleWorkDoneDropdown() {
+  var dropdown = document.getElementById('work-done-dropdown');
+  var trigger = document.querySelector('.multiselect-trigger');
+  dropdown.classList.toggle('open');
+  trigger.classList.toggle('open');
+}
+
+function toggleWorkItem(note) {
+  var idx = selectedNotes.indexOf(note);
+  if (idx >= 0) {
+    selectedNotes.splice(idx, 1);
+  } else {
+    selectedNotes.push(note);
+  }
+  updateWorkDoneUI();
+}
+
+function removeWorkItem(note) {
+  var idx = selectedNotes.indexOf(note);
+  if (idx >= 0) selectedNotes.splice(idx, 1);
+  updateWorkDoneUI();
+}
+
+// New work items with quantities
+function toggleWorkItemNew(itemName) {
+  var existing = selectedWorkItems.find(function(w) { return w.name === itemName; });
+  if (existing) {
+    selectedWorkItems = selectedWorkItems.filter(function(w) { return w.name !== itemName; });
+  } else {
+    var itemDef = WORK_ITEMS.find(function(w) { return w.name === itemName; });
+    if (itemDef) {
+      selectedWorkItems.push({ name: itemDef.name, unit: itemDef.unit, quantity: 0 });
+    }
+  }
+  updateWorkItemsUI();
+}
+
+function removeWorkItemNew(itemName) {
+  selectedWorkItems = selectedWorkItems.filter(function(w) { return w.name !== itemName; });
+  updateWorkItemsUI();
+}
+
+function updateWorkItemQuantity(itemName, value) {
+  var item = selectedWorkItems.find(function(w) { return w.name === itemName; });
+  if (item) {
+    item.quantity = parseFloat(value) || 0;
+  }
+}
+
+function updateWorkItemsUI() {
+  // Update checkboxes in dropdown
+  WORK_ITEMS.forEach(function(item, i) {
+    var checkbox = document.getElementById('work-item-' + i);
+    if (checkbox) {
+      checkbox.checked = selectedWorkItems.some(function(w) { return w.name === item.name; });
+    }
+  });
+
+  // Update placeholder text
+  var placeholder = document.getElementById('work-done-placeholder');
+  if (placeholder) {
+    placeholder.textContent = selectedWorkItems.length > 0 ? selectedWorkItems.length + ' item(s) selected' : 'Select work items...';
+  }
+
+  // Render selected items with quantity inputs
+  var container = document.getElementById('selected-work-items-list');
+  if (container) {
+    if (selectedWorkItems.length === 0) {
+      container.innerHTML = '<p style="color:var(--text-secondary);font-size:14px;text-align:center;">Select items above to add quantities</p>';
+    } else {
+      container.innerHTML = selectedWorkItems.map(function(item) {
+        return '<div class="work-item-row">' +
+          '<span class="work-item-name">' + item.name + '</span>' +
+          '<div class="work-item-qty">' +
+            '<input type="number" value="' + (item.quantity || '') + '" placeholder="0" step="0.5" min="0" ' +
+              'onchange="updateWorkItemQuantity(\'' + item.name.replace(/'/g, "\\'") + '\', this.value)" ' +
+              'oninput="updateWorkItemQuantity(\'' + item.name.replace(/'/g, "\\'") + '\', this.value)">' +
+            '<span class="work-item-unit">' + item.unit + '</span>' +
+          '</div>' +
+          '<button type="button" class="work-item-remove" onclick="removeWorkItemNew(\'' + item.name.replace(/'/g, "\\'") + '\')">✕</button>' +
+        '</div>';
+      }).join('');
+    }
+  }
+}
+
+function updateWorkDoneUI() {
+  // Update checkboxes
+  QUICK_NOTES.forEach(function(note, i) {
+    var checkbox = document.getElementById('work-item-' + i);
+    if (checkbox) {
+      checkbox.checked = selectedNotes.indexOf(note) >= 0;
+    }
+  });
+
+  // Update placeholder text
+  var placeholder = document.getElementById('work-done-placeholder');
+  if (placeholder) {
+    placeholder.textContent = selectedNotes.length > 0 ? selectedNotes.length + ' item(s) selected' : 'Select work items...';
+  }
+
+  // Update selected tags
+  var tagsContainer = document.getElementById('selected-work-tags');
+  if (tagsContainer) {
+    tagsContainer.innerHTML = selectedNotes.map(function(note) {
+      return '<div class="selected-tag">' + note + '<span class="remove-tag" onclick="removeWorkItem(\'' + note.replace(/'/g, "\\'") + '\')">✕</span></div>';
+    }).join('');
+  }
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click', function(e) {
+  var container = document.querySelector('.multiselect-container');
+  var dropdown = document.getElementById('work-done-dropdown');
+  var trigger = document.querySelector('.multiselect-trigger');
+  if (container && dropdown && trigger && !container.contains(e.target)) {
+    dropdown.classList.remove('open');
+    trigger.classList.remove('open');
+  }
+});
+
+function renderWorkerHoursList() {
+  var container = document.getElementById('worker-hours-list');
+  if (pendingWorkerHours.length === 0) {
+    container.innerHTML = '<p style="color:var(--text-secondary);font-size:14px;text-align:center;padding:12px;">No workers added yet</p>';
+    return;
+  }
+  var totalHours = pendingWorkerHours.reduce(function(sum, wh) { return sum + parseFloat(wh.hours_worked || 0); }, 0);
+  var html = '<div style="font-size:12px;color:var(--text-secondary);margin-bottom:8px;">Total: ' + totalHours.toFixed(1) + ' hours</div>';
+  pendingWorkerHours.forEach(function(wh, idx) {
+    html += '<div class="worker-row"><span class="worker-name">' + wh.worker_name + '</span><input type="number" class="worker-hours-input" value="' + wh.hours_worked + '" step="0.5" min="0" max="24" inputmode="decimal" onchange="updateWorkerHours(' + idx + ', this.value)"><button type="button" onclick="removeWorkerHours(' + idx + ')" style="background:var(--error);color:white;border:none;border-radius:8px;padding:8px 12px;cursor:pointer;min-width:44px;min-height:44px;">✕</button></div>';
+  });
+  container.innerHTML = html;
+}
+
+function updateWorkerHours(idx, hours) {
+  var parsedHours = parseFloat(hours);
+  if (isNaN(parsedHours) || parsedHours < 0) parsedHours = 0;
+  else if (parsedHours > 24) { parsedHours = 24; showToast('Hours cannot exceed 24', 'warning'); }
+  pendingWorkerHours[idx].hours_worked = parsedHours;
+  renderWorkerHoursList();
+}
+
+function removeWorkerHours(idx) {
+  var workerName = pendingWorkerHours[idx].worker_name;
+  pendingWorkerHours.splice(idx, 1);
+  renderWorkerHoursList();
+  showToast(workerName + ' removed', 'info');
+}
+
+function openAddWorkerHoursModal() {
+  var addedWorkerIds = pendingWorkerHours.map(function(wh) { return wh.worker_id; });
+  var availableWorkers = workers.filter(function(w) { return addedWorkerIds.indexOf(w.id) === -1; });
+  if (availableWorkers.length === 0) { showToast('All workers have been added', 'info'); return; }
+  var workerOpts = availableWorkers.map(function(w) {
+    return '<div onclick="addWorkerHours(' + w.id + ', \'' + w.full_name.replace(/'/g, "\\'") + '\')" style="padding:14px 16px;cursor:pointer;border-bottom:1px solid var(--border);font-size:16px;min-height:52px;display:flex;align-items:center;" onmouseover="this.style.background=\'var(--bg-light)\'" onmouseout="this.style.background=\'white\'">' + w.full_name + '</div>';
+  }).join('');
+  var modal = document.createElement('div');
+  modal.id = 'add-worker-modal';
+  modal.className = 'modal';
+  modal.style.display = 'flex';
+  modal.innerHTML = '<div class="modal-content" style="max-width:400px;"><div class="modal-header"><h2>Add Worker</h2><button onclick="document.getElementById(\'add-worker-modal\').remove()" class="icon-btn">✕</button></div><div class="modal-body" style="max-height:60vh;overflow-y:auto;padding:0;">' + workerOpts + '</div></div>';
+  document.body.appendChild(modal);
+}
+
+function addWorkerHours(workerId, workerName) {
+  pendingWorkerHours.push({ worker_id: workerId, worker_name: workerName, hours_worked: 8 });
+  document.getElementById('add-worker-modal').remove();
+  renderWorkerHoursList();
+}
+
+function toggleItemDropdown() {
+  var dropdown = document.getElementById('item-dropdown');
+  dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+  if (dropdown.style.display === 'block') {
+    document.getElementById('item-search').focus();
+    renderItemDropdown();
+  }
+}
+
+function filterItemsList() { renderItemDropdown(); }
+
+function renderItemDropdown() {
+  var search = (document.getElementById('item-search').value || '').toLowerCase();
+  var filtered = items.filter(function(item) { return item.name.toLowerCase().includes(search); }).slice(0, 20);
+  var html = '';
+  filtered.forEach(function(item) {
+    html += '<div onclick="selectWorkItem(' + item.id + ')" style="padding:14px 16px;cursor:pointer;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;min-height:52px;" onmouseover="this.style.background=\'var(--bg-light)\'" onmouseout="this.style.background=\'white\'"><span style="font-size:15px;">' + item.name + '</span><span style="color:var(--text-secondary);font-size:13px;">' + item.unit_of_measure + '</span></div>';
+  });
+  if (filtered.length === 0) html = '<div style="padding:16px;color:var(--text-secondary);text-align:center;">No items found</div>';
+  document.getElementById('item-dropdown').innerHTML = html;
+}
+
+function selectWorkItem(itemId) {
+  var item = items.find(function(i) { return i.id === itemId; });
+  if (!item) return;
+  var qty = prompt('Enter quantity for "' + item.name + '" (' + item.unit_of_measure + '):');
+  if (!qty || isNaN(parseFloat(qty))) return;
+  pendingWorkItems.push({ item_id: item.id, item_name: item.name, unit_of_measure: item.unit_of_measure, quantity: parseFloat(qty) });
+  document.getElementById('item-dropdown').style.display = 'none';
+  document.getElementById('item-search').value = '';
+  renderPendingItems();
+}
+
+function renderPendingItems() {
+  var html = '';
+  pendingWorkItems.forEach(function(item, index) {
+    html += '<div style="display:flex;justify-content:space-between;align-items:center;background:#dbeafe;padding:10px 14px;border-radius:10px;margin-bottom:8px;"><span style="font-size:14px;color:#1e40af;"><strong>' + item.quantity + '</strong> ' + item.unit_of_measure + ' - ' + item.item_name + '</span><button type="button" onclick="removePendingItem(' + index + ')" style="background:var(--error);color:white;border:none;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:14px;min-width:36px;min-height:36px;">✕</button></div>';
+  });
+  document.getElementById('pending-items-list').innerHTML = html;
+}
+
+function removePendingItem(index) { pendingWorkItems.splice(index, 1); renderPendingItems(); }
+
+function handlePhotoSelect(event) {
+  var files = event.target.files;
+  for (var i = 0; i < files.length; i++) {
+    var file = files[i];
+    if (!file.type.startsWith('image/')) continue;
+    pendingPhotos.push(file);
+    var reader = new FileReader();
+    reader.onload = (function(index) {
+      return function(e) {
+        var preview = document.getElementById('photo-preview');
+        var thumb = document.createElement('div');
+        thumb.className = 'photo-thumb';
+        thumb.innerHTML = '<img src="' + e.target.result + '"><button class="remove-photo" onclick="removePhoto(' + index + ')">✕</button>';
+        preview.appendChild(thumb);
+      };
+    })(pendingPhotos.length - 1);
+    reader.readAsDataURL(file);
+  }
+}
+
+function removePhoto(index) { pendingPhotos.splice(index, 1); renderPhotoPreview(); }
+
+function renderPhotoPreview() {
+  var preview = document.getElementById('photo-preview');
+  preview.innerHTML = '';
+  pendingPhotos.forEach(function(file, index) {
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      var thumb = document.createElement('div');
+      thumb.className = 'photo-thumb';
+      thumb.innerHTML = '<img src="' + e.target.result + '"><button class="remove-photo" onclick="removePhoto(' + index + ')">✕</button>';
+      preview.appendChild(thumb);
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+async function saveDailyRecord() {
+  if (isSaving) return;
+  if (!validateDailyRecordForm()) return;
+  var jobId = document.getElementById('record-job').value;
+  var recordDate = document.getElementById('record-date').value;
+  var yardsInput = document.getElementById('record-yards').value;
+  var foremanId = document.getElementById('record-foreman').value || null;
+  var additionalNotes = document.getElementById('record-notes').value.trim();
+
+  // Build takeoff entries array from input
+  var takeoffEntriesArray = [];
+  Object.keys(takeoffEntries).forEach(function(takeoffId) {
+    var qty = takeoffEntries[takeoffId];
+    if (qty > 0) {
+      var takeoff = currentJobTakeoffs.find(function(t) { return t.id == takeoffId; });
+      if (takeoff) {
+        takeoffEntriesArray.push({
+          takeoff_id: parseInt(takeoffId),
+          item_name: takeoff.item_name || takeoff.source || 'Unknown',
+          quantity: qty,
+          unit: takeoff.unit || 'EA'
+        });
+      }
+    }
+  });
+
+  // Generate notes from takeoff entries
+  var allNotes = takeoffEntriesArray.map(function(e) {
+    return e.item_name + ': ' + e.quantity + ' ' + e.unit;
+  });
+  if (additionalNotes) allNotes.push(additionalNotes);
+  var notes = allNotes.join('. ');
+
+  var workerHours = pendingWorkerHours.filter(function(wh) { return wh.hours_worked > 0; }).map(function(wh) { return { worker_id: wh.worker_id, hours_worked: wh.hours_worked }; });
+  var data = {
+    job_id: jobId,
+    foreman_id: foremanId,
+    record_date: recordDate,
+    notes: notes,
+    takeoff_entries: takeoffEntriesArray,
+    worker_hours: workerHours,
+    yards_poured: parseFloat(yardsInput) || 0,
+    weather_data: currentWeather
+  };
+  var saveBtn = document.querySelector('#daily-modal .btn-success');
+  isSaving = true;
+  setButtonLoading(saveBtn, true);
+  try {
+    var record = await apiRequest(API + '/daily-records', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+    if (pendingPhotos.length > 0) {
+      try {
+        var formData = new FormData();
+        pendingPhotos.forEach(function(file) { formData.append('photos', file); });
+        await fetch(API_BASE + '/daily-records/' + record.id + '/photos', { method: 'POST', body: formData });
+      } catch(photoError) { showToast('Record saved but some photos failed to upload', 'warning'); }
+    }
+    document.getElementById('daily-modal').remove();
+    await loadAllData();
+    showView('today');
+    var successParts = [];
+    if (yardsInput && parseFloat(yardsInput) > 0) successParts.push(yardsInput + ' yards');
+    if (takeoffEntriesArray.length > 0) successParts.push(takeoffEntriesArray.length + ' item(s) logged');
+    if (workerHours.length > 0) {
+      var totalHours = workerHours.reduce(function(sum, wh) { return sum + wh.hours_worked; }, 0);
+      successParts.push(totalHours + ' worker hours');
+    }
+    if (pendingPhotos.length > 0) successParts.push(pendingPhotos.length + ' photo(s)');
+    var successMsg = 'Daily record saved';
+    if (successParts.length > 0) successMsg += ': ' + successParts.join(', ');
+    showToast(successMsg, 'success');
+  } catch(error) {
+    showToast(error.message || 'Failed to save record. Please try again.', 'error');
+  } finally {
+    isSaving = false;
+    if (saveBtn) setButtonLoading(saveBtn, false);
+  }
+}
+
+function openAddPhotosModal(recordId) {
+  pendingPhotos = [];
+  var modal = document.createElement('div');
+  modal.id = 'add-photos-modal';
+  modal.className = 'modal';
+  modal.style.display = 'flex';
+  modal.innerHTML = '<div class="modal-content"><div class="modal-header"><h2>Add Photos</h2><button onclick="document.getElementById(\'add-photos-modal\').remove()" class="icon-btn">✕</button></div><div class="modal-body"><div class="photo-upload-area" id="add-photo-upload-area" onclick="document.getElementById(\'add-photo-input\').click()"><input type="file" id="add-photo-input" multiple accept="image/*" capture="environment" style="display:none;" onchange="handleAddPhotoSelect(event)"><div class="upload-icon">📷</div><p>Tap to take photo or select from gallery</p></div><div class="photo-preview" id="add-photo-preview"></div></div><div class="modal-footer"><button onclick="document.getElementById(\'add-photos-modal\').remove()" class="btn btn-secondary">Cancel</button><button onclick="uploadPhotosToRecord(' + recordId + ')" class="btn btn-primary">Upload</button></div></div>';
+  document.body.appendChild(modal);
+  var uploadArea = document.getElementById('add-photo-upload-area');
+  uploadArea.addEventListener('dragover', function(e) { e.preventDefault(); this.classList.add('dragover'); });
+  uploadArea.addEventListener('dragleave', function(e) { e.preventDefault(); this.classList.remove('dragover'); });
+  uploadArea.addEventListener('drop', function(e) { e.preventDefault(); this.classList.remove('dragover'); handleAddPhotoSelect({ target: { files: e.dataTransfer.files } }); });
+}
+
+function handleAddPhotoSelect(event) {
+  var files = event.target.files;
+  for (var i = 0; i < files.length; i++) {
+    var file = files[i];
+    if (!file.type.startsWith('image/')) continue;
+    pendingPhotos.push(file);
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      var preview = document.getElementById('add-photo-preview');
+      var thumb = document.createElement('div');
+      thumb.className = 'photo-thumb';
+      thumb.innerHTML = '<img src="' + e.target.result + '">';
+      preview.appendChild(thumb);
+    };
+    reader.readAsDataURL(file);
+  }
+}
+
+async function uploadPhotosToRecord(recordId) {
+  if (pendingPhotos.length === 0) { showToast('No photos selected', 'warning'); return; }
+  var oversizedFiles = pendingPhotos.filter(function(f) { return f.size > 10 * 1024 * 1024; });
+  if (oversizedFiles.length > 0) { showToast('Some files exceed 10MB limit', 'error'); return; }
+  var uploadBtn = document.querySelector('#add-photos-modal .btn-primary');
+  setButtonLoading(uploadBtn, true);
+  var formData = new FormData();
+  pendingPhotos.forEach(function(file) { formData.append('photos', file); });
+  try {
+    var res = await fetch(API_BASE + '/daily-records/' + recordId + '/photos', { method: 'POST', body: formData });
+    if (res.ok) {
+      document.getElementById('add-photos-modal').remove();
+      await loadAllData();
+      showView('today');
+      showToast(pendingPhotos.length + ' photo(s) uploaded successfully', 'success');
+    } else {
+      var err = await res.json();
+      throw new Error(err.error || 'Upload failed');
+    }
+  } catch(e) {
+    showToast(e.message || 'Error uploading photos. Please try again.', 'error');
+  } finally {
+    if (uploadBtn) setButtonLoading(uploadBtn, false);
+  }
+}
+
+function setupFormValidation() {
+  var jobSelect = document.getElementById('record-job');
+  var dateInput = document.getElementById('record-date');
+  var yardsInput = document.getElementById('record-yards');
+  if (jobSelect) {
+    jobSelect.addEventListener('change', function() {
+      if (this.value) { clearFieldError('record-job'); markFieldSuccess('record-job'); }
+    });
+  }
+  if (dateInput) {
+    dateInput.addEventListener('change', function() {
+      var error = validateDate(this.value, 'Date');
+      if (error) showFieldError('record-date', error);
+      else { clearFieldError('record-date'); markFieldSuccess('record-date'); }
+    });
+  }
+  if (yardsInput) {
+    yardsInput.addEventListener('input', function() {
+      var error = validateNumber(this.value, 'Yards', 0, 9999);
+      if (error) showFieldError('record-yards', error);
+      else clearFieldError('record-yards');
+    });
+  }
+}
+
+// ========== OTHER VIEWS (legacy) ==========
+function renderJobs() {
+  var html = '<div class="calendar-container"><h2 class="calendar-title">All Jobs (' + jobs.length + ')</h2><button onclick="openJobModal()" style="margin:16px 0;padding:14px 30px;background:var(--primary);color:white;border:none;border-radius:12px;font-size:16px;cursor:pointer;min-height:52px;">+ Add Job</button>';
+  jobs.forEach(function(j, i) {
+    html += '<div style="background:white;border-left:4px solid ' + defaultColors[i % defaultColors.length] + ';padding:15px;margin:10px 0;border-radius:12px;box-shadow:var(--shadow);"><div style="font-weight:bold;color:var(--text-secondary);">#' + j.job_number + '</div><div style="font-size:18px;font-weight:bold;margin:5px 0;">' + j.job_name + '</div><div style="color:var(--text-secondary);">📍 ' + (j.location || 'No location') + '</div></div>';
+  });
+  html += '</div>';
+  document.getElementById('jobs-view').innerHTML = html;
+}
+
+function renderConcrete() {
+  var html = '<div class="calendar-container"><h2 class="calendar-title">Concrete (' + concreteDeliveries.length + ')</h2><button onclick="openConcreteModal()" style="margin:16px 0;padding:14px 30px;background:var(--primary);color:white;border:none;border-radius:12px;font-size:16px;cursor:pointer;min-height:52px;">+ Add Delivery</button>';
+  concreteDeliveries.forEach(function(c) {
+    html += '<div style="background:white;border-left:4px solid var(--primary);padding:15px;margin:10px 0;border-radius:12px;box-shadow:var(--shadow);"><div style="font-weight:bold;color:var(--primary);">#' + (c.invoice_number || '') + '</div><div>' + (c.yards || c.cubic_yards || '?') + ' yards</div><div style="color:var(--text-secondary);">' + (c.delivery_date ? new Date(c.delivery_date).toLocaleDateString() : '') + '</div></div>';
+  });
+  html += '</div>';
+  document.getElementById('concrete-view').innerHTML = html;
+}
+
+function renderWorkers() {
+  var html = '<div class="calendar-container"><h2 class="calendar-title">Workers (' + workers.length + ')</h2><button onclick="openWorkerModal()" style="margin:16px 0;padding:14px 30px;background:#a855f7;color:white;border:none;border-radius:12px;font-size:16px;cursor:pointer;min-height:52px;">+ Add Worker</button>';
+  workers.forEach(function(w) {
+    html += '<div style="background:white;border-left:4px solid #a855f7;padding:15px;margin:10px 0;border-radius:12px;box-shadow:var(--shadow);"><div style="font-size:18px;font-weight:bold;">' + w.full_name + '</div><div style="color:var(--text-secondary);">' + (w.role || '') + '</div></div>';
+  });
+  html += '</div>';
+  document.getElementById('workers-view').innerHTML = html;
+}
+
+function openJobModal() {
+  var modal = document.createElement('div');
+  modal.id = 'job-modal';
+  modal.className = 'modal';
+  modal.style.display = 'flex';
+  modal.innerHTML = '<div class="modal-content"><div class="modal-header"><h2>Add Job</h2><button onclick="document.getElementById(\'job-modal\').remove()" class="icon-btn">✕</button></div><div class="modal-body"><div class="input-group"><label>Job Number</label><input type="text" id="new-job-number"></div><div class="input-group"><label>Job Name</label><input type="text" id="new-job-name"></div><div class="input-group"><label>Location</label><input type="text" id="new-job-location"></div><div class="input-group"><label>Contractor</label><input type="text" id="new-job-contractor"></div></div><div class="modal-footer"><button onclick="document.getElementById(\'job-modal\').remove()" class="btn btn-secondary">Cancel</button><button onclick="saveNewJob()" class="btn btn-primary">Save</button></div></div>';
+  document.body.appendChild(modal);
+}
+
+async function saveNewJob() {
+  var data = { job_number: document.getElementById('new-job-number').value.trim(), job_name: document.getElementById('new-job-name').value.trim(), location: document.getElementById('new-job-location').value.trim(), contractor_name: document.getElementById('new-job-contractor').value.trim() };
+  if (!data.job_number || !data.job_name) { showToast('Job Number and Name are required', 'error'); return; }
+  var res = await fetch(API_BASE + '/jobs', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+  if (res.ok) {
+    document.getElementById('job-modal').remove();
+    await loadAllData();
+    showToast('Job added successfully', 'success');
+  }
+}
+
+function openConcreteModal() {
+  var jobOpts = jobs.map(function(j) { return '<option value="' + j.id + '">#' + j.job_number + ' - ' + j.job_name + '</option>'; }).join('');
+  var modal = document.createElement('div');
+  modal.id = 'concrete-modal';
+  modal.className = 'modal';
+  modal.style.display = 'flex';
+  modal.innerHTML = '<div class="modal-content"><div class="modal-header"><h2>Add Concrete</h2><button onclick="document.getElementById(\'concrete-modal\').remove()" class="icon-btn">✕</button></div><div class="modal-body"><div class="input-group"><label>Invoice #</label><input type="text" id="concrete-invoice"></div><div class="input-group"><label>Supplier</label><select id="concrete-supplier"><option value="">Select</option><option value="JACK B PARSON">Jack B Parson</option><option value="GENEVA ROCK">Geneva Rock</option><option value="QUICKCRETE">Quickcrete</option></select></div><div class="input-group"><label>Date</label><input type="date" id="concrete-date" value="' + new Date().toISOString().split('T')[0] + '"></div><div class="input-group"><label>Yards</label><input type="number" id="concrete-yards" step="0.25"></div><div class="input-group"><label>Cost</label><input type="number" id="concrete-cost" step="0.01"></div><div class="input-group"><label>Job</label><select id="concrete-job"><option value="">Select</option>' + jobOpts + '</select></div></div><div class="modal-footer"><button onclick="document.getElementById(\'concrete-modal\').remove()" class="btn btn-secondary">Cancel</button><button onclick="saveConcrete()" class="btn btn-primary">Save</button></div></div>';
+  document.body.appendChild(modal);
+}
+
+async function saveConcrete() {
+  var data = { invoice_number: document.getElementById('concrete-invoice').value.trim(), supplier: document.getElementById('concrete-supplier').value, delivery_date: document.getElementById('concrete-date').value, yards: document.getElementById('concrete-yards').value, cost: document.getElementById('concrete-cost').value, job_id: document.getElementById('concrete-job').value || null };
+  if (!data.invoice_number || !data.supplier || !data.delivery_date || !data.yards || !data.cost) { showToast('Please fill all required fields', 'error'); return; }
+  var res = await fetch(API + '/concrete2', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+  if (res.ok) {
+    document.getElementById('concrete-modal').remove();
+    await loadAllData();
+    showToast('Concrete delivery added', 'success');
+  }
+}
+
+function openWorkerModal() {
+  var modal = document.createElement('div');
+  modal.id = 'worker-modal';
+  modal.className = 'modal';
+  modal.style.display = 'flex';
+  modal.innerHTML = '<div class="modal-content"><div class="modal-header"><h2>Add Worker</h2><button onclick="document.getElementById(\'worker-modal\').remove()" class="icon-btn">✕</button></div><div class="modal-body"><div class="input-group"><label>Name</label><input type="text" id="worker-name"></div><div class="input-group"><label>Role</label><input type="text" id="worker-role"></div><div class="input-group"><label>Contact</label><input type="text" id="worker-contact"></div></div><div class="modal-footer"><button onclick="document.getElementById(\'worker-modal\').remove()" class="btn btn-secondary">Cancel</button><button onclick="saveWorker()" class="btn btn-primary">Save</button></div></div>';
+  document.body.appendChild(modal);
+}
+
+async function saveWorker() {
+  var data = { full_name: document.getElementById('worker-name').value.trim(), role: document.getElementById('worker-role').value.trim(), contact_info: document.getElementById('worker-contact').value.trim() };
+  if (!data.full_name) { showToast('Name is required', 'error'); return; }
+  var res = await fetch(API + '/workers', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+  if (res.ok) {
+    document.getElementById('worker-modal').remove();
+    await loadAllData();
+    showToast('Worker added successfully', 'success');
+  }
+}
+</script>
+</body>
+</html>

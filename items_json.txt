@@ -1,0 +1,343 @@
+{
+    "StatusCode": 200,
+    "Status": "Success",
+    "Message": "",
+    "Data": {
+        "Response": {
+            "List": [
+                {
+                    "id": 10353,
+                    "companyId": "8c3e6732-ce94-4db1-9544-dfb388dbd479",
+                    "category": "Items",
+                    "name": "12\" Flatwork",
+                    "description": "",
+                    "folderId": "",
+                    "fileId": "",
+                    "calendarId": "",
+                    "Rates": null
+                },
+                {
+                    "id": 10359,
+                    "companyId": "8c3e6732-ce94-4db1-9544-dfb388dbd479",
+                    "category": "Items",
+                    "name": "12\" Mountable Curb",
+                    "description": "",
+                    "folderId": "",
+                    "fileId": "",
+                    "calendarId": "",
+                    "Rates": null
+                },
+                {
+                    "id": 30462,
+                    "companyId": "8c3e6732-ce94-4db1-9544-dfb388dbd479",
+                    "category": "Items",
+                    "name": "12\" X 12\" CURB WALL ",
+                    "description": "",
+                    "folderId": "",
+                    "fileId": "",
+                    "calendarId": "",
+                    "Rates": null
+                },
+                {
+                    "id": 10426,
+                    "companyId": "8c3e6732-ce94-4db1-9544-dfb388dbd479",
+                    "category": "Items",
+                    "name": "12\" x 30\" Round About Curb",
+                    "description": "",
+                    "folderId": "",
+                    "fileId": "",
+                    "calendarId": "",
+                    "Rates": null
+                },
+                {
+                    "id": 20425,
+                    "companyId": "8c3e6732-ce94-4db1-9544-dfb388dbd479",
+                    "category": "Items",
+                    "name": "12\" x 8\" Concrete Apron",
+                    "description": "",
+                    "folderId": "",
+                    "fileId": "",
+                    "calendarId": "",
+                    "Rates": null
+                },
+                {
+                    "id": 10427,
+                    "companyId": "8c3e6732-ce94-4db1-9544-dfb388dbd479",
+                    "category": "Items",
+                    "name": "16\"  x 10\" Type E Roundabout Curb",
+                    "description": "",
+                    "folderId": "",
+                    "fileId": "",
+                    "calendarId": "",
+                    "Rates": null
+                },
+                {
+                    "id": 30450,
+                    "companyId": "8c3e6732-ce94-4db1-9544-dfb388dbd479",
+                    "category": "Items",
+                    "name": "16' STEPS",
+                    "description": "",
+                    "folderId": "",
+                    "fileId": "",
+                    "calendarId": "",
+                    "Rates": null
+                },
+                {
+                    "id": 30436,
+                    "companyId": "8c3e6732-ce94-4db1-9544-dfb388dbd479",
+                    "category": "Items",
+                    "name": "18\" Central Island Curb",
+                    "description": "",
+                    "folderId": "",
+                    "fileId": "",
+                    "calendarId": "",
+                    "Rates": null
+                },
+                {
+                    "id": 10390,
+                    "companyId": "8c3e6732-ce94-4db1-9544-dfb388dbd479",
+                    "category": "Items",
+                    "name": "18\" x 12\" Curb Wall",
+                    "description": "",
+                    "folderId": "",
+                    "fileId": "",
+                    "calendarId": "",
+                    "Rates": null
+                },
+                {
+                    "id": 10267,
+                    "companyId": "8c3e6732-ce94-4db1-9544-dfb388dbd479",
+                    "category": "Items",
+                    "name": "18in Rolled Curb",
+                    "description": "",
+                    "folderId": "",
+                    "fileId": "",
+                    "calendarId": "",
+                    "Rates": null
+                },
+                {
+                    "id": 10282,
+                    "companyId": "8c3e6732-ce94-4db1-9544-dfb388dbd479",
+                    "category": "Items",
+                    "name": "18in Tip out Curb",
+                    "description": "",
+                    "folderId": "",
+                    "fileId": "",
+                    "calendarId": "",
+                    "Rates": null
+                },
+                {
+                    "id": 10362,
+                    "companyId": "8c3e6732-ce94-4db1-9544-dfb388dbd479",
+                    "category": "Items",
+                    "name": "2' Valley Gutter/Waterway",
+                    "description": "",
+                    "folderId": "",
+                    "fileId": "",
+                    "calendarId": "",
+                    "Rates": null
+                },
+                {
+                    "id": 10375,
+                    "companyId": "8c3e6732-ce94-4db1-9544-dfb388dbd479",
+                    "category": "Items",
+                    "name": "24 \" Curb/Gutter Handwork",
+                    "description": "",
+                    "folderId": "",
+                    "fileId": "",
+                    "calendarId": "",
+                    "Rates": null
+                },
+                {
+                    "id": 10341,
+                    "companyId": "8c3e6732-ce94-4db1-9544-dfb388dbd479",
+                    "category": "Items",
+                    "name": "24 \" Type G Curb",
+                    "description": "",
+                    "folderId": "",
+                    "fileId": "",
+                    "calendarId": "",
+                    "Rates": null
+                },
+                {
+                    "id": 10360,
+                    "companyId": "8c3e6732-ce94-4db1-9544-dfb388dbd479",
+                    "category": "Items",
+                    "name": "24\" Mountable Curb",
+                    "description": "",
+                    "folderId": "",
+                    "fileId": "",
+                    "calendarId": "",
+                    "Rates": null
+                },
+                {
+                    "id": 10351,
+                    "companyId": "8c3e6732-ce94-4db1-9544-dfb388dbd479",
+                    "category": "Items",
+                    "name": "24\" Roll Curb",
+                    "description": "",
+                    "folderId": "",
+                    "fileId": "",
+                    "calendarId": "",
+                    "Rates": null
+                },
+                {
+                    "id": 30433,
+                    "companyId": "8c3e6732-ce94-4db1-9544-dfb388dbd479",
+                    "category": "Items",
+                    "name": "24\" Waterway",
+                    "description": "",
+                    "folderId": "",
+                    "fileId": "",
+                    "calendarId": "",
+                    "Rates": null
+                },
+                {
+                    "id": 10378,
+                    "companyId": "8c3e6732-ce94-4db1-9544-dfb388dbd479",
+                    "category": "Items",
+                    "name": "24\" X 12\" Ribbon Curb",
+                    "description": "",
+                    "folderId": "",
+                    "fileId": "",
+                    "calendarId": "",
+                    "Rates": null
+                },
+                {
+                    "id": 10312,
+                    "companyId": "8c3e6732-ce94-4db1-9544-dfb388dbd479",
+                    "category": "Items",
+                    "name": "24in Curb/Gutter",
+                    "description": "",
+                    "folderId": "",
+                    "fileId": "",
+                    "calendarId": "",
+                    "Rates": null
+                },
+                {
+                    "id": 10299,
+                    "companyId": "8c3e6732-ce94-4db1-9544-dfb388dbd479",
+                    "category": "Items",
+                    "name": "24in curb/gutter Machine work",
+                    "description": "",
+                    "folderId": "",
+                    "fileId": "",
+                    "calendarId": "",
+                    "Rates": null
+                },
+                {
+                    "id": 10243,
+                    "companyId": "8c3e6732-ce94-4db1-9544-dfb388dbd479",
+                    "category": "Items",
+                    "name": "24in Modified",
+                    "description": "",
+                    "folderId": "",
+                    "fileId": "",
+                    "calendarId": "",
+                    "Rates": null
+                },
+                {
+                    "id": 10298,
+                    "companyId": "8c3e6732-ce94-4db1-9544-dfb388dbd479",
+                    "category": "Items",
+                    "name": "24in rolled curb- hand work",
+                    "description": "",
+                    "folderId": "",
+                    "fileId": "",
+                    "calendarId": "",
+                    "Rates": null
+                },
+                {
+                    "id": 30455,
+                    "companyId": "8c3e6732-ce94-4db1-9544-dfb388dbd479",
+                    "category": "Items",
+                    "name": "3' Mountable Curb",
+                    "description": "",
+                    "folderId": "",
+                    "fileId": "",
+                    "calendarId": "",
+                    "Rates": null
+                },
+                {
+                    "id": 10356,
+                    "companyId": "8c3e6732-ce94-4db1-9544-dfb388dbd479",
+                    "category": "Items",
+                    "name": "30\" Mountable Curb",
+                    "description": "",
+                    "folderId": "",
+                    "fileId": "",
+                    "calendarId": "",
+                    "Rates": null
+                },
+                {
+                    "id": 10355,
+                    "companyId": "8c3e6732-ce94-4db1-9544-dfb388dbd479",
+                    "category": "Items",
+                    "name": "30\" Roll Curb LF",
+                    "description": "",
+                    "folderId": "",
+                    "fileId": "",
+                    "calendarId": "",
+                    "Rates": null
+                },
+                {
+                    "id": 10229,
+                    "companyId": "8c3e6732-ce94-4db1-9544-dfb388dbd479",
+                    "category": "Items",
+                    "name": "30in curb- M1",
+                    "description": "",
+                    "folderId": "",
+                    "fileId": "",
+                    "calendarId": "",
+                    "Rates": null
+                },
+                {
+                    "id": 10260,
+                    "companyId": "8c3e6732-ce94-4db1-9544-dfb388dbd479",
+                    "category": "Items",
+                    "name": "30in curb/gutter",
+                    "description": "",
+                    "folderId": "",
+                    "fileId": "",
+                    "calendarId": "",
+                    "Rates": null
+                },
+                {
+                    "id": 10301,
+                    "companyId": "8c3e6732-ce94-4db1-9544-dfb388dbd479",
+                    "category": "Items",
+                    "name": "30in Hand Work",
+                    "description": "",
+                    "folderId": "",
+                    "fileId": "",
+                    "calendarId": "",
+                    "Rates": null
+                },
+                {
+                    "id": 10219,
+                    "companyId": "8c3e6732-ce94-4db1-9544-dfb388dbd479",
+                    "category": "Items",
+                    "name": "30in Modified",
+                    "description": "",
+                    "folderId": "",
+                    "fileId": "",
+                    "calendarId": "",
+                    "Rates": null
+                },
+                {
+                    "id": 10289,
+                    "companyId": "8c3e6732-ce94-4db1-9544-dfb388dbd479",
+                    "category": "Items",
+                    "name": "30in Tip out Curb",
+                    "description": "",
+                    "folderId": "",
+                    "fileId": "",
+                    "calendarId": "",
+                    "Rates": null
+                }
+            ],
+            "Count": 180,
+            "TopIndex": null
+        }
+    }
+}

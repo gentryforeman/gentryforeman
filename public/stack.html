@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>STACK Integration - Foreman System</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f3f4f6; }
+    .app-header { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .app-header h1 { font-size: 18px; color: #333; }
+    .back-btn { background: none; border: none; font-size: 24px; cursor: pointer; color: #2563eb; text-decoration: none; }
+    .main-content { padding: 20px; max-width: 1200px; margin: 0 auto; }
+    .section { background: white; border-radius: 12px; padding: 25px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    .section h2 { font-size: 18px; margin-bottom: 20px; color: #333; display: flex; align-items: center; gap: 10px; }
+
+    /* Connection Status */
+    .connection-status { display: flex; align-items: center; gap: 15px; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+    .connection-status.connected { background: #dcfce7; border: 2px solid #22c55e; }
+    .connection-status.disconnected { background: #fef3c7; border: 2px solid #f59e0b; }
+    .connection-status .icon { font-size: 40px; }
+    .connection-status .info { flex: 1; }
+    .connection-status .title { font-size: 18px; font-weight: 600; }
+    .connection-status.connected .title { color: #166534; }
+    .connection-status.disconnected .title { color: #92400e; }
+    .connection-status .subtitle { font-size: 14px; color: #666; margin-top: 4px; }
+
+    /* Tabs */
+    .tabs { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid #e5e7eb; padding-bottom: 15px; }
+    .tab-btn { padding: 10px 20px; border: 2px solid #ddd; border-radius: 8px; background: white; cursor: pointer; font-size: 14px; font-weight: 600; }
+    .tab-btn:hover { border-color: #2563eb; }
+    .tab-btn.active { border-color: #2563eb; background: #2563eb; color: white; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    .info-box { background: #dbeafe; border-left: 4px solid #2563eb; padding: 15px 20px; border-radius: 0 8px 8px 0; margin-bottom: 20px; }
+    .info-box h3 { color: #1e40af; margin-bottom: 8px; }
+    .info-box p { color: #1e40af; font-size: 14px; line-height: 1.5; }
+    .input-group { margin-bottom: 20px; }
+    .input-group label { display: block; margin-bottom: 8px; font-weight: 600; color: #333; }
+    .input-group select, .input-group input, .input-group textarea { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; }
+    .btn { padding: 12px 24px; border: none; border-radius: 8px; font-size: 14px; cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; }
+    .btn-primary { background: #2563eb; color: white; }
+    .btn-success { background: #22c55e; color: white; }
+    .btn-secondary { background: #e5e7eb; color: #333; }
+    .btn-danger { background: #ef4444; color: white; }
+    .btn-stack { background: #ff6b00; color: white; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn:hover { opacity: 0.9; }
+
+    /* Project/Takeoff Lists */
+    .project-list, .takeoff-list, .estimate-list { max-height: 400px; overflow-y: auto; }
+    .project-card, .takeoff-card { border: 1px solid #e5e7eb; border-radius: 8px; padding: 15px; margin-bottom: 12px; cursor: pointer; transition: all 0.2s; }
+    .project-card:hover, .takeoff-card:hover { border-color: #2563eb; background: #f8fafc; }
+    .project-card.selected, .takeoff-card.selected { border-color: #22c55e; background: #f0fdf4; }
+    .project-title, .takeoff-title { font-weight: 600; font-size: 15px; color: #333; }
+    .project-meta, .takeoff-meta { font-size: 12px; color: #666; margin-top: 4px; }
+
+    /* Estimate Table */
+    .estimate-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .estimate-table th, .estimate-table td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #eee; }
+    .estimate-table th { background: #f9fafb; font-weight: 600; color: #666; text-transform: uppercase; font-size: 11px; position: sticky; top: 0; }
+    .estimate-table td.number { text-align: right; font-family: monospace; }
+    .estimate-row { cursor: pointer; }
+    .estimate-row:hover { background: #f8fafc; }
+    .estimate-row.selected { background: #dbeafe; }
+    .estimate-checkbox { width: 18px; height: 18px; cursor: pointer; }
+
+    /* Import Flow */
+    .import-flow { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+    .import-step { background: #f9fafb; border-radius: 8px; padding: 20px; }
+    .import-step h3 { font-size: 14px; color: #333; margin-bottom: 15px; display: flex; align-items: center; gap: 8px; }
+    .step-number { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; background: #2563eb; color: white; border-radius: 50%; font-size: 12px; font-weight: 600; }
+    .step-number.done { background: #22c55e; }
+
+    .loading { text-align: center; padding: 40px; color: #666; }
+    .spinner { width: 40px; height: 40px; border: 3px solid #e5e7eb; border-top-color: #2563eb; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 15px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .empty-state { text-align: center; padding: 40px; color: #666; }
+    .empty-state .icon { font-size: 48px; margin-bottom: 15px; }
+
+    .result-message { padding: 15px; border-radius: 8px; margin-top: 15px; }
+    .result-message.success { background: #dcfce7; color: #166534; }
+    .result-message.error { background: #fee2e2; color: #991b1b; }
+
+    /* Manual Entry Form */
+    .takeoff-form { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr 2fr auto; gap: 10px; align-items: end; margin-bottom: 15px; }
+    .takeoff-form.header { font-weight: 600; color: #666; font-size: 12px; text-transform: uppercase; margin-bottom: 10px; align-items: center; }
+    .takeoff-form input, .takeoff-form select { padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; }
+    .takeoff-item { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr 2fr auto; gap: 10px; padding: 12px; background: #f9fafb; border-radius: 8px; margin-bottom: 8px; align-items: center; }
+    .remove-btn { background: none; border: none; color: #ef4444; font-size: 18px; cursor: pointer; padding: 5px; }
+    .summary-row { display: flex; justify-content: space-between; padding: 15px 0; border-top: 2px solid #e5e7eb; margin-top: 15px; font-weight: 600; }
+    .actions { display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; }
+    .template-section { margin-top: 20px; padding-top: 20px; border-top: 1px solid #eee; }
+    .template-buttons { display: flex; gap: 10px; flex-wrap: wrap; }
+    .template-btn { padding: 10px 16px; border: 1px solid #ddd; border-radius: 6px; background: white; cursor: pointer; font-size: 13px; transition: all 0.2s; }
+    .template-btn:hover { border-color: #2563eb; background: #f0f7ff; }
+
+    @media (max-width: 900px) {
+      .import-flow { grid-template-columns: 1fr; }
+      .takeoff-form, .takeoff-item { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header class="app-header">
+    <a href="/job-costing.html" class="back-btn">&larr; Back</a>
+    <h1>STACK Integration</h1>
+    <div style="width: 50px;"></div>
+  </header>
+
+  <div class="main-content">
+    <!-- Connection Status -->
+    <div id="connectionStatus" class="connection-status disconnected">
+      <div class="icon">&#x1F4D0;</div>
+      <div class="info">
+        <div class="title">Checking connection...</div>
+        <div class="subtitle">Please wait</div>
+      </div>
+      <div id="connectionActions"></div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab-btn active" onclick="showTab('import')">Import from STACK</button>
+      <button class="tab-btn" onclick="showTab('manual')">Manual Entry</button>
+      <button class="tab-btn" onclick="showTab('settings')">Settings</button>
+    </div>
+
+    <!-- Import from STACK Tab -->
+    <div id="import-tab" class="tab-content active">
+      <div id="connectedContent" style="display:none;">
+        <div class="import-flow">
+          <!-- Step 1: Select Project -->
+          <div class="import-step">
+            <h3><span class="step-number" id="step1-num">1</span> Select STACK Project</h3>
+            <div id="projectsLoading" class="loading">
+              <div class="spinner"></div>
+              <p>Loading projects...</p>
+            </div>
+            <div id="projectsList" class="project-list" style="display:none;"></div>
+          </div>
+
+          <!-- Step 2: Select Takeoff -->
+          <div class="import-step">
+            <h3><span class="step-number" id="step2-num">2</span> Select Takeoff</h3>
+            <div id="takeoffsEmpty" class="empty-state">
+              <p>Select a project first</p>
+            </div>
+            <div id="takeoffsLoading" class="loading" style="display:none;">
+              <div class="spinner"></div>
+              <p>Loading takeoffs...</p>
+            </div>
+            <div id="takeoffsList" class="takeoff-list" style="display:none;"></div>
+          </div>
+
+          <!-- Step 3: Review & Import -->
+          <div class="import-step">
+            <h3><span class="step-number" id="step3-num">3</span> Review & Import</h3>
+            <div id="estimatesEmpty" class="empty-state">
+              <p>Select a takeoff first</p>
+            </div>
+            <div id="estimatesLoading" class="loading" style="display:none;">
+              <div class="spinner"></div>
+              <p>Loading estimates...</p>
+            </div>
+            <div id="estimatesContent" style="display:none;">
+              <div style="margin-bottom:15px;">
+                <label><strong>Import to Job:</strong></label>
+                <select id="import-job-select" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;margin-top:5px;">
+                  <option value="">-- Select Job --</option>
+                </select>
+              </div>
+              <div id="estimatesSummary" style="background:#f9fafb;padding:10px;border-radius:6px;margin-bottom:15px;"></div>
+              <button class="btn btn-success" onclick="importSelectedEstimates()" id="importBtn" disabled>Import Selected</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Estimates Table -->
+        <div id="estimatesTable" class="section" style="display:none;margin-top:20px;">
+          <h2>Estimate Line Items</h2>
+          <div style="margin-bottom:15px;">
+            <label><input type="checkbox" id="selectAllEstimates" onchange="toggleSelectAll()"> Select All</label>
+          </div>
+          <div style="max-height:400px;overflow-y:auto;">
+            <table class="estimate-table">
+              <thead>
+                <tr>
+                  <th style="width:30px;"></th>
+                  <th>Item Name</th>
+                  <th>Description</th>
+                  <th class="number">Quantity</th>
+                  <th>Unit</th>
+                  <th class="number">Area</th>
+                  <th class="number">Length</th>
+                  <th class="number">Unit Cost</th>
+                  <th class="number">Total</th>
+                </tr>
+              </thead>
+              <tbody id="estimatesBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="importResult"></div>
+      </div>
+
+      <div id="notConnectedContent" style="display:none;">
+        <div class="info-box">
+          <h3>Connect to STACK</h3>
+          <p>Enter your STACK API credentials to import takeoff estimates directly from STACK CT. You can get API credentials from your STACK account settings or by contacting STACK support.</p>
+        </div>
+        <p style="color:#666;">Go to the <strong>Settings</strong> tab to configure your STACK API connection.</p>
+      </div>
+    </div>
+
+    <!-- Manual Entry Tab -->
+    <div id="manual-tab" class="tab-content">
+      <div class="section">
+        <h2><span style="font-size:24px;">&#x1F4DD;</span> Manual Takeoff Entry</h2>
+
+        <div class="input-group">
+          <label>Select Job</label>
+          <select id="manual-job-select">
+            <option value="">-- Select a Job --</option>
+          </select>
+        </div>
+
+        <div class="takeoff-form header">
+          <div>Item Name</div>
+          <div>Quantity</div>
+          <div>Unit</div>
+          <div>Area (sqft)</div>
+          <div>Linear (ft)</div>
+          <div>Notes</div>
+          <div></div>
+        </div>
+
+        <div class="takeoff-list" id="manualTakeoffList"></div>
+
+        <button class="btn btn-secondary" onclick="addManualRow()" style="margin-top:10px;">+ Add Item</button>
+
+        <div class="template-section">
+          <label style="display:block;margin-bottom:10px;font-weight:600;color:#333;">Quick Add Templates:</label>
+          <div class="template-buttons">
+            <button class="template-btn" onclick="addTemplate('flatwork')">Flatwork Package</button>
+            <button class="template-btn" onclick="addTemplate('foundation')">Foundation Package</button>
+            <button class="template-btn" onclick="addTemplate('sidewalk')">Sidewalk/Curb</button>
+            <button class="template-btn" onclick="addTemplate('driveway')">Driveway</button>
+            <button class="template-btn" onclick="addTemplate('patio')">Patio/Slab</button>
+          </div>
+        </div>
+
+        <div class="summary-row">
+          <span>Total Items: <strong id="total-items">0</strong></span>
+          <span>Total Area: <strong id="total-area">0</strong> sqft</span>
+          <span>Total Linear: <strong id="total-linear">0</strong> ft</span>
+        </div>
+
+        <div class="actions">
+          <button class="btn btn-secondary" onclick="clearManualRows()">Clear All</button>
+          <button class="btn btn-success" onclick="importManualTakeoffs()" id="manual-import-btn">Import to Job</button>
+        </div>
+
+        <div id="manual-import-result"></div>
+      </div>
+    </div>
+
+    <!-- Settings Tab -->
+    <div id="settings-tab" class="tab-content">
+      <div class="section">
+        <h2><span style="font-size:24px;">&#x2699;</span> STACK API Settings</h2>
+
+        <div class="info-box">
+          <h3>API Credentials</h3>
+          <p>To get your STACK API credentials, log into your STACK account and navigate to Settings &gt; API Access. You'll need a STACK subscription with API access enabled. Contact STACK support if you need to enable API access.</p>
+        </div>
+
+        <div id="settingsConnected" style="display:none;">
+          <div style="background:#dcfce7;padding:20px;border-radius:8px;margin-bottom:20px;">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <span style="font-size:24px;">&#x2705;</span>
+              <div>
+                <strong style="color:#166534;">Connected to STACK</strong>
+                <div style="font-size:13px;color:#166534;" id="settingsClientId"></div>
+              </div>
+            </div>
+          </div>
+          <button class="btn btn-danger" onclick="disconnectStack()">Disconnect from STACK</button>
+        </div>
+
+        <div id="settingsForm">
+          <div class="input-group">
+            <label>Client ID</label>
+            <input type="text" id="stackClientId" placeholder="Enter your STACK Client ID">
+          </div>
+          <div class="input-group">
+            <label>Client Secret</label>
+            <input type="password" id="stackClientSecret" placeholder="Enter your STACK Client Secret">
+          </div>
+          <button class="btn btn-stack" onclick="connectStack()" id="connectBtn">Connect to STACK</button>
+          <div id="settings-result"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    var API_BASE = '/api';
+    var jobs = [];
+    var manualRows = [];
+    var rowCounter = 0;
+    var isConnected = false;
+
+    // STACK data
+    var stackProjects = [];
+    var stackTakeoffs = [];
+    var stackEstimates = [];
+    var selectedProjectId = null;
+    var selectedTakeoffId = null;
+    var selectedEstimates = new Set();
+
+    // Templates
+    var templates = {
+      flatwork: [
+        { item_name: '4" Flatwork', quantity: 0, unit: 'SQFT', area_sqft: 0, linear_ft: 0, notes: '' },
+        { item_name: '6" Flatwork', quantity: 0, unit: 'SQFT', area_sqft: 0, linear_ft: 0, notes: '' },
+        { item_name: 'Sawcut Joints', quantity: 0, unit: 'LF', area_sqft: 0, linear_ft: 0, notes: '' },
+        { item_name: 'Broom Finish', quantity: 0, unit: 'SQFT', area_sqft: 0, linear_ft: 0, notes: '' }
+      ],
+      foundation: [
+        { item_name: 'Stem Wall', quantity: 0, unit: 'LF', area_sqft: 0, linear_ft: 0, notes: '' },
+        { item_name: 'Footings', quantity: 0, unit: 'LF', area_sqft: 0, linear_ft: 0, notes: '' },
+        { item_name: 'Garage Slab', quantity: 0, unit: 'SQFT', area_sqft: 0, linear_ft: 0, notes: '' },
+        { item_name: 'Basement Slab', quantity: 0, unit: 'SQFT', area_sqft: 0, linear_ft: 0, notes: '' }
+      ],
+      sidewalk: [
+        { item_name: '4" Sidewalk', quantity: 0, unit: 'SQFT', area_sqft: 0, linear_ft: 0, notes: '' },
+        { item_name: 'Curb & Gutter', quantity: 0, unit: 'LF', area_sqft: 0, linear_ft: 0, notes: '' },
+        { item_name: 'ADA Ramps', quantity: 0, unit: 'EA', area_sqft: 0, linear_ft: 0, notes: '' }
+      ],
+      driveway: [
+        { item_name: '4" Driveway', quantity: 0, unit: 'SQFT', area_sqft: 0, linear_ft: 0, notes: '' },
+        { item_name: '6" Driveway (heavy duty)', quantity: 0, unit: 'SQFT', area_sqft: 0, linear_ft: 0, notes: '' },
+        { item_name: 'Driveway Approach', quantity: 0, unit: 'SQFT', area_sqft: 0, linear_ft: 0, notes: '' }
+      ],
+      patio: [
+        { item_name: '4" Patio Slab', quantity: 0, unit: 'SQFT', area_sqft: 0, linear_ft: 0, notes: '' },
+        { item_name: 'Stamped Concrete', quantity: 0, unit: 'SQFT', area_sqft: 0, linear_ft: 0, notes: '' },
+        { item_name: 'Exposed Aggregate', quantity: 0, unit: 'SQFT', area_sqft: 0, linear_ft: 0, notes: '' }
+      ]
+    };
+
+    // Tab switching
+    function showTab(tab) {
+      document.querySelectorAll('.tab-btn').forEach(function(btn) { btn.classList.remove('active'); });
+      document.querySelectorAll('.tab-content').forEach(function(c) { c.classList.remove('active'); });
+      event.target.classList.add('active');
+      document.getElementById(tab + '-tab').classList.add('active');
+    }
+
+    // Check STACK connection status
+    async function checkConnection() {
+      try {
+        var res = await fetch(API_BASE + '/stack/status');
+        var data = await res.json();
+
+        var statusDiv = document.getElementById('connectionStatus');
+
+        if (data.connected) {
+          isConnected = true;
+          statusDiv.className = 'connection-status connected';
+          statusDiv.innerHTML = '<div class="icon">&#x2705;</div>' +
+            '<div class="info">' +
+              '<div class="title">Connected to STACK</div>' +
+              '<div class="subtitle">Client: ' + (data.client_id || 'Configured') + '</div>' +
+            '</div>' +
+            '<button class="btn btn-secondary" onclick="loadStackProjects()">Refresh Projects</button>';
+
+          document.getElementById('connectedContent').style.display = 'block';
+          document.getElementById('notConnectedContent').style.display = 'none';
+          document.getElementById('settingsConnected').style.display = 'block';
+          document.getElementById('settingsForm').style.display = 'none';
+          document.getElementById('settingsClientId').textContent = 'Client ID: ' + data.client_id;
+
+          loadStackProjects();
+        } else {
+          isConnected = false;
+          statusDiv.className = 'connection-status disconnected';
+          statusDiv.innerHTML = '<div class="icon">&#x1F517;</div>' +
+            '<div class="info">' +
+              '<div class="title">Not Connected</div>' +
+              '<div class="subtitle">Configure your STACK API credentials to import takeoffs</div>' +
+            '</div>' +
+            '<button class="btn btn-stack" onclick="showTab(\'settings\');document.querySelector(\'.tab-btn:last-child\').click();">Connect to STACK</button>';
+
+          document.getElementById('connectedContent').style.display = 'none';
+          document.getElementById('notConnectedContent').style.display = 'block';
+          document.getElementById('settingsConnected').style.display = 'none';
+          document.getElementById('settingsForm').style.display = 'block';
+        }
+      } catch (e) {
+        console.error('Connection check failed:', e);
+      }
+    }
+
+    // Connect to STACK
+    async function connectStack() {
+      var clientId = document.getElementById('stackClientId').value.trim();
+      var clientSecret = document.getElementById('stackClientSecret').value.trim();
+
+      if (!clientId || !clientSecret) {
+        alert('Please enter both Client ID and Client Secret');
+        return;
+      }
+
+      var btn = document.getElementById('connectBtn');
+      btn.disabled = true;
+      btn.textContent = 'Connecting...';
+
+      try {
+        var res = await fetch(API_BASE + '/stack/connect', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ client_id: clientId, client_secret: clientSecret })
+        });
+
+        var data = await res.json();
+
+        if (data.error) {
+          document.getElementById('settings-result').innerHTML = '<div class="result-message error">' + data.error + '</div>';
+        } else {
+          document.getElementById('settings-result').innerHTML = '<div class="result-message success">Connected successfully!</div>';
+          setTimeout(function() { window.location.reload(); }, 1000);
+        }
+      } catch (e) {
+        document.getElementById('settings-result').innerHTML = '<div class="result-message error">Connection failed: ' + e.message + '</div>';
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Connect to STACK';
+      }
+    }
+
+    // Disconnect from STACK
+    async function disconnectStack() {
+      if (!confirm('Are you sure you want to disconnect from STACK?')) return;
+
+      try {
+        await fetch(API_BASE + '/stack/disconnect', { method: 'POST' });
+        window.location.reload();
+      } catch (e) {
+        alert('Failed to disconnect: ' + e.message);
+      }
+    }
+
+    // Load STACK projects
+    async function loadStackProjects() {
+      document.getElementById('projectsLoading').style.display = 'block';
+      document.getElementById('projectsList').style.display = 'none';
+
+      try {
+        var res = await fetch(API_BASE + '/stack/projects');
+        var data = await res.json();
+
+        document.getElementById('projectsLoading').style.display = 'none';
+
+        if (data.error) {
+          document.getElementById('projectsList').innerHTML = '<div class="result-message error">' + data.error + '</div>';
+          document.getElementById('projectsList').style.display = 'block';
+          return;
+        }
+
+        stackProjects = data.projects || [];
+
+        if (stackProjects.length === 0) {
+          document.getElementById('projectsList').innerHTML = '<div class="empty-state"><p>No projects found in STACK</p></div>';
+          document.getElementById('projectsList').style.display = 'block';
+          return;
+        }
+
+        var html = '';
+        stackProjects.forEach(function(p) {
+          html += '<div class="project-card" onclick="selectProject(\'' + p.id + '\')" id="project-' + p.id + '">' +
+            '<div class="project-title">' + escapeHtml(p.name) + '</div>' +
+            '<div class="project-meta">' +
+              (p.bid_date ? 'Bid: ' + formatDate(p.bid_date) + ' | ' : '') +
+              'Modified: ' + formatDate(p.modified_date) +
+            '</div>' +
+          '</div>';
+        });
+
+        document.getElementById('projectsList').innerHTML = html;
+        document.getElementById('projectsList').style.display = 'block';
+      } catch (e) {
+        document.getElementById('projectsLoading').style.display = 'none';
+        document.getElementById('projectsList').innerHTML = '<div class="result-message error">Failed to load projects: ' + e.message + '</div>';
+        document.getElementById('projectsList').style.display = 'block';
+      }
+    }
+
+    // Select a project
+    async function selectProject(projectId) {
+      selectedProjectId = projectId;
+      selectedTakeoffId = null;
+      stackEstimates = [];
+      selectedEstimates.clear();
+
+      // Update UI
+      document.querySelectorAll('.project-card').forEach(function(c) { c.classList.remove('selected'); });
+      document.getElementById('project-' + projectId).classList.add('selected');
+      document.getElementById('step1-num').classList.add('done');
+
+      // Reset steps 2 and 3
+      document.getElementById('takeoffsList').style.display = 'none';
+      document.getElementById('takeoffsEmpty').style.display = 'none';
+      document.getElementById('takeoffsLoading').style.display = 'block';
+      document.getElementById('estimatesEmpty').style.display = 'block';
+      document.getElementById('estimatesContent').style.display = 'none';
+      document.getElementById('estimatesTable').style.display = 'none';
+
+      try {
+        var res = await fetch(API_BASE + '/stack/projects/' + projectId + '/takeoffs');
+        var data = await res.json();
+
+        document.getElementById('takeoffsLoading').style.display = 'none';
+
+        if (data.error) {
+          document.getElementById('takeoffsEmpty').innerHTML = '<p style="color:#ef4444;">' + data.error + '</p>';
+          document.getElementById('takeoffsEmpty').style.display = 'block';
+          return;
+        }
+
+        stackTakeoffs = data.takeoffs || [];
+
+        if (stackTakeoffs.length === 0) {
+          document.getElementById('takeoffsEmpty').innerHTML = '<p>No takeoffs found for this project</p>';
+          document.getElementById('takeoffsEmpty').style.display = 'block';
+          return;
+        }
+
+        var html = '';
+        stackTakeoffs.forEach(function(t) {
+          html += '<div class="takeoff-card" onclick="selectTakeoff(\'' + t.id + '\')" id="takeoff-' + t.id + '">' +
+            '<div class="takeoff-title">' + escapeHtml(t.name) + '</div>' +
+            '<div class="takeoff-meta">' +
+              (t.type ? t.type + ' | ' : '') +
+              'Modified: ' + formatDate(t.modified_date) +
+            '</div>' +
+          '</div>';
+        });
+
+        document.getElementById('takeoffsList').innerHTML = html;
+        document.getElementById('takeoffsList').style.display = 'block';
+      } catch (e) {
+        document.getElementById('takeoffsLoading').style.display = 'none';
+        document.getElementById('takeoffsEmpty').innerHTML = '<p style="color:#ef4444;">Failed to load takeoffs: ' + e.message + '</p>';
+        document.getElementById('takeoffsEmpty').style.display = 'block';
+      }
+    }
+
+    // Select a takeoff
+    async function selectTakeoff(takeoffId) {
+      selectedTakeoffId = takeoffId;
+      selectedEstimates.clear();
+
+      // Update UI
+      document.querySelectorAll('.takeoff-card').forEach(function(c) { c.classList.remove('selected'); });
+      document.getElementById('takeoff-' + takeoffId).classList.add('selected');
+      document.getElementById('step2-num').classList.add('done');
+
+      document.getElementById('estimatesEmpty').style.display = 'none';
+      document.getElementById('estimatesLoading').style.display = 'block';
+      document.getElementById('estimatesContent').style.display = 'none';
+      document.getElementById('estimatesTable').style.display = 'none';
+
+      try {
+        var res = await fetch(API_BASE + '/stack/takeoffs/' + takeoffId + '/estimates');
+        var data = await res.json();
+
+        document.getElementById('estimatesLoading').style.display = 'none';
+
+        if (data.error) {
+          document.getElementById('estimatesEmpty').innerHTML = '<p style="color:#ef4444;">' + data.error + '</p>';
+          document.getElementById('estimatesEmpty').style.display = 'block';
+          return;
+        }
+
+        stackEstimates = data.estimates || [];
+
+        if (stackEstimates.length === 0) {
+          document.getElementById('estimatesEmpty').innerHTML = '<p>No estimates found for this takeoff</p>';
+          document.getElementById('estimatesEmpty').style.display = 'block';
+          return;
+        }
+
+        // Show estimates content
+        document.getElementById('estimatesContent').style.display = 'block';
+
+        // Render estimates table
+        var totalCost = 0;
+        var html = '';
+        stackEstimates.forEach(function(e, idx) {
+          totalCost += parseFloat(e.total_cost) || 0;
+          html += '<tr class="estimate-row" onclick="toggleEstimate(' + idx + ')" id="est-row-' + idx + '">' +
+            '<td><input type="checkbox" class="estimate-checkbox" id="est-' + idx + '" onclick="event.stopPropagation();toggleEstimate(' + idx + ')"></td>' +
+            '<td>' + escapeHtml(e.name) + '</td>' +
+            '<td>' + escapeHtml(e.description || '-') + '</td>' +
+            '<td class="number">' + (parseFloat(e.quantity) || 0).toFixed(2) + '</td>' +
+            '<td>' + (e.unit || '-') + '</td>' +
+            '<td class="number">' + (parseFloat(e.area) || 0).toFixed(0) + '</td>' +
+            '<td class="number">' + (parseFloat(e.length) || 0).toFixed(0) + '</td>' +
+            '<td class="number">$' + (parseFloat(e.unit_cost) || 0).toFixed(2) + '</td>' +
+            '<td class="number">$' + (parseFloat(e.total_cost) || 0).toFixed(2) + '</td>' +
+          '</tr>';
+        });
+
+        document.getElementById('estimatesBody').innerHTML = html;
+        document.getElementById('estimatesSummary').innerHTML =
+          '<strong>' + stackEstimates.length + '</strong> items | Total: <strong>$' + totalCost.toFixed(2) + '</strong>';
+        document.getElementById('estimatesTable').style.display = 'block';
+
+        updateImportButton();
+      } catch (e) {
+        document.getElementById('estimatesLoading').style.display = 'none';
+        document.getElementById('estimatesEmpty').innerHTML = '<p style="color:#ef4444;">Failed to load estimates: ' + e.message + '</p>';
+        document.getElementById('estimatesEmpty').style.display = 'block';
+      }
+    }
+
+    // Toggle estimate selection
+    function toggleEstimate(idx) {
+      var checkbox = document.getElementById('est-' + idx);
+      var row = document.getElementById('est-row-' + idx);
+
+      if (selectedEstimates.has(idx)) {
+        selectedEstimates.delete(idx);
+        checkbox.checked = false;
+        row.classList.remove('selected');
+      } else {
+        selectedEstimates.add(idx);
+        checkbox.checked = true;
+        row.classList.add('selected');
+      }
+
+      updateImportButton();
+    }
+
+    // Toggle select all
+    function toggleSelectAll() {
+      var selectAll = document.getElementById('selectAllEstimates').checked;
+
+      stackEstimates.forEach(function(e, idx) {
+        var checkbox = document.getElementById('est-' + idx);
+        var row = document.getElementById('est-row-' + idx);
+
+        if (selectAll) {
+          selectedEstimates.add(idx);
+          checkbox.checked = true;
+          row.classList.add('selected');
+        } else {
+          selectedEstimates.delete(idx);
+          checkbox.checked = false;
+          row.classList.remove('selected');
+        }
+      });
+
+      updateImportButton();
+    }
+
+    // Update import button state
+    function updateImportButton() {
+      var jobId = document.getElementById('import-job-select').value;
+      var btn = document.getElementById('importBtn');
+      btn.disabled = selectedEstimates.size === 0 || !jobId;
+      btn.textContent = 'Import ' + selectedEstimates.size + ' Selected';
+    }
+
+    // Import selected estimates to job
+    async function importSelectedEstimates() {
+      var jobId = document.getElementById('import-job-select').value;
+      if (!jobId) {
+        alert('Please select a job');
+        return;
+      }
+
+      if (selectedEstimates.size === 0) {
+        alert('Please select at least one estimate');
+        return;
+      }
+
+      var estimatesToImport = [];
+      selectedEstimates.forEach(function(idx) {
+        estimatesToImport.push(stackEstimates[idx]);
+      });
+
+      var btn = document.getElementById('importBtn');
+      btn.disabled = true;
+      btn.textContent = 'Importing...';
+
+      try {
+        var res = await fetch(API_BASE + '/stack/import-to-job', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            job_id: jobId,
+            project_id: selectedProjectId,
+            takeoff_id: selectedTakeoffId,
+            estimates: estimatesToImport
+          })
+        });
+
+        var data = await res.json();
+
+        if (data.error) {
+          document.getElementById('importResult').innerHTML = '<div class="result-message error">' + data.error + '</div>';
+        } else {
+          document.getElementById('importResult').innerHTML =
+            '<div class="result-message success"><strong>Import Complete!</strong> Imported ' + data.imported + ' items from STACK.' +
+            (data.errors && data.errors.length > 0 ? '<br>Errors: ' + data.errors.length : '') + '</div>';
+
+          document.getElementById('step3-num').classList.add('done');
+          selectedEstimates.clear();
+          updateImportButton();
+        }
+      } catch (e) {
+        document.getElementById('importResult').innerHTML = '<div class="result-message error">Import failed: ' + e.message + '</div>';
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Import Selected';
+      }
+    }
+
+    // Load jobs
+    async function loadJobs() {
+      try {
+        var res = await fetch(API_BASE + '/public/jobs');
+        jobs = await res.json();
+
+        var activeJobs = jobs.filter(function(j) { return j.status !== 'closed'; });
+        var options = '<option value="">-- Select a Job --</option>';
+        activeJobs.forEach(function(j) {
+          options += '<option value="' + j.id + '">#' + j.job_number + ' - ' + j.job_name + '</option>';
+        });
+
+        document.getElementById('manual-job-select').innerHTML = options;
+        document.getElementById('import-job-select').innerHTML = options;
+
+        // Add change listener for import job select
+        document.getElementById('import-job-select').addEventListener('change', updateImportButton);
+      } catch (e) {
+        console.error('Failed to load jobs:', e);
+      }
+    }
+
+    // Manual entry functions
+    function addManualRow(data) {
+      data = data || { item_name: '', quantity: '', unit: 'SQFT', area_sqft: '', linear_ft: '', notes: '' };
+      var id = rowCounter++;
+
+      manualRows.push({ id: id, ...data });
+
+      var html = '<div class="takeoff-item" id="row-' + id + '">' +
+        '<input type="text" placeholder="Item name" value="' + (data.item_name || '') + '" onchange="updateManualRow(' + id + ', \'item_name\', this.value)">' +
+        '<input type="number" placeholder="Qty" step="0.01" value="' + (data.quantity || '') + '" onchange="updateManualRow(' + id + ', \'quantity\', this.value)">' +
+        '<select onchange="updateManualRow(' + id + ', \'unit\', this.value)">' +
+          '<option value="SQFT"' + (data.unit === 'SQFT' ? ' selected' : '') + '>SQFT</option>' +
+          '<option value="LF"' + (data.unit === 'LF' ? ' selected' : '') + '>LF</option>' +
+          '<option value="CY"' + (data.unit === 'CY' ? ' selected' : '') + '>CY</option>' +
+          '<option value="EA"' + (data.unit === 'EA' ? ' selected' : '') + '>EA</option>' +
+        '</select>' +
+        '<input type="number" placeholder="Area" step="0.01" value="' + (data.area_sqft || '') + '" onchange="updateManualRow(' + id + ', \'area_sqft\', this.value)">' +
+        '<input type="number" placeholder="Linear" step="0.01" value="' + (data.linear_ft || '') + '" onchange="updateManualRow(' + id + ', \'linear_ft\', this.value)">' +
+        '<input type="text" placeholder="Notes" value="' + (data.notes || '') + '" onchange="updateManualRow(' + id + ', \'notes\', this.value)">' +
+        '<button class="remove-btn" onclick="removeManualRow(' + id + ')">&#x2715;</button>' +
+      '</div>';
+
+      document.getElementById('manualTakeoffList').insertAdjacentHTML('beforeend', html);
+      updateManualTotals();
+    }
+
+    function updateManualRow(id, field, value) {
+      var row = manualRows.find(function(r) { return r.id === id; });
+      if (row) {
+        row[field] = value;
+        updateManualTotals();
+      }
+    }
+
+    function removeManualRow(id) {
+      manualRows = manualRows.filter(function(r) { return r.id !== id; });
+      var el = document.getElementById('row-' + id);
+      if (el) el.remove();
+      updateManualTotals();
+    }
+
+    function updateManualTotals() {
+      var totalArea = 0, totalLinear = 0;
+      manualRows.forEach(function(row) {
+        totalArea += parseFloat(row.area_sqft) || 0;
+        totalLinear += parseFloat(row.linear_ft) || 0;
+      });
+
+      document.getElementById('total-items').textContent = manualRows.length;
+      document.getElementById('total-area').textContent = totalArea.toFixed(0);
+      document.getElementById('total-linear').textContent = totalLinear.toFixed(0);
+    }
+
+    function addTemplate(type) {
+      if (templates[type]) {
+        templates[type].forEach(function(item) {
+          addManualRow({ ...item });
+        });
+      }
+    }
+
+    function clearManualRows() {
+      manualRows = [];
+      document.getElementById('manualTakeoffList').innerHTML = '';
+      updateManualTotals();
+    }
+
+    async function importManualTakeoffs() {
+      var jobId = document.getElementById('manual-job-select').value;
+      if (!jobId) {
+        alert('Please select a job first');
+        return;
+      }
+
+      var validRows = manualRows.filter(function(row) {
+        return row.item_name && row.item_name.trim();
+      });
+
+      if (validRows.length === 0) {
+        alert('Please add at least one item');
+        return;
+      }
+
+      var takeoffData = validRows.map(function(row) {
+        return {
+          item_name: row.item_name,
+          quantity: parseFloat(row.quantity) || 0,
+          unit: row.unit || 'SQFT',
+          area_sqft: parseFloat(row.area_sqft) || 0,
+          linear_ft: parseFloat(row.linear_ft) || 0,
+          notes: row.notes || ''
+        };
+      });
+
+      document.getElementById('manual-import-btn').disabled = true;
+
+      try {
+        var res = await fetch(API_BASE + '/stack/import', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            job_id: jobId,
+            takeoff_data: takeoffData
+          })
+        });
+
+        var result = await res.json();
+
+        var resultDiv = document.getElementById('manual-import-result');
+        if (result.error) {
+          resultDiv.innerHTML = '<div class="result-message error"><strong>Import Failed:</strong> ' + result.error + '</div>';
+        } else {
+          resultDiv.innerHTML = '<div class="result-message success"><strong>Import Complete!</strong> Imported ' + result.imported + ' items to job.</div>';
+          clearManualRows();
+        }
+      } catch (e) {
+        document.getElementById('manual-import-result').innerHTML = '<div class="result-message error"><strong>Import Failed:</strong> ' + e.message + '</div>';
+      }
+
+      document.getElementById('manual-import-btn').disabled = false;
+    }
+
+    // Utility functions
+    function formatDate(dateStr) {
+      if (!dateStr) return '-';
+      return new Date(dateStr).toLocaleDateString();
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      var div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    // Initialize
+    checkConnection();
+    loadJobs();
+    addManualRow();
+  </script>
+</body>
+</html>

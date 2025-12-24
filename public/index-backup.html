@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Foreman System</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="app">
+<div id="login-screen" class="screen active">
+<div class="login-container">
+<div class="logo"><h1>🏗️</h1><h2>Foreman System</h2></div>
+<div class="input-group"><label>Email</label><input type="email" id="email"></div>
+<div class="input-group"><label>Password</label><input type="password" id="password"></div>
+<button class="btn btn-primary btn-large" onclick="doLogin()">Login</button>
+</div>
+</div>
+<div id="dashboard-screen" class="screen">
+<header class="app-header"><button onclick="openMenu()" class="icon-btn">☰</button><h1 id="page-title">Today's Jobs</h1><button class="icon-btn">👤</button></header>
+<nav id="side-menu" class="side-menu">
+<div class="menu-header"><span>Welcome, Gentry</span><button onclick="closeMenu()" class="icon-btn">✕</button></div>
+<ul class="menu-list">
+<li class="menu-item active" onclick="showView('today')">📅 Today</li>
+<li class="menu-item" onclick="showView('calendar')">🗓️ Calendar</li>
+<li class="menu-item" onclick="showView('jobs')">📋 All Jobs</li>
+<li class="menu-item" onclick="showView('concrete')">🚛 Concrete</li>
+<li class="menu-item" onclick="showView('workers')">👷 Workers</li>
+<li class="menu-item" onclick="showView('calendar')">📅 Schedule</li>
+<li class="menu-item" onclick="doLogout()">🚪 Logout</li>
+</ul>
+</nav>
+<div id="menu-overlay" class="menu-overlay" onclick="closeMenu()"></div>
+<main class="main-content">
+<div id="today-view" class="view active"></div>
+<div id="calendar-view" class="view"></div>
+<div id="jobs-view" class="view"></div>
+<div id="concrete-view" class="view"></div>
+<div id="workers-view" class="view"></div>
+<div id="calendar-view" class="view"></div>
+</main>
+</div>
+<div id="add-job-modal" class="modal">
+<div class="modal-content">
+<div class="modal-header"><h2>Add New Job</h2><button onclick="closeModal('add-job-modal')" class="icon-btn">✕</button></div>
+<div class="modal-body">
+<div class="input-group"><label>Job Number *</label><input type="text" id="new-job-number"></div>
+<div class="input-group"><label>Job Name *</label><input type="text" id="new-job-name"></div>
+<div class="input-group"><label>Location</label><input type="text" id="new-job-location"></div>
+<div class="input-group"><label>Contractor</label><input type="text" id="new-job-contractor"></div>
+</div>
+<div class="modal-footer">
+<button onclick="closeModal('add-job-modal')" class="btn btn-secondary">Cancel</button>
+<button onclick="saveNewJob()" class="btn btn-primary">Save Job</button>
+</div>
+</div>
+</div>
+<div id="add-concrete-modal" class="modal">
+<div class="modal-content">
+<div class="modal-header"><h2>Add Concrete Delivery</h2><button onclick="closeModal('add-concrete-modal')" class="icon-btn">✕</button></div>
+<div class="modal-body">
+<div class="input-group"><label>Invoice Number *</label><input type="text" id="concrete-invoice"></div>
+<div class="input-group"><label>Supplier *</label>
+<select id="concrete-supplier" style="width:100%;padding:12px;border:1px solid #ddd;border-radius:8px;font-size:16px;">
+<option value="">Select Supplier</option>
+<option value="JACK B PARSON">Jack B Parson</option>
+<option value="GENEVA ROCK">Geneva Rock</option>
+<option value="QUICKCRETE">Quickcrete</option>
+</select></div>
+<div class="input-group"><label>Delivery Date *</label><input type="date" id="concrete-date"></div>
+<div class="input-group"><label>Yards (CYD) *</label><input type="number" id="concrete-yards" step="0.25"></div>
+<div class="input-group"><label>Cost ($) *</label><input type="number" id="concrete-cost" step="0.01"></div>
+<div class="input-group"><label>Job</label><select id="concrete-job" style="width:100%;padding:12px;border:1px solid #ddd;border-radius:8px;font-size:16px;"><option value="">Select Job</option></select></div>
+</div>
+<div class="modal-footer">
+<button onclick="closeModal('add-concrete-modal')" class="btn btn-secondary">Cancel</button>
+<button onclick="saveConcrete()" class="btn btn-primary">Save Delivery</button>
+</div>
+</div>
+</div>
+</div>
+<script>
+const API = 'http://192.168.1.41:3000/api/public';
+const colors = ['#f97316','#22c55e','#a855f7','#ef4444','#3b82f6','#eab308'];
+let jobs = [], concreteDeliveries = [], workers = [], dailyRecords = [], crewLeads = [];
+let currentMonth = new Date().getMonth();
+let currentYear = new Date().getFullYear();
+
+async function doLogin() {
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('dashboard-screen').style.display='block';
+  await loadAllData();
+  showView('today');
+}
+
+async function loadAllData() {
+  try { jobs = await (await fetch(API+'/jobs')).json(); } catch(e) { jobs = []; }
+  try { concreteDeliveries = await (await fetch(API+'/concrete2')).json(); } catch(e) { concreteDeliveries = []; }
+  try { workers = await (await fetch(API+'/workers')).json(); } catch(e) { workers = []; }
+  try { dailyRecords = await (await fetch(API+'/daily-records')).json(); } catch(e) { dailyRecords = []; }
+  try { crewLeads = await (await fetch(API+'/crew-leads')).json(); } catch(e) { crewLeads = []; }
+}
+
+function doLogout() { document.getElementById('dashboard-screen').style.display='none'; document.getElementById('login-screen').style.display='block'; closeMenu(); }
+function openMenu() { document.getElementById('side-menu').classList.add('open'); document.getElementById('menu-overlay').classList.add('open'); }
+function closeMenu() { document.getElementById('side-menu').classList.remove('open'); document.getElementById('menu-overlay').classList.remove('open'); }
+function openModal(id) { document.getElementById(id).style.display = 'flex'; }
+function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+function showView(view) {
+  document.querySelectorAll('.view').forEach(v=>v.style.display='none');
+  document.querySelectorAll('.menu-item').forEach(m=>m.classList.remove('active'));
+  document.getElementById(view+'-view').style.display='block';
+  closeMenu();
+  const titles = {today:"Today", calendar:'Calendar', jobs:'All Jobs', concrete:'Concrete Deliveries', workers:'Workers'};
+  document.getElementById('page-title').textContent = titles[view];
+  if(view==='today') renderToday();
+  else if(view==='calendar') renderCalendar();
+  else if(view==='jobs') renderJobs();
+  else if(view==='concrete') renderConcrete();
+  else if(view==='workers') renderWorkers();
+}
+
+function renderToday() {
+  const today = new Date().toISOString().split('T')[0];
+  const todayRecords = dailyRecords.filter(r => r.record_date && r.record_date.split('T')[0] === today);
+  const recordsHtml = todayRecords.length > 0 ? todayRecords.map(r => `
+    <div style="background:white;border-left:4px solid #22c55e;padding:15px;margin:10px;border-radius:8px;box-shadow:0 2px 4px rgba(0,0,0,0.1);">
+      <div style="font-weight:bold;color:#22c55e;">#${r.job_number} - ${r.job_name}</div>
+      <div style="color:#666;margin:5px 0;">${r.foreman_name || 'No foreman'}</div>
+      <div style="margin-top:10px;padding:10px;background:#f3f4f6;border-radius:6px;">${r.notes}</div>
+    </div>`).join('') : '<p style="padding:15px;color:#666;">No records for today yet.</p>';
+  const jobsHtml = jobs.map((j,i)=>`
+    <div style="background:white;border-left:4px solid ${colors[i % colors.length]};padding:15px;margin:10px;border-radius:8px;box-shadow:0 2px 4px rgba(0,0,0,0.1);">
+      <div style="font-weight:bold;color:#666;">#${j.job_number}</div>
+      <div style="font-size:18px;font-weight:bold;margin:5px 0;">${j.job_name}</div>
+      <div style="color:#666;">📍 ${j.location || 'No location'}</div>
+    </div>`).join('');
+  document.getElementById('today-view').innerHTML = `
+    <h3 style="padding:15px;">Today's Records</h3>
+    <button onclick="openDailyModal()" style="margin:10px;padding:15px 30px;background:#22c55e;color:white;border:none;border-radius:8px;font-size:16px;cursor:pointer;">+ Add Daily Record</button>
+    ${recordsHtml}
+    <h3 style="padding:15px;margin-top:20px;">Active Jobs (${jobs.length})</h3>
+    ${jobsHtml}`;
+}
+
+function renderCalendar() {
+  const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  
+  const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+  const today = new Date();
+  
+  let calendarHtml = `
+    <div style="padding:15px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
+        <button onclick="prevMonth()" style="padding:10px 15px;background:#2563eb;color:white;border:none;border-radius:8px;font-size:18px;">◀</button>
+        <h2 style="margin:0;">${monthNames[currentMonth]} ${currentYear}</h2>
+        <button onclick="nextMonth()" style="padding:10px 15px;background:#2563eb;color:white;border:none;border-radius:8px;font-size:18px;">▶</button>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;background:#ddd;border-radius:8px;overflow:hidden;">
+        ${dayNames.map(d=>`<div style="background:#2563eb;color:white;padding:10px;text-align:center;font-weight:bold;">${d}</div>`).join('')}
+  `;
+  
+  // Empty cells before first day
+  for(let i = 0; i < firstDay; i++) {
+    calendarHtml += '<div style="background:#f3f4f6;padding:10px;min-height:60px;"></div>';
+  }
+  
+  // Days of month
+  for(let day = 1; day <= daysInMonth; day++) {
+    const dateStr = `${currentYear}-${String(currentMonth+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    const dayRecords = dailyRecords.filter(r => r.record_date && r.record_date.split('T')[0] === dateStr);
+    const isToday = today.getDate() === day && today.getMonth() === currentMonth && today.getFullYear() === currentYear;
+    
+    const recordDots = dayRecords.length > 0 ? 
+      `<div style="display:flex;gap:2px;flex-wrap:wrap;margin-top:5px;">${dayRecords.slice(0,3).map(()=>'<div style="width:8px;height:8px;background:#22c55e;border-radius:50%;"></div>').join('')}${dayRecords.length > 3 ? '<span style="font-size:10px;color:#666;">+'+( dayRecords.length-3)+'</span>' : ''}</div>` : '';
+    
+    calendarHtml += `
+      <div onclick="showDayDetail('${dateStr}')" style="background:${isToday ? '#dbeafe' : 'white'};padding:10px;min-height:60px;cursor:pointer;border:${isToday ? '2px solid #2563eb' : 'none'};">
+        <div style="font-weight:${isToday ? 'bold' : 'normal'};color:${isToday ? '#2563eb' : '#333'};">${day}</div>
+        ${recordDots}
+      </div>`;
+  }
+  
+  calendarHtml += '</div></div>';
+  
+  // Day detail section
+  calendarHtml += '<div id="day-detail" style="padding:15px;"></div>';
+  
+  document.getElementById('calendar-view').innerHTML = calendarHtml;
+}
+
+function prevMonth() {
+  currentMonth--;
+  if(currentMonth < 0) { currentMonth = 11; currentYear--; }
+  renderCalendar();
+}
+
+function nextMonth() {
+  currentMonth++;
+  if(currentMonth > 11) { currentMonth = 0; currentYear++; }
+  renderCalendar();
+}
+
+function showDayDetail(dateStr) {
+  const dayRecords = dailyRecords.filter(r => r.record_date && r.record_date.split('T')[0] === dateStr);
+  const date = new Date(dateStr + 'T12:00:00');
+  const formatted = date.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  
+  let html = `<h3>${formatted}</h3>`;
+  html += `<button onclick="openDailyModalForDate('${dateStr}')" style="margin:10px 0;padding:10px 20px;background:#22c55e;color:white;border:none;border-radius:8px;cursor:pointer;">+ Add Record for This Day</button>`;
+  
+  if(dayRecords.length > 0) {
+    html += dayRecords.map(r => `
+      <div style="background:white;border-left:4px solid #22c55e;padding:15px;margin:10px 0;border-radius:8px;box-shadow:0 2px 4px rgba(0,0,0,0.1);">
+        <div style="font-weight:bold;color:#22c55e;">#${r.job_number} - ${r.job_name}</div>
+        <div style="color:#666;margin:5px 0;">${r.foreman_name || 'No foreman'}</div>
+        <div style="margin-top:10px;padding:10px;background:#f3f4f6;border-radius:6px;">${r.notes}</div>
+      </div>`).join('');
+  } else {
+    html += '<p style="color:#666;">No records for this day.</p>';
+  }
+  
+  document.getElementById('day-detail').innerHTML = html;
+}
+
+function renderJobs() {
+  const html = jobs.map((j,i)=>`
+    <div style="background:white;border-left:4px solid ${colors[i % colors.length]};padding:15px;margin:10px;border-radius:8px;box-shadow:0 2px 4px rgba(0,0,0,0.1);">
+      <div style="font-weight:bold;color:#666;">#${j.job_number}</div>
+      <div style="font-size:18px;font-weight:bold;margin:5px 0;">${j.job_name}</div>
+      <div style="color:#666;">📍 ${j.location || 'No location'}</div>
+      <div style="margin-top:8px;"><span style="background:${colors[i % colors.length]};color:white;padding:3px 8px;border-radius:4px;font-size:12px;">${j.contractor_name || 'No contractor'}</span></div>
+    </div>`).join('');
+  document.getElementById('jobs-view').innerHTML = '<h3 style="padding:15px;">All Jobs ('+jobs.length+')</h3><button onclick="openModal(\'add-job-modal\')" style="margin:10px;padding:15px 30px;background:#2563eb;color:white;border:none;border-radius:8px;font-size:16px;cursor:pointer;">+ Add New Job</button>' + html;
+}
+
+function renderConcrete() {
+  const totalYards = concreteDeliveries.reduce((sum,c) => sum + parseFloat(c.yards||0), 0);
+  const totalCost = concreteDeliveries.reduce((sum,c) => sum + parseFloat(c.cost||0), 0);
+  const stats = `<div style="display:flex;gap:10px;padding:10px;flex-wrap:wrap;">
+    <div style="background:white;padding:15px;border-radius:8px;flex:1;min-width:100px;text-align:center;box-shadow:0 2px 4px rgba(0,0,0,0.1);"><div style="font-size:24px;font-weight:bold;color:#2563eb;">${concreteDeliveries.length}</div><div style="color:#666;">Deliveries</div></div>
+    <div style="background:white;padding:15px;border-radius:8px;flex:1;min-width:100px;text-align:center;box-shadow:0 2px 4px rgba(0,0,0,0.1);"><div style="font-size:24px;font-weight:bold;color:#22c55e;">${totalYards.toFixed(1)}</div><div style="color:#666;">Total CYD</div></div>
+    <div style="background:white;padding:15px;border-radius:8px;flex:1;min-width:100px;text-align:center;box-shadow:0 2px 4px rgba(0,0,0,0.1);"><div style="font-size:24px;font-weight:bold;color:#f97316;">$${totalCost.toFixed(0)}</div><div style="color:#666;">Total Cost</div></div>
+  </div>`;
+  const html = concreteDeliveries.map(c=>{
+    const job = jobs.find(j=>j.id===c.job_id);
+    return `<div style="background:white;padding:15px;margin:10px;border-radius:8px;box-shadow:0 2px 4px rgba(0,0,0,0.1);">
+      <div style="display:flex;justify-content:space-between;align-items:center;"><div style="font-weight:bold;">Invoice #${c.invoice_number}</div><span style="background:${job?'#22c55e':'#f97316'};color:white;padding:3px 8px;border-radius:4px;font-size:12px;">${job?'✓ Matched':'⚠ Unmatched'}</span></div>
+      <div style="color:#666;margin-top:8px;">📅 ${new Date(c.delivery_date).toLocaleDateString()} • 🚛 ${c.yards} CYD</div>
+      <div style="color:#666;">💰 $${parseFloat(c.cost).toFixed(2)}</div>
+      ${job ? '<div style="margin-top:5px;color:#2563eb;">📋 Job #'+job.job_number+'</div>' : ''}</div>`;
+  }).join('');
+  document.getElementById('concrete-view').innerHTML = '<h3 style="padding:15px;">Concrete Deliveries</h3>' + stats + '<button onclick="openConcreteModal()" style="margin:10px;padding:15px 30px;background:#2563eb;color:white;border:none;border-radius:8px;font-size:16px;cursor:pointer;">+ Add Delivery</button>' + html;
+}
+
+function renderWorkers() {
+  const html = workers.map(w=>`
+    <div style="background:white;padding:15px;margin:10px;border-radius:8px;box-shadow:0 2px 4px rgba(0,0,0,0.1);display:flex;align-items:center;gap:15px;">
+      <div style="width:50px;height:50px;background:#2563eb;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-weight:bold;">${w.full_name.split(' ').map(n=>n[0]).join('')}</div>
+      <div><div style="font-weight:bold;font-size:16px;">${w.full_name}</div><div style="color:#666;">${w.role || 'No role'}</div></div>
+    </div>`).join('');
+  document.getElementById('workers-view').innerHTML = '<h3 style="padding:15px;">Workers ('+workers.length+')</h3><button onclick="openWorkerModal()" style="margin:10px;padding:15px 30px;background:#2563eb;color:white;border:none;border-radius:8px;font-size:16px;cursor:pointer;">+ Add Worker</button>' + html;
+}
+
+function openConcreteModal() {
+  openModal('add-concrete-modal');
+  document.getElementById('concrete-job').innerHTML = '<option value="">Select Job</option>' + jobs.map(j=>`<option value="${j.id}">#${j.job_number} - ${j.job_name}</option>`).join('');
+  document.getElementById('concrete-date').value = new Date().toISOString().split('T')[0];
+}
+
+async function saveNewJob() {
+  const data = { job_number: document.getElementById('new-job-number').value.trim(), job_name: document.getElementById('new-job-name').value.trim(), location: document.getElementById('new-job-location').value.trim(), contractor_name: document.getElementById('new-job-contractor').value.trim() };
+  if(!data.job_number || !data.job_name) { alert('Job Number and Name required!'); return; }
+  const res = await fetch(API+'/jobs', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data) });
+  if(res.ok) { closeModal('add-job-modal'); await loadAllData(); showView('jobs'); alert('Job added!'); }
+}
+
+async function saveConcrete() {
+  const data = { invoice_number: document.getElementById('concrete-invoice').value.trim(), supplier: document.getElementById('concrete-supplier').value, delivery_date: document.getElementById('concrete-date').value, yards: document.getElementById('concrete-yards').value, cost: document.getElementById('concrete-cost').value, job_id: document.getElementById('concrete-job').value || null };
+  if(!data.invoice_number || !data.supplier || !data.delivery_date || !data.yards || !data.cost) { alert('Fill all required fields!'); return; }
+  const res = await fetch(API+'/concrete2', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data) });
+  if(res.ok) { closeModal('add-concrete-modal'); await loadAllData(); showView('concrete'); alert('Delivery added!'); }
+}
+
+function openWorkerModal() {
+  const modal = document.createElement('div'); modal.id='worker-modal'; modal.className='modal'; modal.style.display='flex';
+  modal.innerHTML = `<div class="modal-content"><div class="modal-header"><h2>Add Worker</h2><button onclick="document.getElementById('worker-modal').remove()" class="icon-btn">✕</button></div>
+    <div class="modal-body"><div class="input-group"><label>Full Name *</label><input type="text" id="worker-name"></div><div class="input-group"><label>Role</label><input type="text" id="worker-role"></div><div class="input-group"><label>Contact</label><input type="text" id="worker-contact"></div></div>
+    <div class="modal-footer"><button onclick="document.getElementById('worker-modal').remove()" class="btn btn-secondary">Cancel</button><button onclick="saveWorker()" class="btn btn-primary">Save</button></div></div>`;
+  document.body.appendChild(modal);
+}
+
+async function saveWorker() {
+  const data = { full_name: document.getElementById('worker-name').value.trim(), role: document.getElementById('worker-role').value.trim(), contact_info: document.getElementById('worker-contact').value.trim() };
+  if(!data.full_name) { alert('Name required!'); return; }
+  const res = await fetch(API+'/workers', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data) });
+  if(res.ok) { document.getElementById('worker-modal').remove(); await loadAllData(); showView('workers'); alert('Worker added!'); }
+}
+
+function openDailyModal() {
+  openDailyModalForDate(new Date().toISOString().split('T')[0]);
+}
+
+function openDailyModalForDate(dateStr) {
+  const jobOpts = jobs.map(j=>`<option value="${j.id}">#${j.job_number} - ${j.job_name}</option>`).join('');
+  const workerOpts = crewLeads.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+  const modal = document.createElement('div'); modal.id='daily-modal'; modal.className='modal'; modal.style.display='flex';
+  modal.innerHTML = `<div class="modal-content"><div class="modal-header"><h2>Add Daily Record</h2><button onclick="document.getElementById('daily-modal').remove()" class="icon-btn">✕</button></div>
+    <div class="modal-body">
+      <div class="input-group"><label>Date *</label><input type="date" id="record-date" value="${dateStr}"></div>
+      <div class="input-group"><label>Job *</label><select id="record-job" style="width:100%;padding:12px;border:1px solid #ddd;border-radius:8px;"><option value="">Select Job</option>${jobOpts}</select></div>
+      <div class="input-group"><label>Foreman</label><select id="record-foreman" style="width:100%;padding:12px;border:1px solid #ddd;border-radius:8px;"><option value="">Select Foreman</option>${workerOpts}</select></div>
+      <div class="input-group"><label>Notes *</label><textarea id="record-notes" rows="4" style="width:100%;padding:12px;border:1px solid #ddd;border-radius:8px;box-sizing:border-box;" placeholder="What was done today?"></textarea></div>
+    </div>
+    <div class="modal-footer"><button onclick="document.getElementById('daily-modal').remove()" class="btn btn-secondary">Cancel</button><button onclick="saveDailyRecord()" class="btn btn-primary">Save</button></div></div>`;
+  document.body.appendChild(modal);
+}
+
+async function saveDailyRecord() {
+  const data = { job_id: document.getElementById('record-job').value, foreman_id: document.getElementById('record-foreman').value || null, record_date: document.getElementById('record-date').value, notes: document.getElementById('record-notes').value.trim() };
+  if(!data.job_id || !data.record_date || !data.notes) { alert('Job, Date, and Notes required!'); return; }
+  const res = await fetch(API+'/daily-records', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data) });
+  if(res.ok) { document.getElementById('daily-modal').remove(); await loadAllData(); showView('calendar'); alert('Record saved!'); }
+}
+</script>
+<style>
+.modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); justify-content:center; align-items:center; z-index:1000; }
+.modal-content { background:white; border-radius:12px; width:90%; max-width:400px; max-height:90vh; overflow:auto; }
+.modal-header { display:flex; justify-content:space-between; align-items:center; padding:15px 20px; border-bottom:1px solid #eee; }
+.modal-header h2 { margin:0; font-size:18px; }
+.modal-body { padding:20px; }
+.modal-body .input-group { margin-bottom:15px; }
+.modal-body label { display:block; margin-bottom:5px; font-weight:600; color:#333; }
+.modal-body input, .modal-body select, .modal-body textarea { width:100%; padding:12px; border:1px solid #ddd; border-radius:8px; font-size:16px; box-sizing:border-box; }
+.modal-footer { display:flex; gap:10px; padding:15px 20px; border-top:1px solid #eee; justify-content:flex-end; }
+.btn { padding:10px 20px; border:none; border-radius:8px; font-size:16px; cursor:pointer; }
+.btn-primary { background:#2563eb; color:white; }
+.btn-secondary { background:#e5e7eb; color:#333; }
+</style>
+</body>
+</html>
+<script>
+// Calendar functionality
+let schedule = [];
+
+
+async function loadSchedule() {
+  try { schedule = await (await fetch(API+'/schedule')).json(); } catch(e) { schedule = []; }
+}
+
+function renderCalendar() {
+  const year = currentMonth.getFullYear();
+  const month = currentMonth.getMonth();
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  
+  let calHtml = `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:15px;">
+      <button onclick="changeMonth(-1)" style="padding:10px 15px;background:#2563eb;color:white;border:none;border-radius:8px;font-size:18px;">◀</button>
+      <h3 style="margin:0;">${monthNames[month]} ${year}</h3>
+      <button onclick="changeMonth(1)" style="padding:10px 15px;background:#2563eb;color:white;border:none;border-radius:8px;font-size:18px;">▶</button>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;padding:10px;">
+      <div style="text-align:center;font-weight:bold;padding:5px;">Sun</div>
+      <div style="text-align:center;font-weight:bold;padding:5px;">Mon</div>
+      <div style="text-align:center;font-weight:bold;padding:5px;">Tue</div>
+      <div style="text-align:center;font-weight:bold;padding:5px;">Wed</div>
+      <div style="text-align:center;font-weight:bold;padding:5px;">Thu</div>
+      <div style="text-align:center;font-weight:bold;padding:5px;">Fri</div>
+      <div style="text-align:center;font-weight:bold;padding:5px;">Sat</div>`;
+  
+  for(let i = 0; i < firstDay; i++) {
+    calHtml += '<div style="padding:10px;background:#f3f4f6;min-height:60px;"></div>';
+  }
+  
+  const today = new Date().toISOString().split('T')[0];
+  
+  for(let day = 1; day <= daysInMonth; day++) {
+    const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    const daySchedule = schedule.filter(s => s.scheduled_date && s.scheduled_date.split('T')[0] === dateStr);
+    const isToday = dateStr === today;
+    const hasJobs = daySchedule.length > 0;
+    
+    calHtml += `<div onclick="openDayView('${dateStr}')" style="padding:5px;background:${isToday ? '#dbeafe' : 'white'};min-height:60px;border:1px solid #e5e7eb;cursor:pointer;${hasJobs ? 'border-left:3px solid #22c55e;' : ''}">
+      <div style="font-weight:${isToday ? 'bold' : 'normal'};color:${isToday ? '#2563eb' : '#333'};">${day}</div>
+      ${daySchedule.slice(0,2).map(s => `<div style="font-size:10px;background:#22c55e;color:white;padding:2px 4px;border-radius:3px;margin-top:2px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">${s.job_number}</div>`).join('')}
+      ${daySchedule.length > 2 ? `<div style="font-size:10px;color:#666;">+${daySchedule.length-2} more</div>` : ''}
+    </div>`;
+  }
+  
+  calHtml += '</div>';
+  calHtml += '<button onclick="openScheduleModal()" style="margin:15px;padding:15px 30px;background:#22c55e;color:white;border:none;border-radius:8px;font-size:16px;cursor:pointer;">+ Schedule Job</button>';
+  
+  document.getElementById('calendar-view').innerHTML = '<h3 style="padding:15px;">Job Schedule</h3>' + calHtml;
+}
+
+function changeMonth(dir) {
+  currentMonth.setMonth(currentMonth.getMonth() + dir);
+  renderCalendar();
+}
+
+function openDayView(dateStr) {
+  const daySchedule = schedule.filter(s => s.scheduled_date && s.scheduled_date.split('T')[0] === dateStr);
+  const dateObj = new Date(dateStr + 'T12:00:00');
+  const formatted = dateObj.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  
+  const jobsHtml = daySchedule.length > 0 ? daySchedule.map(s => `
+    <div style="background:white;border-left:4px solid #22c55e;padding:15px;margin:10px 0;border-radius:8px;box-shadow:0 2px 4px rgba(0,0,0,0.1);">
+      <div style="font-weight:bold;font-size:16px;">#${s.job_number} - ${s.job_name}</div>
+      <div style="color:#666;margin:5px 0;">📍 ${s.location || 'No location'}</div>
+      <div style="color:#666;">👷 ${s.crew_lead_name || 'No crew lead assigned'}</div>
+      ${s.notes ? `<div style="margin-top:8px;padding:8px;background:#f3f4f6;border-radius:6px;">${s.notes}</div>` : ''}
+    </div>
+  `).join('') : '<p style="color:#666;">No jobs scheduled for this day.</p>';
+  
+  const modal = document.createElement('div'); modal.id='day-modal'; modal.className='modal'; modal.style.display='flex';
+  modal.innerHTML = `<div class="modal-content" style="max-width:500px;">
+    <div class="modal-header"><h2>${formatted}</h2><button onclick="document.getElementById('day-modal').remove()" class="icon-btn">✕</button></div>
+    <div class="modal-body">${jobsHtml}<button onclick="document.getElementById('day-modal').remove();openScheduleModal('${dateStr}')" style="width:100%;margin-top:15px;padding:12px;background:#2563eb;color:white;border:none;border-radius:8px;font-size:16px;cursor:pointer;">+ Add Job to This Day</button></div>
+  </div>`;
+  document.body.appendChild(modal);
+}
+
+function openScheduleModal(presetDate) {
+  const jobOpts = jobs.map(j=>`<option value="${j.id}">#${j.job_number} - ${j.job_name}</option>`).join('');
+  const workerOpts = crewLeads.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+  const dateVal = presetDate || new Date().toISOString().split('T')[0];
+  
+  const modal = document.createElement('div'); modal.id='schedule-modal'; modal.className='modal'; modal.style.display='flex';
+  modal.innerHTML = `<div class="modal-content"><div class="modal-header"><h2>Schedule Job</h2><button onclick="document.getElementById('schedule-modal').remove()" class="icon-btn">✕</button></div>
+    <div class="modal-body">
+      <div class="input-group"><label>Date *</label><input type="date" id="schedule-date" value="${dateVal}"></div>
+      <div class="input-group"><label>Job *</label><select id="schedule-job" style="width:100%;padding:12px;border:1px solid #ddd;border-radius:8px;"><option value="">Select Job</option>${jobOpts}</select></div>
+      <div class="input-group"><label>Crew Lead</label><select id="schedule-crew" style="width:100%;padding:12px;border:1px solid #ddd;border-radius:8px;"><option value="">Select Crew Lead</option>${workerOpts}</select></div>
+      <div class="input-group"><label>Notes</label><textarea id="schedule-notes" rows="3" style="width:100%;padding:12px;border:1px solid #ddd;border-radius:8px;box-sizing:border-box;" placeholder="Any special instructions..."></textarea></div>
+    </div>
+    <div class="modal-footer"><button onclick="document.getElementById('schedule-modal').remove()" class="btn btn-secondary">Cancel</button><button onclick="saveSchedule()" class="btn btn-primary">Schedule</button></div></div>`;
+  document.body.appendChild(modal);
+}
+
+async function saveSchedule() {
+  const data = { job_id: document.getElementById('schedule-job').value, scheduled_date: document.getElementById('schedule-date').value, crew_lead_id: document.getElementById('schedule-crew').value || null, notes: document.getElementById('schedule-notes').value.trim() };
+  if(!data.job_id || !data.scheduled_date) { alert('Job and Date are required!'); return; }
+  const res = await fetch(API+'/schedule', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data) });
+  if(res.ok) { document.getElementById('schedule-modal').remove(); if(document.getElementById('day-modal')) document.getElementById('day-modal').remove(); await loadSchedule(); renderCalendar(); alert('Job scheduled!'); }
+}
+
+// Update showView to include calendar
+const oldShowView = showView;
+showView = async function(view) {
+  if(view === 'calendar') {
+    await loadSchedule();
+    document.querySelectorAll('.view').forEach(v=>v.style.display='none');
+    document.querySelectorAll('.menu-item').forEach(m=>m.classList.remove('active'));
+    document.getElementById('calendar-view').style.display='block';
+    closeMenu();
+    document.getElementById('page-title').textContent = 'Schedule';
+    renderCalendar();
+  } else {
+    oldShowView(view);
+  }
+};
+</script>
+<script>
+function addNote(text) {
+  const notes = document.getElementById('record-notes');
+  if(notes) {
+    notes.value = notes.value ? notes.value + ', ' + text : text;
+  }
+}
+</script>
+<script>
+// Override openDailyModal with quick-select buttons
+openDailyModal = function() {
+  const jobOpts = jobs.map(j=>`<option value="${j.id}">#${j.job_number} - ${j.job_name}</option>`).join('');
+  const workerOpts = crewLeads.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+  const modal = document.createElement('div'); modal.id='daily-modal'; modal.className='modal'; modal.style.display='flex';
+  modal.innerHTML = `<div class="modal-content"><div class="modal-header"><h2>Add Daily Record</h2><button onclick="document.getElementById('daily-modal').remove()" class="icon-btn">✕</button></div>
+    <div class="modal-body">
+      <div class="input-group"><label>Date *</label><input type="date" id="record-date" value="${new Date().toISOString().split('T')[0]}"></div>
+      <div class="input-group"><label>Job *</label><select id="record-job" style="width:100%;padding:12px;border:1px solid #ddd;border-radius:8px;"><option value="">Select Job</option>${jobOpts}</select></div>
+      <div class="input-group"><label>Foreman</label><select id="record-foreman" style="width:100%;padding:12px;border:1px solid #ddd;border-radius:8px;"><option value="">Select Foreman</option>${workerOpts}</select></div>
+      <div class="input-group"><label>Quick Add:</label>
+        <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:5px;">
+          <button type="button" onclick="addNote('Poured footer')" style="padding:8px 12px;background:#e5e7eb;border:none;border-radius:6px;font-size:14px;cursor:pointer;">Poured footer</button>
+          <button type="button" onclick="addNote('Set forms')" style="padding:8px 12px;background:#e5e7eb;border:none;border-radius:6px;font-size:14px;cursor:pointer;">Set forms</button>
+          <button type="button" onclick="addNote('Finished slab')" style="padding:8px 12px;background:#e5e7eb;border:none;border-radius:6px;font-size:14px;cursor:pointer;">Finished slab</button>
+          <button type="button" onclick="addNote('Curb & gutter')" style="padding:8px 12px;background:#e5e7eb;border:none;border-radius:6px;font-size:14px;cursor:pointer;">Curb & gutter</button>
+          <button type="button" onclick="addNote('Flatwork')" style="padding:8px 12px;background:#e5e7eb;border:none;border-radius:6px;font-size:14px;cursor:pointer;">Flatwork</button>
+          <button type="button" onclick="addNote('Sidewalk')" style="padding:8px 12px;background:#e5e7eb;border:none;border-radius:6px;font-size:14px;cursor:pointer;">Sidewalk</button>
+          <button type="button" onclick="addNote('Tear out')" style="padding:8px 12px;background:#e5e7eb;border:none;border-radius:6px;font-size:14px;cursor:pointer;">Tear out</button>
+          <button type="button" onclick="addNote('Prep work')" style="padding:8px 12px;background:#e5e7eb;border:none;border-radius:6px;font-size:14px;cursor:pointer;">Prep work</button>
+          <button type="button" onclick="addNote('Weather delay')" style="padding:8px 12px;background:#f97316;color:white;border:none;border-radius:6px;font-size:14px;cursor:pointer;">Weather delay</button>
+        </div>
+      </div>
+      <div class="input-group"><label>Notes *</label><textarea id="record-notes" rows="4" style="width:100%;padding:12px;border:1px solid #ddd;border-radius:8px;box-sizing:border-box;" placeholder="Tap buttons above or type here..."></textarea></div>
+    </div>
+    <div class="modal-footer"><button onclick="document.getElementById('daily-modal').remove()" class="btn btn-secondary">Cancel</button><button onclick="saveDailyRecord()" class="btn btn-primary">Save</button></div></div>`;
+  document.body.appendChild(modal);
+};
+</script>

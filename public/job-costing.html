@@ -1,0 +1,1233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Job Costing - Foreman System</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; }
+
+    /* Header */
+    .app-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; background: #1e293b; border-bottom: 1px solid #334155; }
+    .app-header h1 { font-size: 20px; font-weight: 600; color: #f8fafc; display: flex; align-items: center; gap: 10px; }
+    .header-actions { display: flex; gap: 12px; align-items: center; }
+    .icon-btn { background: #334155; border: none; color: #94a3b8; font-size: 18px; cursor: pointer; padding: 10px 12px; border-radius: 8px; transition: all 0.2s; text-decoration: none; }
+    .icon-btn:hover { background: #475569; color: #f8fafc; }
+
+    /* Main Layout */
+    .main-content { padding: 24px; max-width: 1400px; margin: 0 auto; }
+
+    /* Stats Row */
+    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+    .stat-card { background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border: 1px solid #334155; border-radius: 12px; padding: 20px; }
+    .stat-label { font-size: 12px; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+    .stat-value { font-size: 28px; font-weight: 700; color: #f8fafc; }
+    .stat-value.income { color: #22c55e; }
+    .stat-value.cost { color: #f59e0b; }
+    .stat-value.profit { color: #3b82f6; }
+    .stat-value.negative { color: #ef4444; }
+    .stat-change { font-size: 12px; margin-top: 8px; display: flex; align-items: center; gap: 4px; }
+    .stat-change.positive { color: #22c55e; }
+    .stat-change.negative { color: #ef4444; }
+
+    /* Search & Filters */
+    .filters-bar { display: flex; gap: 12px; margin-bottom: 24px; align-items: center; flex-wrap: wrap; }
+    .search-box { flex: 1; max-width: 400px; position: relative; }
+    .search-box input { width: 100%; padding: 12px 16px 12px 44px; background: #1e293b; border: 1px solid #334155; border-radius: 10px; color: #f8fafc; font-size: 14px; }
+    .search-box input::placeholder { color: #64748b; }
+    .search-box input:focus { outline: none; border-color: #3b82f6; }
+    .search-icon { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); font-size: 14px; color: #64748b; }
+    .filter-btn { padding: 12px 20px; background: #1e293b; border: 1px solid #334155; border-radius: 10px; color: #94a3b8; font-size: 14px; cursor: pointer; transition: all 0.2s; }
+    .filter-btn:hover, .filter-btn.active { background: #334155; color: #f8fafc; border-color: #475569; }
+    .btn { padding: 12px 20px; border: none; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 8px; text-decoration: none; }
+    .btn-primary { background: #3b82f6; color: white; }
+    .btn-primary:hover { background: #2563eb; }
+    .btn-success { background: #22c55e; color: white; }
+    .btn-secondary { background: #334155; color: #e2e8f0; }
+
+    /* Job Cards */
+    .jobs-list { display: flex; flex-direction: column; gap: 12px; }
+
+    .job-card { background: #1e293b; border: 1px solid #334155; border-radius: 16px; overflow: hidden; transition: all 0.3s; }
+    .job-card:hover { border-color: #475569; transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,0,0,0.3); }
+    .job-card.expanded { border-color: #3b82f6; }
+
+    /* Job Card Header */
+    .job-header { display: grid; grid-template-columns: auto 1fr auto auto auto auto auto; gap: 20px; align-items: center; padding: 20px 24px; cursor: pointer; }
+    .job-header:hover { background: #262f3d; }
+
+    /* Health Indicator */
+    .health-indicator { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; box-shadow: 0 0 8px currentColor; }
+    .health-indicator.healthy { background: #22c55e; color: #22c55e; }
+    .health-indicator.warning { background: #f59e0b; color: #f59e0b; }
+    .health-indicator.critical { background: #ef4444; color: #ef4444; }
+
+    .job-info { min-width: 0; }
+    .job-title { font-size: 16px; font-weight: 600; color: #f8fafc; display: flex; align-items: center; gap: 10px; }
+    .job-number { color: #3b82f6; font-weight: 700; }
+    .job-meta { font-size: 13px; color: #64748b; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    /* Metric Columns */
+    .metric-col { text-align: right; min-width: 100px; }
+    .metric-label { font-size: 10px; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+    .metric-value { font-size: 16px; font-weight: 700; }
+    .metric-value.income { color: #22c55e; }
+    .metric-value.cost { color: #f59e0b; }
+    .metric-value.profit { color: #3b82f6; }
+    .metric-value.negative { color: #ef4444; }
+
+    /* Progress Bar */
+    .progress-col { min-width: 120px; }
+    .progress-bar { height: 8px; background: #334155; border-radius: 4px; overflow: hidden; margin-top: 6px; }
+    .progress-fill { height: 100%; border-radius: 4px; transition: width 0.3s; }
+    .progress-fill.good { background: linear-gradient(90deg, #22c55e, #16a34a); }
+    .progress-fill.warning { background: linear-gradient(90deg, #f59e0b, #d97706); }
+    .progress-fill.danger { background: linear-gradient(90deg, #ef4444, #dc2626); }
+
+    /* Expand Arrow */
+    .expand-arrow { font-size: 20px; color: #64748b; transition: transform 0.3s; width: 32px; text-align: center; }
+    .job-card.expanded .expand-arrow { transform: rotate(180deg); color: #3b82f6; }
+
+    /* Expanded Content */
+    .job-expanded { display: none; padding: 0 24px 24px; }
+    .job-card.expanded .job-expanded { display: block; }
+
+    /* Contract & Invoice Row */
+    .finance-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
+    .finance-card { background: #0f172a; border: 1px solid #334155; border-radius: 12px; padding: 20px; }
+    .finance-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .finance-title { font-size: 12px; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; }
+    .finance-amount { font-size: 28px; font-weight: 700; }
+    .finance-amount.contract { color: #f8fafc; }
+    .finance-amount.invoiced { color: #22c55e; }
+    .finance-progress { height: 10px; background: #334155; border-radius: 5px; overflow: hidden; margin-top: 12px; }
+    .finance-progress-fill { height: 100%; background: linear-gradient(90deg, #22c55e, #16a34a); border-radius: 5px; }
+    .finance-percent { font-size: 13px; color: #94a3b8; margin-top: 8px; }
+
+    /* Cost Breakdown Table */
+    .breakdown-section { margin-bottom: 24px; }
+    .breakdown-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .breakdown-title { font-size: 14px; font-weight: 600; color: #f8fafc; display: flex; align-items: center; gap: 8px; }
+
+    .breakdown-table { width: 100%; border-collapse: collapse; }
+    .breakdown-table th { text-align: left; font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; padding: 12px 16px; border-bottom: 1px solid #334155; }
+    .breakdown-table th.number { text-align: right; }
+    .breakdown-table td { padding: 14px 16px; border-bottom: 1px solid #1e293b; font-size: 14px; }
+    .breakdown-table td.number { text-align: right; font-family: "SF Mono", Monaco, monospace; font-weight: 600; }
+    .breakdown-table tr:hover { background: #262f3d; }
+    .breakdown-table .category-icon { margin-right: 8px; }
+
+    .variance { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 6px; font-size: 13px; font-weight: 600; }
+    .variance.positive { background: rgba(34, 197, 94, 0.15); color: #22c55e; }
+    .variance.negative { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
+    .variance.neutral { background: rgba(148, 163, 184, 0.15); color: #94a3b8; }
+
+    /* Gauge Bar */
+    .gauge-cell { min-width: 100px; }
+    .gauge-bar { height: 6px; background: #334155; border-radius: 3px; overflow: hidden; }
+    .gauge-fill { height: 100%; border-radius: 3px; }
+
+    /* Profit Footer */
+    .profit-footer { display: grid; grid-template-columns: 1fr auto; gap: 24px; align-items: center; background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border: 1px solid #334155; border-radius: 12px; padding: 20px 24px; }
+    .profit-info { }
+    .profit-label { font-size: 12px; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+    .profit-amount { font-size: 32px; font-weight: 700; }
+    .profit-amount.positive { color: #22c55e; }
+    .profit-amount.negative { color: #ef4444; }
+    .profit-margin { font-size: 14px; color: #94a3b8; margin-top: 4px; }
+    .profit-margin span { font-weight: 600; }
+
+    /* Pie Chart */
+    .pie-chart-container { display: flex; align-items: center; gap: 20px; }
+    .pie-chart { width: 100px; height: 100px; border-radius: 50%; position: relative; }
+    .pie-legend { display: flex; flex-direction: column; gap: 6px; }
+    .legend-item { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #94a3b8; }
+    .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+    .legend-dot.concrete { background: #3b82f6; }
+    .legend-dot.labor { background: #22c55e; }
+    .legend-dot.other { background: #f59e0b; }
+
+    /* Quick Actions */
+    .quick-actions { display: flex; gap: 12px; margin-top: 20px; padding-top: 20px; border-top: 1px solid #334155; flex-wrap: wrap; }
+    .action-btn { padding: 10px 16px; background: #334155; border: 1px solid #475569; border-radius: 8px; color: #e2e8f0; font-size: 13px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 6px; }
+    .action-btn:hover { background: #475569; border-color: #64748b; }
+    .action-btn.primary { background: #3b82f6; border-color: #3b82f6; }
+    .action-btn.primary:hover { background: #2563eb; }
+    .action-btn.success { background: #22c55e; border-color: #22c55e; }
+    .action-btn.success:hover { background: #16a34a; }
+
+    /* Tooltips */
+    .help-icon { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; background: #475569; border-radius: 50%; font-size: 11px; cursor: help; margin-left: 6px; color: #94a3b8; }
+    .help-icon:hover { background: #64748b; color: #f8fafc; }
+    .tooltip-text { display: none; position: absolute; background: #0f172a; border: 1px solid #475569; padding: 12px 16px; border-radius: 8px; font-size: 13px; color: #e2e8f0; max-width: 280px; z-index: 100; box-shadow: 0 4px 12px rgba(0,0,0,0.4); }
+    .help-icon:hover + .tooltip-text, .tooltip-text:hover { display: block; }
+
+    /* Edit Contract Modal */
+    .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 1000; justify-content: center; align-items: center; }
+    .modal-overlay.active { display: flex; }
+    .modal-content { background: #1e293b; border: 1px solid #334155; border-radius: 16px; width: 100%; max-width: 500px; max-height: 90vh; overflow: auto; }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 20px 24px; border-bottom: 1px solid #334155; }
+    .modal-header h2 { font-size: 18px; color: #f8fafc; display: flex; align-items: center; gap: 10px; }
+    .modal-close { background: none; border: none; color: #64748b; font-size: 24px; cursor: pointer; padding: 4px; }
+    .modal-close:hover { color: #f8fafc; }
+    .modal-body { padding: 24px; }
+    .form-group { margin-bottom: 20px; }
+    .form-group label { display: block; font-size: 13px; color: #94a3b8; margin-bottom: 8px; font-weight: 500; }
+    .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 12px 16px; background: #0f172a; border: 1px solid #334155; border-radius: 8px; color: #f8fafc; font-size: 15px; }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: #3b82f6; }
+    .form-group .help-text { font-size: 12px; color: #64748b; margin-top: 6px; }
+    .modal-footer { display: flex; gap: 12px; padding: 20px 24px; border-top: 1px solid #334155; justify-content: flex-end; }
+
+    /* Info Banner */
+    .info-banner { background: linear-gradient(135deg, #1e3a5f 0%, #1e293b 100%); border: 1px solid #3b82f6; border-radius: 12px; padding: 16px 20px; margin-bottom: 24px; display: flex; align-items: center; gap: 16px; }
+    .info-banner .icon { font-size: 28px; }
+    .info-banner .text { flex: 1; }
+    .info-banner .title { font-size: 15px; font-weight: 600; color: #f8fafc; margin-bottom: 4px; }
+    .info-banner .desc { font-size: 13px; color: #94a3b8; }
+    .info-banner .btn { flex-shrink: 0; }
+
+    /* Section Headers with Help */
+    .section-header { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; position: relative; }
+    .section-title { font-size: 14px; font-weight: 600; color: #f8fafc; display: flex; align-items: center; gap: 8px; }
+
+    /* Editable Value */
+    .editable-value { display: flex; align-items: center; gap: 8px; }
+    .edit-btn { background: none; border: none; color: #64748b; cursor: pointer; font-size: 14px; padding: 4px; }
+    .edit-btn:hover { color: #3b82f6; }
+
+    /* Empty State */
+    .empty-state { text-align: center; padding: 60px 20px; color: #64748b; }
+    .empty-state .icon { font-size: 48px; margin-bottom: 16px; opacity: 0.5; }
+
+    /* QB Linked Badge */
+    .qb-badge { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; background: linear-gradient(135deg, #2ca01c 0%, #1e7e15 100%); color: white; margin-left: 10px; }
+    .qb-badge::before { content: ''; width: 8px; height: 8px; background: white; border-radius: 50%; opacity: 0.8; }
+    .not-linked-badge { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; background: #334155; color: #94a3b8; margin-left: 10px; }
+
+    /* Loading */
+    .loading { text-align: center; padding: 40px; }
+    .spinner { width: 40px; height: 40px; border: 3px solid #334155; border-top-color: #3b82f6; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 16px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Production Progress Section */
+    .production-section { margin-top: 24px; padding: 20px; background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border-radius: 12px; border: 1px solid #334155; }
+    .production-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .production-title { font-size: 16px; font-weight: 600; color: #f8fafc; display: flex; align-items: center; gap: 8px; }
+    .production-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px; }
+    .production-stat { background: #0f172a; padding: 12px; border-radius: 8px; text-align: center; }
+    .production-stat-value { font-size: 24px; font-weight: 700; color: #3b82f6; }
+    .production-stat-label { font-size: 11px; color: #94a3b8; margin-top: 4px; }
+    .production-items { display: flex; flex-direction: column; gap: 10px; }
+    .production-item { display: flex; align-items: center; gap: 12px; padding: 12px; background: #0f172a; border-radius: 8px; }
+    .production-item-name { flex: 1; font-size: 14px; color: #e2e8f0; }
+    .production-item-progress { width: 120px; }
+    .production-bar { height: 8px; background: #334155; border-radius: 4px; overflow: hidden; }
+    .production-bar-fill { height: 100%; border-radius: 4px; transition: width 0.3s; }
+    .production-bar-fill.complete { background: linear-gradient(90deg, #22c55e, #16a34a); }
+    .production-bar-fill.in-progress { background: linear-gradient(90deg, #3b82f6, #2563eb); }
+    .production-bar-fill.behind { background: linear-gradient(90deg, #f59e0b, #d97706); }
+    .production-item-stats { text-align: right; min-width: 100px; }
+    .production-item-qty { font-size: 14px; font-weight: 600; color: #f8fafc; }
+    .production-item-pct { font-size: 12px; color: #94a3b8; }
+    .production-empty { text-align: center; padding: 20px; color: #64748b; font-size: 14px; }
+
+    /* Responsive */
+    @media (max-width: 1200px) {
+      .stats-row { grid-template-columns: repeat(2, 1fr); }
+      .job-header { grid-template-columns: auto 1fr auto auto auto; }
+      .metric-col:nth-child(4) { display: none; }
+    }
+    @media (max-width: 768px) {
+      .stats-row { grid-template-columns: 1fr; }
+      .job-header { grid-template-columns: auto 1fr auto; gap: 12px; padding: 16px; }
+      .metric-col { display: none; }
+      .finance-row { grid-template-columns: 1fr; }
+      .filters-bar { flex-wrap: wrap; }
+      .production-summary { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header class="app-header">
+    <div style="display:flex;align-items:center;gap:16px;">
+      <a href="/index.html" class="back-btn" style="display:flex;align-items:center;gap:6px;color:#94a3b8;text-decoration:none;font-size:14px;padding:8px 12px;background:rgba(255,255,255,0.05);border-radius:8px;transition:all 0.2s;">
+        <span style="font-size:18px;">←</span> Back
+      </a>
+      <h1>
+        <span style="font-size:24px;">📊</span>
+        Job Costing Dashboard
+      </h1>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-secondary" onclick="openAddCostModal()">➕ Add Cost</button>
+      <a href="/stack.html" class="btn btn-secondary">📐 Import STACK</a>
+      <a href="/quickbooks.html" class="btn btn-success" style="font-weight:700;">🔄 Sync QuickBooks</a>
+    </div>
+  </header>
+
+  <div class="main-content">
+    <!-- Info Banner for Admin -->
+    <div class="info-banner">
+      <div class="icon">💡</div>
+      <div class="text">
+        <div class="title">Welcome to Job Costing</div>
+        <div class="desc">Click on any job to see details, edit contract values, and add costs. Use "Sync QuickBooks" to import invoices and expenses automatically.</div>
+      </div>
+      <a href="/quickbooks.html" class="btn btn-success">🔄 Sync QuickBooks Now</a>
+    </div>
+
+    <!-- Summary Stats -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-label" style="position:relative;">
+          Total Contract Value
+          <span class="help-icon" title="What you're billing the customer">?</span>
+        </div>
+        <div class="stat-value income" id="totalIncome">$0</div>
+        <div class="stat-change positive" id="jobCount">0 active jobs</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label" style="position:relative;">
+          Total Costs
+          <span class="help-icon" title="Materials + Labor + Overhead expenses">?</span>
+        </div>
+        <div class="stat-value cost" id="totalCosts">$0</div>
+        <div class="stat-change" id="costBreakdown">Loading...</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label" style="position:relative;">
+          Total Profit
+          <span class="help-icon" title="Contract Value minus Total Costs">?</span>
+        </div>
+        <div class="stat-value profit" id="totalProfit">$0</div>
+        <div class="stat-change" id="avgMargin">Avg margin: --</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label" style="position:relative;">
+          Jobs Needing Attention
+          <span class="help-icon" title="Jobs with low margin or over budget">?</span>
+        </div>
+        <div class="stat-value" id="warningCount" style="color:#f59e0b;">0</div>
+        <div class="stat-change" id="warningLabel">All jobs healthy</div>
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filters-bar">
+      <div class="search-box">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="searchInput" placeholder="Search jobs..." onkeyup="filterJobs()">
+      </div>
+      <button class="filter-btn active" onclick="setFilter('all', this)">All Jobs</button>
+      <button class="filter-btn" onclick="setFilter('active', this)">Active</button>
+      <button class="filter-btn" onclick="setFilter('warning', this)">⚠️ Needs Attention</button>
+      <button class="filter-btn" onclick="setFilter('profitable', this)">✅ Profitable</button>
+    </div>
+
+    <!-- Jobs List -->
+    <div id="jobsList" class="jobs-list">
+      <div class="loading">
+        <div class="spinner"></div>
+        <p>Loading job costing data...</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    var API_BASE = '/api';
+    var allJobs = [];
+    var jobDetails = {};
+    var currentFilter = 'all';
+
+    async function loadJobs() {
+      try {
+        var res = await fetch(API_BASE + '/jobs');
+        allJobs = await res.json();
+
+        // Load details for each job
+        var promises = allJobs.slice(0, 20).map(function(job) {
+          return loadJobDetail(job.id);
+        });
+        await Promise.all(promises);
+
+        renderJobs();
+        updateSummaryStats();
+      } catch (e) {
+        console.error('Failed to load jobs:', e);
+        document.getElementById('jobsList').innerHTML = '<div class="empty-state"><div class="icon">⚠️</div><p>Failed to load jobs</p></div>';
+      }
+    }
+
+    async function loadJobDetail(jobId) {
+      try {
+        var res = await fetch(API_BASE + '/job-costing-detail/' + jobId);
+        var data = await res.json();
+        jobDetails[jobId] = data;
+        return data;
+      } catch (e) {
+        console.error('Failed to load job detail:', jobId, e);
+        return null;
+      }
+    }
+
+    function getJobHealth(detail) {
+      if (!detail || !detail.summary) return 'healthy';
+
+      var s = detail.summary;
+      var margin = s.income > 0 ? (s.profit / s.income) * 100 : 0;
+      var costRatio = s.income > 0 ? (s.total_cost / s.income) * 100 : 0;
+
+      if (margin < 0 || costRatio > 100) return 'critical';
+      if (margin < 15 || costRatio > 85) return 'warning';
+      return 'healthy';
+    }
+
+    function renderJobs() {
+      var filtered = filterJobList();
+      var container = document.getElementById('jobsList');
+
+      if (filtered.length === 0) {
+        container.innerHTML = '<div class="empty-state"><div class="icon">📋</div><p>No jobs match your filter</p></div>';
+        return;
+      }
+
+      var html = '';
+      filtered.forEach(function(job) {
+        var detail = jobDetails[job.id];
+        var s = detail ? detail.summary : { income: 0, total_cost: 0, profit: 0, margin: 0, labor_cost: 0, concrete_cost: 0, other_costs: 0, invoiced: 0 };
+
+        var health = getJobHealth(detail);
+        var invoicePercent = s.income > 0 ? Math.min(100, (s.invoiced / s.income) * 100) : 0;
+        var costPercent = s.income > 0 ? Math.min(100, (s.total_cost / s.income) * 100) : 0;
+        var progressClass = costPercent > 90 ? 'danger' : costPercent > 75 ? 'warning' : 'good';
+
+        var qbLinked = job.qb_estimate_id || job.quickbooks_id;
+        var qbBadge = qbLinked ? '<span class="qb-badge">QB Linked</span>' : '';
+
+        html += '<div class="job-card" id="job-' + job.id + '" onclick="toggleJob(' + job.id + ')">' +
+          '<div class="job-header">' +
+            '<div class="health-indicator ' + health + '" title="' + health + '"></div>' +
+            '<div class="job-info">' +
+              '<div class="job-title"><span class="job-number">#' + job.job_number + '</span> ' + escapeHtml(job.name || job.job_name || 'Unnamed') + qbBadge + '</div>' +
+              '<div class="job-meta">' + escapeHtml(job.customer_name || '') + (job.address ? ' • ' + escapeHtml(job.address) : '') + '</div>' +
+            '</div>' +
+            '<div class="metric-col">' +
+              '<div class="metric-label">Contract</div>' +
+              '<div class="metric-value income">' + formatCurrency(s.income) + '</div>' +
+            '</div>' +
+            '<div class="metric-col">' +
+              '<div class="metric-label">Costs</div>' +
+              '<div class="metric-value cost">' + formatCurrency(s.total_cost) + '</div>' +
+            '</div>' +
+            '<div class="metric-col">' +
+              '<div class="metric-label">Profit</div>' +
+              '<div class="metric-value ' + (s.profit >= 0 ? 'profit' : 'negative') + '">' + formatCurrency(s.profit) + '</div>' +
+            '</div>' +
+            '<div class="progress-col">' +
+              '<div class="metric-label">Budget Used</div>' +
+              '<div class="progress-bar"><div class="progress-fill ' + progressClass + '" style="width:' + costPercent + '%"></div></div>' +
+            '</div>' +
+            '<div class="expand-arrow">▼</div>' +
+          '</div>' +
+          '<div class="job-expanded">' + renderExpandedContent(job, detail) + '</div>' +
+        '</div>';
+      });
+
+      container.innerHTML = html;
+    }
+
+    function renderExpandedContent(job, detail) {
+      if (!detail) return '<div class="loading"><p>Loading details...</p></div>';
+
+      var s = detail.summary;
+      var invoicePercent = s.income > 0 ? Math.min(100, (s.invoiced / s.income) * 100) : 0;
+
+      // Calculate budget vs actual for each category
+      var estimatedTotal = s.income * 0.7 || 1;
+
+      var concretePercent = estimatedTotal > 0 ? Math.min(100, (s.concrete_cost / (estimatedTotal * 0.5)) * 100) : 0;
+      var laborPercent = estimatedTotal > 0 ? Math.min(100, (s.labor_cost / (estimatedTotal * 0.35)) * 100) : 0;
+      var otherPercent = estimatedTotal > 0 ? Math.min(100, (s.other_costs / (estimatedTotal * 0.15)) * 100) : 0;
+
+      // Pie chart calculations
+      var totalCost = s.total_cost || 1;
+      var concreteAngle = (s.concrete_cost / totalCost) * 360;
+      var laborAngle = (s.labor_cost / totalCost) * 360;
+      var pieGradient = 'conic-gradient(' +
+        '#3b82f6 0deg ' + concreteAngle + 'deg, ' +
+        '#22c55e ' + concreteAngle + 'deg ' + (concreteAngle + laborAngle) + 'deg, ' +
+        '#f59e0b ' + (concreteAngle + laborAngle) + 'deg 360deg)';
+
+      var html = '';
+
+      // Edit Job Button at top
+      html += '<div style="display:flex;gap:12px;margin-bottom:20px;">' +
+        '<button class="action-btn primary" onclick="event.stopPropagation();openEditJobModal(' + job.id + ')">✏️ Edit Job Details</button>' +
+        '<button class="action-btn success" onclick="event.stopPropagation();openAddCostModal(' + job.id + ')">➕ Add Cost</button>' +
+        '<button class="action-btn" onclick="event.stopPropagation();openChangeOrderModal(' + job.id + ')">📝 Add Change Order</button>' +
+      '</div>';
+
+      // Finance Row: Contract & Invoiced
+      html += '<div class="finance-row">' +
+        '<div class="finance-card">' +
+          '<div class="finance-header">' +
+            '<span class="finance-title">💰 Contract Value (What You Bill)</span>' +
+            '<button class="edit-btn" onclick="event.stopPropagation();openEditJobModal(' + job.id + ')" title="Edit contract value">✏️</button>' +
+          '</div>' +
+          '<div class="finance-amount contract">' + formatCurrency(s.income) + '</div>' +
+          '<div style="font-size:12px;color:#64748b;margin-top:8px;">This is the total amount you will bill the customer for this job</div>' +
+        '</div>' +
+        '<div class="finance-card">' +
+          '<div class="finance-header">' +
+            '<span class="finance-title">📄 Invoiced (Billed So Far)</span>' +
+            '<span style="color:#22c55e;font-weight:600;">' + invoicePercent.toFixed(0) + '%</span>' +
+          '</div>' +
+          '<div class="finance-amount invoiced">' + formatCurrency(s.invoiced) + '</div>' +
+          '<div class="finance-progress"><div class="finance-progress-fill" style="width:' + invoicePercent + '%"></div></div>' +
+          '<div class="finance-percent">' + formatCurrency(s.income - s.invoiced) + ' remaining to invoice</div>' +
+        '</div>' +
+      '</div>';
+
+      // Cost Breakdown Table
+      html += '<div class="breakdown-section">' +
+        '<div class="breakdown-header">' +
+          '<div class="breakdown-title">📊 Cost Breakdown</div>' +
+        '</div>' +
+        '<table class="breakdown-table">' +
+          '<thead><tr>' +
+            '<th>Category</th>' +
+            '<th class="number">Budget</th>' +
+            '<th class="number">Actual</th>' +
+            '<th class="number">Variance</th>' +
+            '<th style="width:120px;">Progress</th>' +
+          '</tr></thead>' +
+          '<tbody>';
+
+      // Concrete/Materials
+      var concreteBudget = estimatedTotal * 0.5;
+      var concreteVariance = concreteBudget - s.concrete_cost;
+      html += '<tr>' +
+        '<td><span class="category-icon">🧱</span>Concrete / Materials</td>' +
+        '<td class="number">' + formatCurrency(concreteBudget) + '</td>' +
+        '<td class="number">' + formatCurrency(s.concrete_cost) + '</td>' +
+        '<td class="number"><span class="variance ' + (concreteVariance >= 0 ? 'positive' : 'negative') + '">' +
+          (concreteVariance >= 0 ? '+' : '') + formatCurrency(concreteVariance) + '</span></td>' +
+        '<td><div class="gauge-cell"><div class="gauge-bar"><div class="gauge-fill" style="width:' + Math.min(100, concretePercent) + '%;background:' + (concretePercent > 100 ? '#ef4444' : '#3b82f6') + ';"></div></div></div></td>' +
+      '</tr>';
+
+      // Labor
+      var laborBudget = estimatedTotal * 0.35;
+      var laborVariance = laborBudget - s.labor_cost;
+      html += '<tr>' +
+        '<td><span class="category-icon">👷</span>Labor (' + (s.labor_hours || 0).toFixed(1) + ' hrs)</td>' +
+        '<td class="number">' + formatCurrency(laborBudget) + '</td>' +
+        '<td class="number">' + formatCurrency(s.labor_cost) + '</td>' +
+        '<td class="number"><span class="variance ' + (laborVariance >= 0 ? 'positive' : 'negative') + '">' +
+          (laborVariance >= 0 ? '+' : '') + formatCurrency(laborVariance) + '</span></td>' +
+        '<td><div class="gauge-cell"><div class="gauge-bar"><div class="gauge-fill" style="width:' + Math.min(100, laborPercent) + '%;background:' + (laborPercent > 100 ? '#ef4444' : '#22c55e') + ';"></div></div></div></td>' +
+      '</tr>';
+
+      // Other/Overhead
+      var otherBudget = estimatedTotal * 0.15;
+      var otherVariance = otherBudget - s.other_costs;
+      html += '<tr>' +
+        '<td><span class="category-icon">📋</span>Overhead / Other</td>' +
+        '<td class="number">' + formatCurrency(otherBudget) + '</td>' +
+        '<td class="number">' + formatCurrency(s.other_costs) + '</td>' +
+        '<td class="number"><span class="variance ' + (otherVariance >= 0 ? 'positive' : 'negative') + '">' +
+          (otherVariance >= 0 ? '+' : '') + formatCurrency(otherVariance) + '</span></td>' +
+        '<td><div class="gauge-cell"><div class="gauge-bar"><div class="gauge-fill" style="width:' + Math.min(100, otherPercent) + '%;background:' + (otherPercent > 100 ? '#ef4444' : '#f59e0b') + ';"></div></div></div></td>' +
+      '</tr>';
+
+      // Totals row
+      var totalBudget = estimatedTotal;
+      var totalVariance = totalBudget - s.total_cost;
+      html += '<tr style="background:#0f172a;font-weight:600;">' +
+        '<td>Total</td>' +
+        '<td class="number">' + formatCurrency(totalBudget) + '</td>' +
+        '<td class="number">' + formatCurrency(s.total_cost) + '</td>' +
+        '<td class="number"><span class="variance ' + (totalVariance >= 0 ? 'positive' : 'negative') + '">' +
+          (totalVariance >= 0 ? '+' : '') + formatCurrency(totalVariance) + '</span></td>' +
+        '<td></td>' +
+      '</tr>';
+
+      html += '</tbody></table></div>';
+
+      // Profit Footer with Pie Chart
+      html += '<div class="profit-footer">' +
+        '<div class="profit-info">' +
+          '<div class="profit-label">Net Profit</div>' +
+          '<div class="profit-amount ' + (s.profit >= 0 ? 'positive' : 'negative') + '">' + formatCurrency(s.profit) + '</div>' +
+          '<div class="profit-margin">Margin: <span style="color:' + (parseFloat(s.margin) >= 20 ? '#22c55e' : parseFloat(s.margin) >= 10 ? '#f59e0b' : '#ef4444') + '">' + s.margin + '%</span></div>' +
+        '</div>' +
+        '<div class="pie-chart-container">' +
+          '<div class="pie-chart" style="background:' + pieGradient + ';"></div>' +
+          '<div class="pie-legend">' +
+            '<div class="legend-item"><div class="legend-dot concrete"></div>Materials ' + (totalCost > 0 ? ((s.concrete_cost / totalCost) * 100).toFixed(0) : 0) + '%</div>' +
+            '<div class="legend-item"><div class="legend-dot labor"></div>Labor ' + (totalCost > 0 ? ((s.labor_cost / totalCost) * 100).toFixed(0) : 0) + '%</div>' +
+            '<div class="legend-item"><div class="legend-dot other"></div>Other ' + (totalCost > 0 ? ((s.other_costs / totalCost) * 100).toFixed(0) : 0) + '%</div>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+
+      // Production Progress Section
+      html += '<div class="production-section" id="production-section-' + job.id + '">' +
+        '<div class="production-header">' +
+          '<div class="production-title">📊 Production Progress</div>' +
+        '</div>' +
+        '<div class="production-loading" style="text-align:center;padding:20px;color:#64748b;">Loading production data...</div>' +
+      '</div>';
+
+      // Load production data async
+      loadProductionData(job.id);
+
+      // Quick Actions
+      var qbLinkedForActions = job.qb_estimate_id || job.quickbooks_id;
+      html += '<div class="quick-actions">';
+
+      if (!qbLinkedForActions) {
+        html += '<button class="action-btn success" onclick="event.stopPropagation();openImportFromQBModal(' + job.id + ')">📥 Import from QuickBooks</button>';
+      } else {
+        html += '<button class="action-btn" onclick="event.stopPropagation();window.location.href=\'/quickbooks.html\'">📤 Sync QB Data</button>';
+      }
+
+      html += '<button class="action-btn" onclick="event.stopPropagation();window.location.href=\'/stack.html\'">📐 Import Takeoffs</button>' +
+        '<button class="action-btn" onclick="event.stopPropagation();window.location.href=\'/index.html\'">📝 Add Daily Record</button>' +
+        '<button class="action-btn" onclick="event.stopPropagation();printJobReport(' + job.id + ')">🖨️ Print Report</button>' +
+      '</div>';
+
+      return html;
+    }
+
+    // Load and render production data
+    async function loadProductionData(jobId) {
+      var section = document.getElementById('production-section-' + jobId);
+      if (!section) return;
+
+      try {
+        var response = await fetch('/api/jobs/' + jobId + '/production-summary');
+        if (!response.ok) throw new Error('Failed to load');
+        var data = await response.json();
+
+        var html = '<div class="production-header">' +
+          '<div class="production-title">📊 Production Progress</div>' +
+        '</div>';
+
+        // Summary stats
+        var totalEstimated = 0;
+        var totalCompleted = 0;
+        data.takeoffs.forEach(function(t) {
+          totalEstimated += parseFloat(t.estimated) || 0;
+          totalCompleted += parseFloat(t.completed) || 0;
+        });
+
+        html += '<div class="production-summary">' +
+          '<div class="production-stat">' +
+            '<div class="production-stat-value">' + data.total_yards.toFixed(1) + '</div>' +
+            '<div class="production-stat-label">YARDS POURED</div>' +
+          '</div>' +
+          '<div class="production-stat">' +
+            '<div class="production-stat-value">' + data.production.length + '</div>' +
+            '<div class="production-stat-label">ITEMS LOGGED</div>' +
+          '</div>' +
+          '<div class="production-stat">' +
+            '<div class="production-stat-value">' + data.takeoffs.filter(function(t) { return t.status === 'complete'; }).length + '/' + data.takeoffs.length + '</div>' +
+            '<div class="production-stat-label">TAKEOFFS COMPLETE</div>' +
+          '</div>' +
+        '</div>';
+
+        // Production items from daily records
+        if (data.production.length > 0) {
+          html += '<div style="margin-bottom:12px;font-size:13px;color:#94a3b8;font-weight:600;">FROM DAILY RECORDS</div>';
+          html += '<div class="production-items">';
+          data.production.forEach(function(item) {
+            html += '<div class="production-item">' +
+              '<span class="production-item-name">' + item.item_name + '</span>' +
+              '<span class="production-item-qty">' + parseFloat(item.total_completed).toFixed(1) + ' ' + item.unit + '</span>' +
+            '</div>';
+          });
+          html += '</div>';
+        }
+
+        // Takeoffs with progress
+        if (data.takeoffs.length > 0) {
+          html += '<div style="margin:16px 0 12px;font-size:13px;color:#94a3b8;font-weight:600;">TAKEOFF PROGRESS (Est. vs Actual)</div>';
+          html += '<div class="production-items">';
+          data.takeoffs.forEach(function(t) {
+            var estimated = parseFloat(t.estimated) || 0;
+            var completed = parseFloat(t.completed) || 0;
+            var percent = estimated > 0 ? Math.min(100, (completed / estimated) * 100) : 0;
+            var statusClass = t.status === 'complete' ? 'complete' : (percent > 0 ? 'in-progress' : 'behind');
+
+            html += '<div class="production-item">' +
+              '<span class="production-item-name">' + t.item_name + '</span>' +
+              '<div class="production-item-progress">' +
+                '<div class="production-bar"><div class="production-bar-fill ' + statusClass + '" style="width:' + percent + '%"></div></div>' +
+              '</div>' +
+              '<div class="production-item-stats">' +
+                '<div class="production-item-qty">' + completed.toFixed(1) + ' / ' + estimated.toFixed(1) + ' ' + (t.unit || '') + '</div>' +
+                '<div class="production-item-pct">' + percent.toFixed(0) + '% complete</div>' +
+              '</div>' +
+            '</div>';
+          });
+          html += '</div>';
+        }
+
+        if (data.production.length === 0 && data.takeoffs.length === 0) {
+          html += '<div class="production-empty">No production data yet. Add daily records or import takeoffs from STACK.</div>';
+        }
+
+        section.innerHTML = html;
+      } catch (e) {
+        section.innerHTML = '<div class="production-header"><div class="production-title">📊 Production Progress</div></div>' +
+          '<div class="production-empty">Could not load production data</div>';
+      }
+    }
+
+    // ========== EDIT JOB MODAL ==========
+    function openEditJobModal(jobId) {
+      var job = allJobs.find(function(j) { return j.id === jobId; });
+      var detail = jobDetails[jobId];
+      var currentContract = detail && detail.summary ? detail.summary.income : 0;
+
+      var modal = document.createElement('div');
+      modal.id = 'edit-job-modal';
+      modal.className = 'modal-overlay active';
+      modal.innerHTML = '\
+        <div class="modal-content">\
+          <div class="modal-header">\
+            <h2>✏️ Edit Job: #' + job.job_number + '</h2>\
+            <button class="modal-close" onclick="closeModal(\'edit-job-modal\')">&times;</button>\
+          </div>\
+          <div class="modal-body">\
+            <div class="form-group">\
+              <label>Job Name</label>\
+              <input type="text" id="edit-job-name" value="' + escapeHtml(job.name || job.job_name || '') + '">\
+            </div>\
+            <div class="form-group">\
+              <label>Contract Value ($)</label>\
+              <input type="number" id="edit-contract-value" value="' + currentContract + '" step="0.01" min="0">\
+              <div class="help-text">The total amount you will bill the customer for this job (before change orders)</div>\
+            </div>\
+            <div class="form-group">\
+              <label>Customer Name</label>\
+              <input type="text" id="edit-customer-name" value="' + escapeHtml(job.customer_name || job.contractor_name || '') + '">\
+            </div>\
+            <div class="form-group">\
+              <label>Job Address</label>\
+              <input type="text" id="edit-job-address" value="' + escapeHtml(job.address || job.location || '') + '">\
+            </div>\
+            <div class="form-group">\
+              <label>Status</label>\
+              <select id="edit-job-status">\
+                <option value="active"' + (job.status === 'active' ? ' selected' : '') + '>Active</option>\
+                <option value="in_progress"' + (job.status === 'in_progress' ? ' selected' : '') + '>In Progress</option>\
+                <option value="completed"' + (job.status === 'completed' ? ' selected' : '') + '>Completed</option>\
+                <option value="closed"' + (job.status === 'closed' ? ' selected' : '') + '>Closed</option>\
+              </select>\
+            </div>\
+          </div>\
+          <div class="modal-footer">\
+            <button class="btn btn-secondary" onclick="closeModal(\'edit-job-modal\')">Cancel</button>\
+            <button class="btn btn-primary" onclick="saveJobEdit(' + jobId + ')">Save Changes</button>\
+          </div>\
+        </div>';
+      document.body.appendChild(modal);
+    }
+
+    async function saveJobEdit(jobId) {
+      var data = {
+        job_name: document.getElementById('edit-job-name').value,
+        contract_value: parseFloat(document.getElementById('edit-contract-value').value) || 0,
+        customer_name: document.getElementById('edit-customer-name').value,
+        location: document.getElementById('edit-job-address').value,
+        status: document.getElementById('edit-job-status').value
+      };
+
+      try {
+        var res = await fetch(API_BASE + '/jobs/' + jobId, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        if (res.ok) {
+          closeModal('edit-job-modal');
+          // Reload job data
+          await loadJobDetail(jobId);
+          var job = allJobs.find(function(j) { return j.id === jobId; });
+          if (job) {
+            job.name = data.job_name;
+            job.job_name = data.job_name;
+            job.customer_name = data.customer_name;
+            job.location = data.location;
+            job.status = data.status;
+          }
+          renderJobs();
+          updateSummaryStats();
+          alert('Job updated successfully!');
+        } else {
+          alert('Failed to update job');
+        }
+      } catch(e) {
+        console.error('Error saving job:', e);
+        alert('Error saving job: ' + e.message);
+      }
+    }
+
+    // ========== ADD COST MODAL ==========
+    function openAddCostModal(jobId) {
+      var jobOpts = allJobs.map(function(j) {
+        var selected = jobId && j.id === jobId ? ' selected' : '';
+        return '<option value="' + j.id + '"' + selected + '>#' + j.job_number + ' - ' + escapeHtml(j.name || j.job_name || 'Unnamed') + '</option>';
+      }).join('');
+
+      var modal = document.createElement('div');
+      modal.id = 'add-cost-modal';
+      modal.className = 'modal-overlay active';
+      modal.innerHTML = '\
+        <div class="modal-content">\
+          <div class="modal-header">\
+            <h2>➕ Add Cost / Expense</h2>\
+            <button class="modal-close" onclick="closeModal(\'add-cost-modal\')">&times;</button>\
+          </div>\
+          <div class="modal-body">\
+            <div class="form-group">\
+              <label>Job</label>\
+              <select id="cost-job-id">\
+                <option value="">Select a job...</option>\
+                ' + jobOpts + '\
+              </select>\
+            </div>\
+            <div class="form-group">\
+              <label>Cost Category</label>\
+              <select id="cost-category">\
+                <option value="materials">🧱 Materials / Concrete</option>\
+                <option value="labor">👷 Labor</option>\
+                <option value="equipment">🚜 Equipment Rental</option>\
+                <option value="subcontractor">🔧 Subcontractor</option>\
+                <option value="overhead">📋 Overhead / Other</option>\
+              </select>\
+              <div class="help-text">Select what type of expense this is</div>\
+            </div>\
+            <div class="form-group">\
+              <label>Amount ($)</label>\
+              <input type="number" id="cost-amount" step="0.01" min="0" placeholder="0.00">\
+            </div>\
+            <div class="form-group">\
+              <label>Description</label>\
+              <input type="text" id="cost-description" placeholder="e.g., Concrete delivery from Geneva Rock">\
+            </div>\
+            <div class="form-group">\
+              <label>Date</label>\
+              <input type="date" id="cost-date" value="' + new Date().toISOString().split('T')[0] + '">\
+            </div>\
+            <div class="form-group">\
+              <label>Vendor / Supplier (Optional)</label>\
+              <input type="text" id="cost-vendor" placeholder="e.g., Geneva Rock, Home Depot">\
+            </div>\
+          </div>\
+          <div class="modal-footer">\
+            <button class="btn btn-secondary" onclick="closeModal(\'add-cost-modal\')">Cancel</button>\
+            <button class="btn btn-success" onclick="saveCost()">Add Cost</button>\
+          </div>\
+        </div>';
+      document.body.appendChild(modal);
+    }
+
+    async function saveCost() {
+      var jobId = document.getElementById('cost-job-id').value;
+      var category = document.getElementById('cost-category').value;
+      var amount = parseFloat(document.getElementById('cost-amount').value);
+      var description = document.getElementById('cost-description').value;
+      var date = document.getElementById('cost-date').value;
+      var vendor = document.getElementById('cost-vendor').value;
+
+      if (!jobId) { alert('Please select a job'); return; }
+      if (!amount || amount <= 0) { alert('Please enter a valid amount'); return; }
+
+      try {
+        var res = await fetch(API_BASE + '/job-costs', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            job_id: jobId,
+            category: category,
+            amount: amount,
+            description: description,
+            cost_date: date,
+            vendor: vendor
+          })
+        });
+        if (res.ok) {
+          closeModal('add-cost-modal');
+          await loadJobDetail(parseInt(jobId));
+          renderJobs();
+          updateSummaryStats();
+          alert('Cost added successfully!');
+        } else {
+          alert('Failed to add cost');
+        }
+      } catch(e) {
+        console.error('Error adding cost:', e);
+        alert('Error adding cost: ' + e.message);
+      }
+    }
+
+    // ========== CHANGE ORDER MODAL ==========
+    function openChangeOrderModal(jobId) {
+      var job = allJobs.find(function(j) { return j.id === jobId; });
+
+      var modal = document.createElement('div');
+      modal.id = 'change-order-modal';
+      modal.className = 'modal-overlay active';
+      modal.innerHTML = '\
+        <div class="modal-content">\
+          <div class="modal-header">\
+            <h2>📝 Add Change Order: #' + job.job_number + '</h2>\
+            <button class="modal-close" onclick="closeModal(\'change-order-modal\')">&times;</button>\
+          </div>\
+          <div class="modal-body">\
+            <div class="form-group">\
+              <label>Change Order Description</label>\
+              <textarea id="co-description" rows="3" placeholder="Describe the additional work..."></textarea>\
+            </div>\
+            <div class="form-group">\
+              <label>Additional Amount ($)</label>\
+              <input type="number" id="co-amount" step="0.01" placeholder="0.00">\
+              <div class="help-text">This amount will be added to the contract value</div>\
+            </div>\
+            <div class="form-group">\
+              <label>Date Approved</label>\
+              <input type="date" id="co-date" value="' + new Date().toISOString().split('T')[0] + '">\
+            </div>\
+          </div>\
+          <div class="modal-footer">\
+            <button class="btn btn-secondary" onclick="closeModal(\'change-order-modal\')">Cancel</button>\
+            <button class="btn btn-primary" onclick="saveChangeOrder(' + jobId + ')">Add Change Order</button>\
+          </div>\
+        </div>';
+      document.body.appendChild(modal);
+    }
+
+    async function saveChangeOrder(jobId) {
+      var description = document.getElementById('co-description').value;
+      var amount = parseFloat(document.getElementById('co-amount').value);
+      var date = document.getElementById('co-date').value;
+
+      if (!description) { alert('Please enter a description'); return; }
+      if (!amount) { alert('Please enter an amount'); return; }
+
+      try {
+        var res = await fetch(API_BASE + '/change-orders', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            job_id: jobId,
+            description: description,
+            amount: amount,
+            approved_date: date
+          })
+        });
+        if (res.ok) {
+          closeModal('change-order-modal');
+          await loadJobDetail(jobId);
+          renderJobs();
+          updateSummaryStats();
+          alert('Change order added successfully!');
+        } else {
+          alert('Failed to add change order');
+        }
+      } catch(e) {
+        console.error('Error adding change order:', e);
+        alert('Error adding change order: ' + e.message);
+      }
+    }
+
+    function closeModal(id) {
+      var modal = document.getElementById(id);
+      if (modal) modal.remove();
+    }
+
+    // ========== IMPORT FROM QB MODAL ==========
+    var qbEstimatesCache = [];
+
+    async function openImportFromQBModal(jobId) {
+      var job = allJobs.find(function(j) { return j.id === jobId; });
+
+      var modal = document.createElement('div');
+      modal.id = 'import-qb-modal';
+      modal.className = 'modal-overlay active';
+      modal.innerHTML = '\
+        <div class="modal-content" style="max-width:600px;">\
+          <div class="modal-header">\
+            <h2>📥 Import from QuickBooks</h2>\
+            <button class="modal-close" onclick="closeModal(\'import-qb-modal\')">&times;</button>\
+          </div>\
+          <div class="modal-body">\
+            <p style="color:#94a3b8;margin-bottom:15px;">Link a QuickBooks estimate to <strong>#' + job.job_number + ' - ' + escapeHtml(job.name || job.job_name || 'This job') + '</strong></p>\
+            <div id="qbEstimatesList" style="max-height:400px;overflow-y:auto;">\
+              <div style="text-align:center;padding:30px;color:#64748b;">\
+                <div class="spinner"></div>\
+                <p>Loading QuickBooks estimates...</p>\
+              </div>\
+            </div>\
+          </div>\
+          <div class="modal-footer">\
+            <button class="btn btn-secondary" onclick="closeModal(\'import-qb-modal\')">Cancel</button>\
+            <button class="btn btn-success" id="linkEstimateBtn" onclick="linkEstimateToJob(' + jobId + ')" disabled>Link Selected Estimate</button>\
+          </div>\
+        </div>';
+      document.body.appendChild(modal);
+
+      // Load estimates
+      loadQBEstimatesForLinking(jobId);
+    }
+
+    var selectedQBEstimate = null;
+
+    async function loadQBEstimatesForLinking(jobId) {
+      try {
+        var res = await fetch('/api/quickbooks/estimates');
+        var data = await res.json();
+
+        if (data.error) {
+          document.getElementById('qbEstimatesList').innerHTML = '<div style="color:#ef4444;padding:20px;">Error: ' + data.error + '</div>';
+          return;
+        }
+
+        qbEstimatesCache = (data.estimates || []).filter(function(e) { return !e.is_synced; });
+
+        if (qbEstimatesCache.length === 0) {
+          document.getElementById('qbEstimatesList').innerHTML = '\
+            <div style="text-align:center;padding:30px;color:#64748b;">\
+              <div style="font-size:32px;margin-bottom:10px;">📋</div>\
+              <p>No unlinked estimates available.</p>\
+              <p style="font-size:13px;margin-top:10px;">All estimates have been imported or you need to create new ones in QuickBooks.</p>\
+              <a href="/quickbooks.html" class="btn btn-secondary" style="margin-top:15px;">Go to QuickBooks</a>\
+            </div>';
+          return;
+        }
+
+        var html = '<div style="margin-bottom:12px;"><input type="text" id="qbSearchInput" placeholder="Search estimates..." style="width:100%;padding:10px 14px;background:#0f172a;border:1px solid #334155;border-radius:8px;color:#f8fafc;" onkeyup="filterQBEstimates()"></div>';
+
+        html += '<div id="qbEstimatesListInner">';
+        qbEstimatesCache.forEach(function(est) {
+          html += renderQBEstimateItem(est);
+        });
+        html += '</div>';
+
+        document.getElementById('qbEstimatesList').innerHTML = html;
+      } catch (e) {
+        document.getElementById('qbEstimatesList').innerHTML = '<div style="color:#ef4444;padding:20px;">Failed to load: ' + e.message + '</div>';
+      }
+    }
+
+    function renderQBEstimateItem(est) {
+      return '<div class="qb-estimate-item" data-id="' + est.id + '" onclick="selectQBEstimate(\'' + est.id + '\')" style="display:flex;align-items:center;gap:12px;padding:12px;border:2px solid #334155;border-radius:10px;margin-bottom:8px;cursor:pointer;transition:all 0.2s;">\
+        <div style="font-size:24px;">📄</div>\
+        <div style="flex:1;">\
+          <div style="font-weight:600;color:#f8fafc;">' + escapeHtml(est.customer_name) + '</div>\
+          <div style="font-size:12px;color:#64748b;">Estimate #' + (est.doc_number || est.id) + ' • ' + est.line_count + ' items</div>\
+        </div>\
+        <div style="text-align:right;">\
+          <div style="font-weight:700;color:#22c55e;">$' + est.total.toLocaleString('en-US', {minimumFractionDigits: 2}) + '</div>\
+        </div>\
+      </div>';
+    }
+
+    function filterQBEstimates() {
+      var search = document.getElementById('qbSearchInput').value.toLowerCase();
+      var filtered = qbEstimatesCache.filter(function(est) {
+        return est.customer_name.toLowerCase().includes(search) ||
+               (est.doc_number && est.doc_number.toLowerCase().includes(search));
+      });
+
+      var html = '';
+      filtered.forEach(function(est) {
+        html += renderQBEstimateItem(est);
+      });
+
+      document.getElementById('qbEstimatesListInner').innerHTML = html || '<div style="text-align:center;padding:20px;color:#64748b;">No matching estimates</div>';
+    }
+
+    function selectQBEstimate(estId) {
+      selectedQBEstimate = estId;
+      document.querySelectorAll('.qb-estimate-item').forEach(function(el) {
+        if (el.dataset.id === estId) {
+          el.style.borderColor = '#22c55e';
+          el.style.background = 'rgba(34,197,94,0.1)';
+        } else {
+          el.style.borderColor = '#334155';
+          el.style.background = 'transparent';
+        }
+      });
+      document.getElementById('linkEstimateBtn').disabled = false;
+    }
+
+    async function linkEstimateToJob(jobId) {
+      if (!selectedQBEstimate) return;
+
+      var btn = document.getElementById('linkEstimateBtn');
+      btn.disabled = true;
+      btn.textContent = 'Linking...';
+
+      try {
+        var res = await fetch('/api/quickbooks/link-estimate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            estimate_id: selectedQBEstimate,
+            job_id: jobId
+          })
+        });
+        var data = await res.json();
+
+        if (data.error) {
+          alert('Failed to link: ' + data.error);
+          btn.disabled = false;
+          btn.textContent = 'Link Selected Estimate';
+          return;
+        }
+
+        closeModal('import-qb-modal');
+        alert('Estimate linked successfully! Contract value updated to $' + (data.income_set || 0).toLocaleString('en-US', {minimumFractionDigits: 2}));
+
+        // Reload job data
+        var job = allJobs.find(function(j) { return j.id === jobId; });
+        if (job) {
+          job.qb_estimate_id = selectedQBEstimate;
+        }
+        await loadJobDetail(jobId);
+        renderJobs();
+        updateSummaryStats();
+
+        selectedQBEstimate = null;
+      } catch (e) {
+        alert('Error linking estimate: ' + e.message);
+        btn.disabled = false;
+        btn.textContent = 'Link Selected Estimate';
+      }
+    }
+
+    function printJobReport(jobId) {
+      window.print();
+    }
+
+    function toggleJob(jobId) {
+      var card = document.getElementById('job-' + jobId);
+      var wasExpanded = card.classList.contains('expanded');
+
+      // Close all other cards
+      document.querySelectorAll('.job-card.expanded').forEach(function(c) {
+        c.classList.remove('expanded');
+      });
+
+      // Toggle this card
+      if (!wasExpanded) {
+        card.classList.add('expanded');
+
+        // Load detail if not loaded
+        if (!jobDetails[jobId]) {
+          loadJobDetail(jobId).then(function() {
+            var expanded = card.querySelector('.job-expanded');
+            var job = allJobs.find(function(j) { return j.id === jobId; });
+            expanded.innerHTML = renderExpandedContent(job, jobDetails[jobId]);
+          });
+        }
+      }
+    }
+
+    function filterJobList() {
+      var searchTerm = document.getElementById('searchInput').value.toLowerCase();
+
+      return allJobs.filter(function(job) {
+        var detail = jobDetails[job.id];
+        var health = getJobHealth(detail);
+        var s = detail ? detail.summary : { profit: 0 };
+
+        // Search filter
+        var matchesSearch = !searchTerm ||
+          (job.job_number && job.job_number.toLowerCase().includes(searchTerm)) ||
+          (job.name && job.name.toLowerCase().includes(searchTerm)) ||
+          (job.job_name && job.job_name.toLowerCase().includes(searchTerm)) ||
+          (job.customer_name && job.customer_name.toLowerCase().includes(searchTerm));
+
+        if (!matchesSearch) return false;
+
+        // Status filter
+        if (currentFilter === 'active') return job.status !== 'closed' && job.status !== 'completed';
+        if (currentFilter === 'warning') return health === 'warning' || health === 'critical';
+        if (currentFilter === 'profitable') return s.profit > 0;
+
+        return true;
+      });
+    }
+
+    function setFilter(filter, btn) {
+      currentFilter = filter;
+      document.querySelectorAll('.filter-btn').forEach(function(b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      renderJobs();
+    }
+
+    function filterJobs() {
+      renderJobs();
+    }
+
+    function updateSummaryStats() {
+      var totalIncome = 0, totalCosts = 0, totalProfit = 0;
+      var warningCount = 0;
+      var validJobs = 0;
+      var concreteCost = 0, laborCost = 0;
+
+      allJobs.forEach(function(job) {
+        var detail = jobDetails[job.id];
+        if (detail && detail.summary) {
+          var s = detail.summary;
+          totalIncome += s.income || 0;
+          totalCosts += s.total_cost || 0;
+          totalProfit += s.profit || 0;
+          concreteCost += s.concrete_cost || 0;
+          laborCost += s.labor_cost || 0;
+
+          var health = getJobHealth(detail);
+          if (health === 'warning' || health === 'critical') warningCount++;
+
+          validJobs++;
+        }
+      });
+
+      var avgMargin = totalIncome > 0 ? ((totalProfit / totalIncome) * 100).toFixed(1) : 0;
+
+      document.getElementById('totalIncome').textContent = formatCurrency(totalIncome);
+      document.getElementById('totalCosts').textContent = formatCurrency(totalCosts);
+      document.getElementById('totalProfit').textContent = formatCurrency(totalProfit);
+      document.getElementById('totalProfit').className = 'stat-value ' + (totalProfit >= 0 ? 'profit' : 'negative');
+
+      document.getElementById('jobCount').textContent = validJobs + ' active jobs';
+      document.getElementById('costBreakdown').innerHTML = 'Materials: ' + formatCurrency(concreteCost) + ' | Labor: ' + formatCurrency(laborCost);
+      document.getElementById('avgMargin').innerHTML = 'Avg margin: <span style="color:' + (avgMargin >= 20 ? '#22c55e' : '#f59e0b') + '">' + avgMargin + '%</span>';
+      document.getElementById('avgMargin').className = 'stat-change ' + (avgMargin >= 20 ? 'positive' : '');
+
+      document.getElementById('warningCount').textContent = warningCount;
+      document.getElementById('warningLabel').textContent = warningCount === 0 ? 'All jobs healthy' : warningCount + ' jobs need attention';
+      document.getElementById('warningLabel').className = 'stat-change ' + (warningCount > 0 ? 'negative' : 'positive');
+    }
+
+    function formatCurrency(amount) {
+      return '$' + parseFloat(amount || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      var div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    // Initialize
+    loadJobs();
+  </script>
+</body>
+</html>

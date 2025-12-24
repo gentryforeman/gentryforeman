@@ -1,0 +1,139 @@
+{
+    "StatusCode": 200,
+    "Status": "Success",
+    "Message": "",
+    "Data": {
+        "Response": {
+            "List": [
+                {
+                    "id": 1001,
+                    "reportTitle": "Item Period to Period Comparison",
+                    "reportSubTitle": "Compare the item totals for each period",
+                    "reportDescription": "Sum the totals for each item used throughout the period",
+                    "storedProcedure": "report_itemYearlyTotals_get",
+                    "grid": "rpt_itemTotals",
+                    "paramSettings": "",
+                    "gridOn": false,
+                    "chartOn": false,
+                    "_created": "0001-01-01T00:00:00",
+                    "_updated": "0001-01-01T00:00:00",
+                    "_deleted": false
+                },
+                {
+                    "id": 1002,
+                    "reportTitle": "Worker Timesheet Approval",
+                    "reportSubTitle": "Get employee timesheet signoff",
+                    "reportDescription": "Provide workers with a summary of their weekly time to obtain their acceptance",
+                    "storedProcedure": "report_payrollSummary",
+                    "grid": "rpt_payrollSummary",
+                    "paramSettings": "[{\"name\":\"@runButton\",\"permissions\":{\"view\":[\"System Admin\",\"Payroll Admin\",\"Foreman\"]}},{\"name\":\"@companyId\",\"hidden\":true,\"required\":true,\"formControl\":\"SelectionList\",\"displayName\":\"Company\",\"displayOrder\":0,\"sourceFieldDataType\":\"Text\",\"permissions\":{\"view\":[\"System Admin\"]}}]",
+                    "gridOn": false,
+                    "chartOn": false,
+                    "_created": "0001-01-01T00:00:00",
+                    "_updated": "0001-01-01T00:00:00",
+                    "_deleted": false
+                },
+                {
+                    "id": 1003,
+                    "reportTitle": "Worker Timesheet",
+                    "reportSubTitle": "Get weekly timesheet for a worker",
+                    "reportDescription": "Provides details of all time for a worker in the selected week",
+                    "storedProcedure": "report_payrollDetail",
+                    "grid": "rpt_payrollDetail",
+                    "paramSettings": "",
+                    "gridOn": false,
+                    "chartOn": false,
+                    "_created": "0001-01-01T00:00:00",
+                    "_updated": "0001-01-01T00:00:00",
+                    "_deleted": false
+                },
+                {
+                    "id": 1004,
+                    "reportTitle": "Workweek Audit",
+                    "reportSubTitle": "Audit the work week hours for a worker",
+                    "reportDescription": "Workweek Audit",
+                    "storedProcedure": "report_auditWorkWeek",
+                    "grid": "rpt_auditWorkWeek",
+                    "paramSettings": "",
+                    "gridOn": false,
+                    "chartOn": false,
+                    "_created": "0001-01-01T00:00:00",
+                    "_updated": "0001-01-01T00:00:00",
+                    "_deleted": false
+                },
+                {
+                    "id": 1005,
+                    "reportTitle": "Item Details Summary",
+                    "reportSubTitle": "Item Summary",
+                    "reportDescription": "Item details summary",
+                    "storedProcedure": "report_itemDetailsSummary",
+                    "grid": "rpt_itemDetailSummary",
+                    "paramSettings": "[{\"name\": \"@runButton\",\"permissions\": {\"view\": [\"System Admin\",\"Payroll Admin\",\"Foreman\"]}\r\n}]",
+                    "gridOn": false,
+                    "chartOn": false,
+                    "_created": "0001-01-01T00:00:00",
+                    "_updated": "0001-01-01T00:00:00",
+                    "_deleted": false
+                },
+                {
+                    "id": 1006,
+                    "reportTitle": "Job Performance",
+                    "reportSubTitle": "Job Performance",
+                    "reportDescription": "Evaluate the performance of a job",
+                    "storedProcedure": "report_jobPerformance",
+                    "grid": "rpt_jobPerformance",
+                    "paramSettings": "[{\"name\": \"@runButton\",\"permissions\": {\"view\": [\"System Admin\",\"Payroll Admin\",\"Foreman\"]}\r\n}]",
+                    "gridOn": false,
+                    "chartOn": false,
+                    "_created": "0001-01-01T00:00:00",
+                    "_updated": "0001-01-01T00:00:00",
+                    "_deleted": false
+                },
+                {
+                    "id": 1007,
+                    "reportTitle": "Monthly UOM Output",
+                    "reportSubTitle": "Monthly Output",
+                    "reportDescription": "Determine the output for each UOM",
+                    "storedProcedure": "report_monthlyUOMOutput",
+                    "grid": "rpt_monthlyUOMOutput",
+                    "paramSettings": "",
+                    "gridOn": false,
+                    "chartOn": false,
+                    "_created": "0001-01-01T00:00:00",
+                    "_updated": "0001-01-01T00:00:00",
+                    "_deleted": false
+                },
+                {
+                    "id": 1008,
+                    "reportTitle": "Payroll Detail",
+                    "reportSubTitle": "Payroll Detail",
+                    "reportDescription": "Get the payroll details",
+                    "storedProcedure": "report_payrollDetail",
+                    "grid": "rpt_payrollDetail",
+                    "paramSettings": "[{\"name\": \"@runButton\",\"permissions\": {\"view\": [\"System Admin\",\"Payroll Admin\",\"Foreman\"]}\r\n}]",
+                    "gridOn": false,
+                    "chartOn": false,
+                    "_created": "0001-01-01T00:00:00",
+                    "_updated": "0001-01-01T00:00:00",
+                    "_deleted": false
+                },
+                {
+                    "id": 1009,
+                    "reportTitle": "Payroll Summary",
+                    "reportSubTitle": "Payroll Summary",
+                    "reportDescription": "Get the payroll summary for each worker",
+                    "storedProcedure": "report_payrollSummary",
+                    "grid": "rpt_payrollSummary",
+                    "paramSettings": "",
+                    "gridOn": false,
+                    "chartOn": false,
+                    "_created": "0001-01-01T00:00:00",
+                    "_updated": "0001-01-01T00:00:00",
+                    "_deleted": false
+                }
+            ],
+            "Count": 9,
+            "TopIndex": null
+        }
+    }
+}

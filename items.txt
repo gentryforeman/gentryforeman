@@ -1,0 +1,257 @@
+{
+    "modelHeaderFilter": {
+        "page": null,
+        "itemsPerPage": 0,
+        "sortColumns": [],
+        "searchColumns": [],
+        "column": [
+            {
+                "field": "ExtraColumn",
+                "dataType": "ExtraColumn",
+                "visible": true,
+                "searchValue": "",
+                "width": "50",
+                "sorting": false,
+                "sortOrder": ""
+            },
+            {
+                "field": "purchaseOrderNumber",
+                "dataType": "Text",
+                "visible": true,
+                "searchValue": "",
+                "width": "100",
+                "sorting": false,
+                "sortOrder": ""
+            },
+            {
+                "field": "changeOrderNumber",
+                "dataType": "Text",
+                "visible": false,
+                "searchValue": "",
+                "width": "80",
+                "sorting": false,
+                "sortOrder": ""
+            },
+            {
+                "field": "jobName",
+                "dataType": "Text",
+                "visible": true,
+                "searchValue": "",
+                "width": "350",
+                "sorting": false,
+                "sortOrder": ""
+            },
+            {
+                "field": "status",
+                "dataType": "Text",
+                "visible": true,
+                "searchValue": "",
+                "width": "100",
+                "sorting": false,
+                "sortOrder": ""
+            },
+            {
+                "field": "clientName",
+                "dataType": "Text",
+                "visible": true,
+                "searchValue": "",
+                "width": "200",
+                "sorting": false,
+                "sortOrder": ""
+            },
+            {
+                "field": "clientPO",
+                "dataType": "Text",
+                "visible": true,
+                "searchValue": "",
+                "width": "100",
+                "sorting": false,
+                "sortOrder": ""
+            },
+            {
+                "field": "clientContact",
+                "dataType": "Text",
+                "visible": true,
+                "searchValue": "",
+                "width": "150",
+                "sorting": false,
+                "sortOrder": ""
+            },
+            {
+                "field": "clientEmail",
+                "dataType": "Email",
+                "visible": true,
+                "searchValue": "",
+                "width": "200",
+                "sorting": false,
+                "sortOrder": ""
+            },
+            {
+                "field": "clientPhone",
+                "dataType": "Phone",
+                "visible": true,
+                "searchValue": "",
+                "width": "150",
+                "sorting": false,
+                "sortOrder": ""
+            },
+            {
+                "field": "clientMarkup",
+                "dataType": "Number",
+                "visible": false,
+                "searchValue": "",
+                "width": "100",
+                "sorting": false,
+                "sortOrder": ""
+            },
+            {
+                "field": "estimateNumber",
+                "dataType": "Text",
+                "visible": false,
+                "searchValue": "",
+                "width": "100",
+                "sorting": false,
+                "sortOrder": ""
+            },
+            {
+                "field": "contractAmount",
+                "dataType": "Number",
+                "visible": true,
+                "searchValue": "",
+                "width": "150",
+                "sorting": false,
+                "sortOrder": ""
+            },
+            {
+                "field": "specialProvisions",
+                "dataType": "Text",
+                "visible": false,
+                "searchValue": "",
+                "width": "100",
+                "sorting": false,
+                "sortOrder": ""
+            },
+            {
+                "field": "address",
+                "dataType": "Location",
+                "visible": true,
+                "searchValue": "",
+                "width": "75",
+                "sorting": false,
+                "sortOrder": ""
+            },
+            {
+                "field": "folderId",
+                "dataType": "Text",
+                "visible": false,
+                "searchValue": "",
+                "width": "100",
+                "sorting": false,
+                "sortOrder": ""
+            },
+            {
+                "field": "fileId",
+                "dataType": "Text",
+                "visible": false,
+                "searchValue": "",
+                "width": "100",
+                "sorting": false,
+                "sortOrder": ""
+            },
+            {
+                "field": "calendarId",
+                "dataType": "Text",
+                "visible": false,
+                "searchValue": "",
+                "width": "100",
+                "sorting": false,
+                "sortOrder": ""
+            },
+            {
+                "field": "field1",
+                "dataType": "Text",
+                "visible": false,
+                "searchValue": "",
+                "width": "100",
+                "sorting": false,
+                "sortOrder": ""
+            },
+            {
+                "field": "field2",
+                "dataType": "Text",
+                "visible": false,
+                "searchValue": "",
+                "width": "100",
+                "sorting": false,
+                "sortOrder": ""
+            },
+            {
+                "field": "field3",
+                "dataType": "Text",
+                "visible": false,
+                "searchValue": "",
+                "width": "100",
+                "sorting": false,
+                "sortOrder": ""
+            },
+            {
+                "field": "field4",
+                "dataType": "Text",
+                "visible": false,
+                "searchValue": "",
+                "width": "100",
+                "sorting": false,
+                "sortOrder": ""
+            },
+            {
+                "field": "field5",
+                "dataType": "Text",
+                "visible": false,
+                "searchValue": "",
+                "width": "100",
+                "sorting": false,
+                "sortOrder": ""
+            },
+            {
+                "field": "startDate",
+                "dataType": "Date",
+                "visible": false,
+                "searchValue": "",
+                "width": "150",
+                "sorting": false,
+                "sortOrder": ""
+            },
+            {
+                "field": "endDate",
+                "dataType": "Date",
+                "visible": false,
+                "searchValue": "",
+                "width": "150",
+                "sorting": false,
+                "sortOrder": ""
+            },
+            {
+                "field": "id",
+                "dataType": "Text",
+                "visible": false,
+                "searchValue": "",
+                "width": "200",
+                "sorting": false,
+                "sortOrder": ""
+            },
+            {
+                "field": "companyId",
+                "dataType": "Text",
+                "visible": false,
+                "searchValue": "",
+                "width": "200",
+                "sorting": false,
+                "sortOrder": ""
+            }
+        ]
+    },
+    "modelFilter": [],
+    "commonSearchString": null,
+    "pagename": null,
+    "gridname": null
+}

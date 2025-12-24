@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Job Detail - Foreman System</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f3f4f6; }
+    .app-header { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .app-header h1 { font-size: 18px; color: #333; }
+    .back-btn { background: none; border: none; font-size: 24px; cursor: pointer; color: #2563eb; }
+    .main-content { padding: 15px; max-width: 1200px; margin: 0 auto; }
+    .job-header { background: white; border-radius: 12px; padding: 20px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    .job-number { color: #666; font-size: 14px; }
+    .job-name { font-size: 24px; font-weight: bold; margin: 5px 0; }
+    .job-meta { display: flex; gap: 20px; flex-wrap: wrap; margin-top: 10px; color: #666; }
+    .status-badge { display: inline-block; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; text-transform: uppercase; }
+    .status-active { background: #dbeafe; color: #1d4ed8; }
+    .status-closed { background: #e5e7eb; color: #6b7280; }
+    .cost-summary { background: white; border-radius: 12px; padding: 20px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    .cost-summary h2 { font-size: 18px; margin-bottom: 15px; color: #333; }
+    .cost-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; }
+    .cost-card { background: #f9fafb; border-radius: 8px; padding: 15px; text-align: center; }
+    .cost-card.income { border-left: 4px solid #22c55e; }
+    .cost-card.materials { border-left: 4px solid #f97316; }
+    .cost-card.labor { border-left: 4px solid #a855f7; }
+    .cost-card.overhead { border-left: 4px solid #3b82f6; }
+    .cost-card.profit { border-left: 4px solid #10b981; }
+    .cost-card.loss { border-left: 4px solid #ef4444; }
+    .cost-label { font-size: 12px; color: #666; text-transform: uppercase; }
+    .cost-value { font-size: 24px; font-weight: bold; margin-top: 5px; }
+    .cost-value.positive { color: #22c55e; }
+    .cost-value.negative { color: #ef4444; }
+    .section { background: white; border-radius: 12px; padding: 20px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    .section h2 { font-size: 18px; margin-bottom: 15px; color: #333; display: flex; justify-content: space-between; align-items: center; }
+    .section-toggle { background: none; border: none; font-size: 18px; cursor: pointer; }
+    .record-item { background: #f9fafb; border-radius: 8px; padding: 15px; margin-bottom: 10px; border-left: 4px solid #22c55e; }
+    .record-date { font-weight: bold; color: #333; }
+    .record-meta { display: flex; gap: 15px; flex-wrap: wrap; margin-top: 8px; font-size: 14px; color: #666; }
+    .record-tag { background: #dbeafe; color: #1d4ed8; padding: 2px 8px; border-radius: 4px; font-size: 12px; }
+    .record-tag.concrete { background: #ffedd5; color: #c2410c; }
+    .record-tag.labor { background: #f3e8ff; color: #7c3aed; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #eee; }
+    th { background: #f9fafb; font-size: 12px; text-transform: uppercase; color: #666; }
+    .text-right { text-align: right; }
+    .btn { padding: 10px 20px; border: none; border-radius: 8px; font-size: 14px; cursor: pointer; }
+    .btn-primary { background: #2563eb; color: white; }
+    .btn-secondary { background: #e5e7eb; color: #333; }
+    .edit-section { margin-top: 15px; padding-top: 15px; border-top: 1px solid #eee; }
+    .input-group { margin-bottom: 15px; }
+    .input-group label { display: block; margin-bottom: 5px; font-weight: 600; color: #333; font-size: 14px; }
+    .input-group input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; }
+    .estimate-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
+  </style>
+</head>
+<body>
+  <header class="app-header">
+    <button class="back-btn" onclick="window.location.href='/index.html'">← Back</button>
+    <h1>Job Detail</h1>
+    <button class="back-btn" onclick="editJob()">✏️</button>
+  </header>
+
+  <div class="main-content">
+    <div class="job-header" id="job-header">Loading...</div>
+    
+    <div class="cost-summary">
+      <h2>Cost Summary</h2>
+      <div class="cost-grid" id="cost-grid">Loading...</div>
+    </div>
+
+    <div class="section">
+      <h2>Estimate / Budget <button class="section-toggle" onclick="toggleEstimate()">✏️</button></h2>
+      <div class="estimate-grid" id="estimate-display"></div>
+      <div id="estimate-edit" style="display:none;" class="edit-section">
+        <div class="estimate-grid">
+          <div class="input-group">
+            <label>Income (Contract Amount)</label>
+            <input type="number" id="edit-income" step="0.01" placeholder="0.00">
+          </div>
+          <div class="input-group">
+            <label>Planned Materials</label>
+            <input type="number" id="edit-materials" step="0.01" placeholder="0.00">
+          </div>
+          <div class="input-group">
+            <label>Planned Labor</label>
+            <input type="number" id="edit-labor" step="0.01" placeholder="0.00">
+          </div>
+          <div class="input-group">
+            <label>Planned Overhead</label>
+            <input type="number" id="edit-overhead" step="0.01" placeholder="0.00">
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="saveEstimate()">Save Estimate</button>
+        <button class="btn btn-secondary" onclick="toggleEstimate()">Cancel</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>Daily Records <span id="record-count"></span></h2>
+      <div id="daily-records">Loading...</div>
+    </div>
+
+    <div class="section">
+      <h2>Concrete Details</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Foreman</th>
+            <th class="text-right">Yards</th>
+            <th class="text-right">Price/Yard</th>
+            <th class="text-right">Total</th>
+          </tr>
+        </thead>
+        <tbody id="concrete-table">Loading...</tbody>
+      </table>
+    </div>
+
+    <div class="section">
+      <h2>Labor Details</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Worker</th>
+            <th class="text-right">Hours</th>
+            <th class="text-right">Rate</th>
+            <th class="text-right">Cost</th>
+          </tr>
+        </thead>
+        <tbody id="labor-table">Loading...</tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    var API_BASE = 'http://192.168.1.41:3000/api';
+    var jobId = new URLSearchParams(window.location.search).get('id');
+    var jobData = null;
+
+    async function loadJobDetail() {
+      try {
+        // Get job info
+        var jobRes = await fetch(API_BASE + '/jobs/' + jobId);
+        jobData = await jobRes.json();
+        
+        // Get daily records for this job
+        var recordsRes = await fetch(API_BASE + '/jobs/' + jobId + '/daily-records');
+        var records = await recordsRes.json();
+        
+        // Get labor details
+        var laborDetails = [];
+        for (var r of records) {
+          var whRes = await fetch(API_BASE + '/daily-records/' + r.id + '/worker-hours');
+          var wh = await whRes.json();
+          wh.forEach(function(w) { w.record_date = r.record_date; });
+          laborDetails = laborDetails.concat(wh);
+        }
+        
+        renderJobHeader(jobData);
+        renderCostSummary(jobData, records, laborDetails);
+        renderEstimate(jobData);
+        renderDailyRecords(records);
+        renderConcreteTable(records, jobData);
+        renderLaborTable(laborDetails);
+        
+      } catch (err) {
+        console.error('Error loading job:', err);
+        document.getElementById('job-header').innerHTML = '<p style="color:red;">Error loading job</p>';
+      }
+    }
+
+    function renderJobHeader(job) {
+      document.getElementById('job-header').innerHTML = 
+        '<div class="job-number">#' + job.job_number + '</div>' +
+        '<div class="job-name">' + job.job_name + '</div>' +
+        '<div class="job-meta">' +
+          '<span>📍 ' + (job.location || 'No location') + '</span>' +
+          '<span>🏢 ' + (job.contractor_name || 'No contractor') + '</span>' +
+          '<span>💲 ' + (job.concrete_price_per_yard || 150) + '/yard</span>' +
+          '<span class="status-badge status-' + job.status + '">' + job.status + '</span>' +
+        '</div>';
+    }
+
+    function renderCostSummary(job, records, laborDetails) {
+      var income = parseFloat(job.income) || 0;
+      var concreteYards = records.reduce(function(sum, r) { return sum + (parseFloat(r.concrete_yards) || 0); }, 0);
+      var concreteCost = concreteYards * (parseFloat(job.concrete_price_per_yard) || 0);
+      var laborCost = laborDetails.reduce(function(sum, l) { return sum + (parseFloat(l.hours_worked) * parseFloat(l.labor_rate || 25)); }, 0);
+      var overhead = 0; // TODO: Calculate overhead
+      var totalCost = concreteCost + laborCost + overhead;
+      var profit = income - totalCost;
+
+      document.getElementById('cost-grid').innerHTML = 
+        '<div class="cost-card income"><div class="cost-label">Income</div><div class="cost-value positive">' + formatCurrency(income) + '</div></div>' +
+        '<div class="cost-card materials"><div class="cost-label">Concrete</div><div class="cost-value">' + formatCurrency(concreteCost) + '</div></div>' +
+        '<div class="cost-card labor"><div class="cost-label">Labor</div><div class="cost-value">' + formatCurrency(laborCost) + '</div></div>' +
+        '<div class="cost-card overhead"><div class="cost-label">Overhead</div><div class="cost-value">' + formatCurrency(overhead) + '</div></div>' +
+        '<div class="cost-card ' + (profit >= 0 ? 'profit' : 'loss') + '"><div class="cost-label">Net Profit</div><div class="cost-value ' + (profit >= 0 ? 'positive' : 'negative') + '">' + formatCurrency(profit) + '</div></div>';
+    }
+
+    function renderEstimate(job) {
+      document.getElementById('estimate-display').innerHTML = 
+        '<div class="cost-card"><div class="cost-label">Contract Income</div><div class="cost-value">' + formatCurrency(job.income || 0) + '</div></div>' +
+        '<div class="cost-card"><div class="cost-label">Planned Materials</div><div class="cost-value">' + formatCurrency(job.planned_materials || 0) + '</div></div>' +
+        '<div class="cost-card"><div class="cost-label">Planned Labor</div><div class="cost-value">' + formatCurrency(job.planned_labor || 0) + '</div></div>' +
+        '<div class="cost-card"><div class="cost-label">Planned Overhead</div><div class="cost-value">' + formatCurrency(job.planned_overhead || 0) + '</div></div>';
+      
+      document.getElementById('edit-income').value = job.income || '';
+      document.getElementById('edit-materials').value = job.planned_materials || '';
+      document.getElementById('edit-labor').value = job.planned_labor || '';
+      document.getElementById('edit-overhead').value = job.planned_overhead || '';
+    }
+
+    function renderDailyRecords(records) {
+      document.getElementById('record-count').textContent = '(' + records.length + ')';
+      if (records.length === 0) {
+        document.getElementById('daily-records').innerHTML = '<p style="color:#666;">No daily records yet.</p>';
+        return;
+      }
+      var html = '';
+      records.forEach(function(r) {
+        var date = new Date(r.record_date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+        html += '<div class="record-item">' +
+          '<div class="record-date">' + date + '</div>' +
+          '<div class="record-meta">' +
+            '<span>👷 ' + (r.foreman_name || 'No foreman') + '</span>' +
+            (r.concrete_yards ? '<span class="record-tag concrete">🚛 ' + r.concrete_yards + ' yards</span>' : '') +
+          '</div>' +
+          (r.notes ? '<div style="margin-top:8px;color:#666;">' + r.notes + '</div>' : '') +
+        '</div>';
+      });
+      document.getElementById('daily-records').innerHTML = html;
+    }
+
+    function renderConcreteTable(records, job) {
+      var concreteRecords = records.filter(function(r) { return r.concrete_yards > 0; });
+      if (concreteRecords.length === 0) {
+        document.getElementById('concrete-table').innerHTML = '<tr><td colspan="5" style="color:#666;text-align:center;">No concrete poured yet.</td></tr>';
+        return;
+      }
+      var totalYards = 0, totalCost = 0;
+      var html = '';
+      concreteRecords.forEach(function(r) {
+        var date = new Date(r.record_date).toLocaleDateString();
+        var yards = parseFloat(r.concrete_yards) || 0;
+        var price = parseFloat(job.concrete_price_per_yard) || 0;
+        var cost = yards * price;
+        totalYards += yards;
+        totalCost += cost;
+        html += '<tr><td>' + date + '</td><td>' + (r.foreman_name || '-') + '</td><td class="text-right">' + yards.toFixed(2) + '</td><td class="text-right">' + formatCurrency(price) + '</td><td class="text-right">' + formatCurrency(cost) + '</td></tr>';
+      });
+      html += '<tr style="font-weight:bold;background:#f9fafb;"><td colspan="2">Total</td><td class="text-right">' + totalYards.toFixed(2) + '</td><td></td><td class="text-right">' + formatCurrency(totalCost) + '</td></tr>';
+      document.getElementById('concrete-table').innerHTML = html;
+    }
+
+    function renderLaborTable(laborDetails) {
+      if (laborDetails.length === 0) {
+        document.getElementById('labor-table').innerHTML = '<tr><td colspan="5" style="color:#666;text-align:center;">No labor recorded yet.</td></tr>';
+        return;
+      }
+      var totalHours = 0, totalCost = 0;
+      var html = '';
+      laborDetails.forEach(function(l) {
+        var date = new Date(l.record_date).toLocaleDateString();
+        var hours = parseFloat(l.hours_worked) || 0;
+        var rate = parseFloat(l.labor_rate) || 25;
+        var cost = hours * rate;
+        totalHours += hours;
+        totalCost += cost;
+        html += '<tr><td>' + date + '</td><td>' + l.worker_name + '</td><td class="text-right">' + hours.toFixed(1) + '</td><td class="text-right">' + formatCurrency(rate) + '</td><td class="text-right">' + formatCurrency(cost) + '</td></tr>';
+      });
+      html += '<tr style="font-weight:bold;background:#f9fafb;"><td colspan="2">Total</td><td class="text-right">' + totalHours.toFixed(1) + '</td><td></td><td class="text-right">' + formatCurrency(totalCost) + '</td></tr>';
+      document.getElementById('labor-table').innerHTML = html;
+    }
+
+    function formatCurrency(amount) {
+      return '$' + parseFloat(amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function toggleEstimate() {
+      var edit = document.getElementById('estimate-edit');
+      var display = document.getElementById('estimate-display');
+      if (edit.style.display === 'none') {
+        edit.style.display = 'block';
+        display.style.display = 'none';
+      } else {
+        edit.style.display = 'none';
+        display.style.display = 'grid';
+      }
+    }
+
+    async function saveEstimate() {
+      var data = {
+        income: document.getElementById('edit-income').value || null,
+        planned_materials: document.getElementById('edit-materials').value || null,
+        planned_labor: document.getElementById('edit-labor').value || null,
+        planned_overhead: document.getElementById('edit-overhead').value || null
+      };
+      var res = await fetch(API_BASE + '/jobs/' + jobId + '/estimate', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      if (res.ok) {
+        alert('Estimate saved!');
+        location.reload();
+      } else {
+        alert('Error saving estimate');
+      }
+    }
+
+    function editJob() {
+      window.location.href = '/index.html#edit-job-' + jobId;
+    }
+
+    loadJobDetail();
+  </script>
+</body>
+</html>

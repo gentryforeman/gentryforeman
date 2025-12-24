@@ -1,0 +1,1120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QuickBooks Integration - Foreman System</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f3f4f6; }
+        .app-header { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .app-header h1 { font-size: 18px; color: #333; }
+        .back-btn { background: none; border: none; font-size: 24px; cursor: pointer; color: #2563eb; text-decoration: none; }
+        .main-content { padding: 20px; max-width: 1200px; margin: 0 auto; }
+        .section { background: white; border-radius: 12px; padding: 25px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .section h2 { font-size: 18px; margin-bottom: 20px; color: #333; display: flex; align-items: center; gap: 10px; }
+
+        .connection-status { display: flex; align-items: center; gap: 15px; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+        .connection-status.connected { background: #dcfce7; border: 2px solid #22c55e; }
+        .connection-status.disconnected { background: #fef3c7; border: 2px solid #f59e0b; }
+        .connection-status .icon { font-size: 40px; }
+        .connection-status .info { flex: 1; }
+        .connection-status .title { font-size: 18px; font-weight: 600; }
+        .connection-status.connected .title { color: #166534; }
+        .connection-status.disconnected .title { color: #92400e; }
+        .connection-status .subtitle { font-size: 14px; color: #666; margin-top: 4px; }
+
+        .btn { padding: 12px 24px; border: none; border-radius: 8px; font-size: 14px; cursor: pointer; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; }
+        .btn-primary { background: #2563eb; color: white; }
+        .btn-success { background: #22c55e; color: white; }
+        .btn-danger { background: #ef4444; color: white; }
+        .btn-secondary { background: #e5e7eb; color: #333; }
+        .btn-qb { background: #2ca01c; color: white; }
+        .btn:hover { opacity: 0.9; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid #e5e7eb; padding-bottom: 15px; }
+        .tab-btn { padding: 10px 20px; border: 2px solid #ddd; border-radius: 8px; background: white; cursor: pointer; font-size: 14px; font-weight: 600; }
+        .tab-btn:hover { border-color: #2563eb; }
+        .tab-btn.active { border-color: #2563eb; background: #2563eb; color: white; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        .estimate-list { }
+        .estimate-card { border: 1px solid #e5e7eb; border-radius: 8px; padding: 15px; margin-bottom: 12px; display: flex; align-items: center; gap: 15px; transition: all 0.2s; }
+        .estimate-card:hover { border-color: #2563eb; background: #f8fafc; }
+        .estimate-card.synced { background: #f0fdf4; border-color: #86efac; }
+        .estimate-card.selected { border-color: #2563eb; background: #eff6ff; box-shadow: 0 0 0 2px rgba(37,99,235,0.2); }
+        .estimate-icon { font-size: 28px; }
+        .estimate-info { flex: 1; }
+        .estimate-title { font-weight: 600; font-size: 16px; color: #333; }
+        .estimate-meta { font-size: 13px; color: #666; margin-top: 4px; }
+        .estimate-amount { font-size: 18px; font-weight: 700; color: #22c55e; }
+        .estimate-actions { display: flex; gap: 8px; }
+
+        /* Checkbox styling */
+        .estimate-checkbox { width: 22px; height: 22px; cursor: pointer; accent-color: #2563eb; }
+        .estimate-checkbox:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        /* Filter bar */
+        .filter-bar { display: flex; gap: 12px; margin-bottom: 20px; align-items: center; flex-wrap: wrap; }
+        .search-input { padding: 10px 15px; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 14px; width: 250px; }
+        .search-input:focus { outline: none; border-color: #2563eb; }
+        .filter-tabs { display: flex; gap: 8px; }
+        .filter-tab { padding: 8px 16px; border: 1px solid #e5e7eb; border-radius: 6px; background: white; cursor: pointer; font-size: 13px; }
+        .filter-tab:hover { border-color: #2563eb; }
+        .filter-tab.active { background: #2563eb; color: white; border-color: #2563eb; }
+        .bulk-actions { margin-left: auto; display: flex; gap: 10px; align-items: center; }
+        .selected-count { font-size: 13px; color: #666; }
+
+        /* Import preview modal */
+        .preview-modal { background: white; border-radius: 12px; padding: 0; max-width: 700px; width: 95%; max-height: 90vh; overflow: hidden; display: flex; flex-direction: column; }
+        .preview-header { padding: 20px 25px; background: linear-gradient(135deg, #1e3a5f 0%, #1e293b 100%); color: white; }
+        .preview-header h3 { margin: 0; font-size: 18px; }
+        .preview-header .subtitle { font-size: 13px; opacity: 0.8; margin-top: 4px; }
+        .preview-body { padding: 20px 25px; overflow-y: auto; flex: 1; }
+        .preview-footer { padding: 15px 25px; background: #f9fafb; border-top: 1px solid #e5e7eb; display: flex; gap: 10px; justify-content: flex-end; }
+        .preview-section { margin-bottom: 20px; }
+        .preview-section h4 { font-size: 13px; color: #666; text-transform: uppercase; margin-bottom: 10px; }
+        .preview-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f3f4f6; }
+        .preview-row:last-child { border-bottom: none; }
+        .preview-label { color: #666; }
+        .preview-value { font-weight: 600; }
+        .job-match-option { padding: 12px 15px; border: 2px solid #e5e7eb; border-radius: 8px; margin-bottom: 10px; cursor: pointer; }
+        .job-match-option:hover { border-color: #2563eb; background: #f8fafc; }
+        .job-match-option.selected { border-color: #22c55e; background: #f0fdf4; }
+        .job-match-option .match-type { font-size: 11px; color: #22c55e; font-weight: 600; text-transform: uppercase; }
+        .create-new-option { background: #eff6ff; border-color: #2563eb; }
+        .create-new-option .match-type { color: #2563eb; }
+        .qb-linked-badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 4px; font-size: 11px; background: #dcfce7; color: #166534; font-weight: 600; }
+        .qb-linked-badge::before { content: ''; width: 8px; height: 8px; background: #22c55e; border-radius: 50%; }
+
+        .sync-badge { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+        .sync-badge.synced { background: #dcfce7; color: #166534; }
+        .sync-badge.pending { background: #fef3c7; color: #92400e; }
+
+        .line-items-preview { margin-top: 10px; padding: 10px; background: #f9fafb; border-radius: 6px; display: none; }
+        .line-items-preview.show { display: block; }
+        .line-items-preview table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        .line-items-preview th, .line-items-preview td { padding: 6px 10px; text-align: left; border-bottom: 1px solid #e5e7eb; }
+        .line-items-preview th { font-weight: 600; color: #666; }
+        .line-items-preview .number { text-align: right; }
+
+        .stats-row { display: flex; gap: 15px; margin-bottom: 20px; }
+        .stat-card { background: #f9fafb; padding: 15px 20px; border-radius: 8px; flex: 1; text-align: center; }
+        .stat-card .value { font-size: 28px; font-weight: 700; color: #333; }
+        .stat-card .label { font-size: 12px; color: #666; text-transform: uppercase; margin-top: 4px; }
+        .stat-card.success .value { color: #22c55e; }
+        .stat-card.warning .value { color: #f59e0b; }
+
+        .loading { text-align: center; padding: 40px; color: #666; }
+        .spinner { width: 40px; height: 40px; border: 3px solid #e5e7eb; border-top-color: #2563eb; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 15px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .empty-state { text-align: center; padding: 40px; color: #666; }
+        .empty-state .icon { font-size: 48px; margin-bottom: 15px; }
+
+        .result-message { padding: 15px; border-radius: 8px; margin-top: 15px; }
+        .result-message.success { background: #dcfce7; color: #166534; }
+        .result-message.error { background: #fee2e2; color: #991b1b; }
+
+        .qb-logo { height: 24px; vertical-align: middle; }
+
+        .expand-btn { background: none; border: none; cursor: pointer; font-size: 12px; color: #2563eb; padding: 4px 8px; }
+        .expand-btn:hover { text-decoration: underline; }
+
+        /* Modal */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; }
+        .modal-overlay.show { display: flex; }
+        .modal { background: white; border-radius: 12px; padding: 25px; max-width: 500px; width: 90%; max-height: 80vh; overflow-y: auto; }
+        .modal h3 { margin-bottom: 15px; color: #333; }
+        .modal-close { float: right; background: none; border: none; font-size: 24px; cursor: pointer; color: #666; }
+        .job-select-list { max-height: 300px; overflow-y: auto; }
+        .job-select-item { padding: 12px 15px; border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 8px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+        .job-select-item:hover { border-color: #2563eb; background: #f8fafc; }
+        .job-select-item.selected { border-color: #22c55e; background: #f0fdf4; }
+        .job-select-item .job-name { font-weight: 600; }
+        .job-select-item .job-meta { font-size: 12px; color: #666; }
+        .concrete-badge { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; background: #fef3c7; color: #92400e; }
+        .synced-job-badge { font-size: 11px; color: #22c55e; font-weight: 600; }
+    </style>
+</head>
+<body>
+    <header class="app-header">
+        <a href="/index.html" class="back-btn">&larr; Back</a>
+        <h1>QuickBooks Integration</h1>
+        <div style="width: 50px;"></div>
+    </header>
+
+    <div class="main-content">
+        <!-- Connection Status -->
+        <div id="connectionStatus" class="connection-status disconnected">
+            <div class="icon">&#x1F517;</div>
+            <div class="info">
+                <div class="title">Checking connection...</div>
+                <div class="subtitle">Please wait</div>
+            </div>
+            <div id="connectionActions"></div>
+        </div>
+
+        <!-- Connected Content -->
+        <div id="connectedContent" style="display:none;">
+            <!-- Tabs -->
+            <div class="tabs">
+                <button class="tab-btn active" onclick="showTab('estimates')">Estimates</button>
+                <button class="tab-btn" onclick="showTab('invoices')">Invoices</button>
+                <button class="tab-btn" onclick="showTab('bills')">Bills/Expenses</button>
+                <button class="tab-btn" onclick="showTab('customers')">Customers</button>
+            </div>
+
+            <!-- Estimates Tab -->
+            <div id="estimates-tab" class="tab-content active">
+                <div class="section">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+                        <h2>QuickBooks Estimates</h2>
+                        <div style="display:flex;gap:10px;">
+                            <button class="btn btn-secondary" onclick="loadEstimates()">🔄 Refresh</button>
+                        </div>
+                    </div>
+
+                    <div id="estimatesLoading" class="loading">
+                        <div class="spinner"></div>
+                        <p>Loading estimates from QuickBooks...</p>
+                    </div>
+
+                    <div id="estimatesEmpty" class="empty-state" style="display:none;">
+                        <div class="icon">&#x1F4CB;</div>
+                        <h3>No Estimates Found</h3>
+                        <p>Create estimates in QuickBooks Online to see them here.</p>
+                    </div>
+
+                    <div id="estimatesStats" class="stats-row" style="display:none;">
+                        <div class="stat-card">
+                            <div class="value" id="totalEstimates">0</div>
+                            <div class="label">Total Estimates</div>
+                        </div>
+                        <div class="stat-card success">
+                            <div class="value" id="syncedEstimates">0</div>
+                            <div class="label">Already Imported</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="value" id="pendingEstimates">0</div>
+                            <div class="label">Not Yet Imported</div>
+                        </div>
+                    </div>
+
+                    <!-- Filter Bar -->
+                    <div id="estimatesFilterBar" class="filter-bar" style="display:none;">
+                        <input type="text" class="search-input" id="estimateSearch" placeholder="Search by customer or estimate #..." onkeyup="filterEstimates()">
+                        <div class="filter-tabs">
+                            <button class="filter-tab active" onclick="setEstimateFilter('all', this)">All</button>
+                            <button class="filter-tab" onclick="setEstimateFilter('pending', this)">Not Imported</button>
+                            <button class="filter-tab" onclick="setEstimateFilter('synced', this)">Already Imported</button>
+                        </div>
+                        <div class="bulk-actions" id="bulkActions" style="display:none;">
+                            <span class="selected-count"><span id="selectedCount">0</span> selected</span>
+                            <button class="btn btn-primary" onclick="openImportPreview()">Import Selected</button>
+                        </div>
+                    </div>
+
+                    <div id="estimatesList" class="estimate-list"></div>
+                </div>
+            </div>
+
+            <!-- Invoices Tab -->
+            <div id="invoices-tab" class="tab-content">
+                <div class="section">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+                        <h2>QuickBooks Invoices</h2>
+                        <button class="btn btn-secondary" onclick="loadInvoices()">Refresh</button>
+                    </div>
+                    <p style="color:#666;margin-bottom:15px;">Link invoices to jobs to track income in Job Costing.</p>
+
+                    <div id="invoicesLoading" class="loading">
+                        <div class="spinner"></div>
+                        <p>Loading invoices...</p>
+                    </div>
+
+                    <div id="invoicesStats" class="stats-row" style="display:none;">
+                        <div class="stat-card">
+                            <div class="value" id="totalInvoices">0</div>
+                            <div class="label">Total</div>
+                        </div>
+                        <div class="stat-card success">
+                            <div class="value" id="paidInvoices">0</div>
+                            <div class="label">Paid</div>
+                        </div>
+                        <div class="stat-card warning">
+                            <div class="value" id="unpaidInvoices">0</div>
+                            <div class="label">Unpaid</div>
+                        </div>
+                    </div>
+
+                    <div id="invoicesList" class="estimate-list"></div>
+                </div>
+            </div>
+
+            <!-- Bills Tab -->
+            <div id="bills-tab" class="tab-content">
+                <div class="section">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+                        <h2>Bills &amp; Expenses</h2>
+                        <button class="btn btn-secondary" onclick="loadBills()">Refresh</button>
+                    </div>
+                    <p style="color:#666;margin-bottom:15px;">Link bills to jobs to track costs. Concrete suppliers (Geneva Rock, Jack B Parson, etc.) are automatically tagged.</p>
+
+                    <div id="billsLoading" class="loading">
+                        <div class="spinner"></div>
+                        <p>Loading bills and expenses...</p>
+                    </div>
+
+                    <div id="billsStats" class="stats-row" style="display:none;">
+                        <div class="stat-card">
+                            <div class="value" id="totalBills">0</div>
+                            <div class="label">Total</div>
+                        </div>
+                        <div class="stat-card success">
+                            <div class="value" id="syncedBills">0</div>
+                            <div class="label">Synced</div>
+                        </div>
+                        <div class="stat-card warning">
+                            <div class="value" id="pendingBills">0</div>
+                            <div class="label">Pending</div>
+                        </div>
+                    </div>
+
+                    <div id="billsList" class="estimate-list"></div>
+                </div>
+            </div>
+
+            <!-- Customers Tab -->
+            <div id="customers-tab" class="tab-content">
+                <div class="section">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+                        <h2>QuickBooks Customers</h2>
+                        <button class="btn btn-secondary" onclick="loadCustomers()">Refresh</button>
+                    </div>
+
+                    <div id="customersLoading" class="loading">
+                        <div class="spinner"></div>
+                        <p>Loading customers...</p>
+                    </div>
+
+                    <div id="customersList" class="estimate-list"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Not Connected Content -->
+        <div id="notConnectedContent" style="display:none;">
+            <div class="section">
+                <h2>Connect to QuickBooks Online</h2>
+                <p style="color:#666;margin-bottom:20px;">Link your QuickBooks Online account to automatically sync estimates, invoices, and customers.</p>
+
+                <div style="background:#f0f7ff;padding:20px;border-radius:8px;margin-bottom:20px;">
+                    <h3 style="margin-bottom:10px;color:#1e40af;">What you can do:</h3>
+                    <ul style="margin-left:20px;color:#1e40af;">
+                        <li>Import estimates/proposals as jobs with line items</li>
+                        <li>Automatically set job income from QuickBooks totals</li>
+                        <li>Keep track of which estimates have been synced</li>
+                        <li>View customer information and invoice status</li>
+                    </ul>
+                </div>
+
+                <a href="/api/quickbooks/connect" class="btn btn-qb" style="font-size:16px;padding:15px 30px;">
+                    Connect to QuickBooks
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Job Selection Modal -->
+    <div id="jobSelectModal" class="modal-overlay" onclick="if(event.target===this)closeJobModal()">
+        <div class="modal">
+            <button class="modal-close" onclick="closeJobModal()">&times;</button>
+            <h3 id="jobModalTitle">Select Job</h3>
+            <p style="color:#666;margin-bottom:15px;" id="jobModalDesc">Link this item to a job for cost tracking.</p>
+            <div id="jobSelectList" class="job-select-list"></div>
+            <div style="margin-top:15px;display:flex;gap:10px;">
+                <button class="btn btn-secondary" onclick="closeJobModal()">Cancel</button>
+                <button class="btn btn-primary" id="confirmLinkBtn" onclick="confirmJobLink()" disabled>Link to Job</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Import Preview Modal -->
+    <div id="importPreviewModal" class="modal-overlay" onclick="if(event.target===this)closeImportPreview()">
+        <div class="preview-modal">
+            <div class="preview-header">
+                <h3>📥 Import Estimates as Jobs</h3>
+                <div class="subtitle" id="previewSubtitle">Review the estimates to import</div>
+            </div>
+            <div class="preview-body" id="previewBody">
+                <!-- Content populated by JS -->
+            </div>
+            <div class="preview-footer">
+                <button class="btn btn-secondary" onclick="closeImportPreview()">Cancel</button>
+                <button class="btn btn-success" id="confirmImportBtn" onclick="confirmBulkImport()">Import All Selected</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        var API_BASE = '/api';
+        var isConnected = false;
+        var allEstimates = [];
+        var selectedEstimates = new Set();
+        var estimateFilter = 'all';
+
+        // Check URL parameters for connection result
+        var urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('connected') === 'true') {
+            showMessage('success', 'Successfully connected to QuickBooks: ' + decodeURIComponent(urlParams.get('company') || ''));
+            // Clean URL
+            window.history.replaceState({}, document.title, window.location.pathname);
+        } else if (urlParams.get('error')) {
+            showMessage('error', 'Connection failed: ' + decodeURIComponent(urlParams.get('error')));
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+
+        function showMessage(type, message) {
+            var div = document.createElement('div');
+            div.className = 'result-message ' + type;
+            div.innerHTML = message;
+            div.style.marginBottom = '20px';
+            document.querySelector('.main-content').insertBefore(div, document.querySelector('.main-content').firstChild.nextSibling);
+            setTimeout(function() { div.remove(); }, 5000);
+        }
+
+        // Check connection status
+        async function checkConnection() {
+            try {
+                var res = await fetch(API_BASE + '/quickbooks/status');
+                var data = await res.json();
+
+                var statusDiv = document.getElementById('connectionStatus');
+                var actionsDiv = document.getElementById('connectionActions');
+
+                if (data.connected) {
+                    isConnected = true;
+                    statusDiv.className = 'connection-status connected';
+                    statusDiv.innerHTML = '<div class="icon">&#x2705;</div>' +
+                        '<div class="info">' +
+                        '<div class="title">Connected to QuickBooks</div>' +
+                        '<div class="subtitle">' + escapeHtml(data.companyName) + '</div>' +
+                        '</div>' +
+                        '<button class="btn btn-danger" onclick="disconnect()">Disconnect</button>';
+
+                    document.getElementById('connectedContent').style.display = 'block';
+                    document.getElementById('notConnectedContent').style.display = 'none';
+
+                    // Load estimates
+                    loadEstimates();
+                } else {
+                    isConnected = false;
+                    statusDiv.className = 'connection-status disconnected';
+                    statusDiv.innerHTML = '<div class="icon">&#x1F517;</div>' +
+                        '<div class="info">' +
+                        '<div class="title">Not Connected</div>' +
+                        '<div class="subtitle">Connect your QuickBooks account to sync data</div>' +
+                        '</div>' +
+                        '<a href="/api/quickbooks/connect" class="btn btn-qb">Connect to QuickBooks</a>';
+
+                    document.getElementById('connectedContent').style.display = 'none';
+                    document.getElementById('notConnectedContent').style.display = 'block';
+                }
+            } catch (e) {
+                console.error('Connection check failed:', e);
+            }
+        }
+
+        async function disconnect() {
+            if (!confirm('Are you sure you want to disconnect from QuickBooks?')) return;
+
+            try {
+                await fetch(API_BASE + '/quickbooks/disconnect', { method: 'POST' });
+                window.location.reload();
+            } catch (e) {
+                alert('Failed to disconnect: ' + e.message);
+            }
+        }
+
+        function showTab(tab) {
+            document.querySelectorAll('.tab-btn').forEach(function(btn) {
+                btn.classList.remove('active');
+            });
+            document.querySelectorAll('.tab-content').forEach(function(content) {
+                content.classList.remove('active');
+            });
+
+            event.target.classList.add('active');
+            document.getElementById(tab + '-tab').classList.add('active');
+
+            if (tab === 'invoices' && !document.getElementById('invoicesList').innerHTML) {
+                loadInvoices();
+            } else if (tab === 'bills' && !document.getElementById('billsList').innerHTML) {
+                loadBills();
+            } else if (tab === 'customers' && !document.getElementById('customersList').innerHTML) {
+                loadCustomers();
+            }
+        }
+
+        async function loadEstimates() {
+            document.getElementById('estimatesLoading').style.display = 'block';
+            document.getElementById('estimatesList').innerHTML = '';
+            document.getElementById('estimatesStats').style.display = 'none';
+            document.getElementById('estimatesEmpty').style.display = 'none';
+            document.getElementById('estimatesFilterBar').style.display = 'none';
+            selectedEstimates.clear();
+            updateBulkActions();
+
+            try {
+                var res = await fetch(API_BASE + '/quickbooks/estimates');
+                var data = await res.json();
+
+                document.getElementById('estimatesLoading').style.display = 'none';
+
+                if (data.error) {
+                    document.getElementById('estimatesList').innerHTML = '<div class="result-message error">' + data.error + '</div>';
+                    return;
+                }
+
+                allEstimates = data.estimates || [];
+
+                if (allEstimates.length === 0) {
+                    document.getElementById('estimatesEmpty').style.display = 'block';
+                    return;
+                }
+
+                // Update stats
+                var synced = allEstimates.filter(function(e) { return e.is_synced; }).length;
+                document.getElementById('totalEstimates').textContent = allEstimates.length;
+                document.getElementById('syncedEstimates').textContent = synced;
+                document.getElementById('pendingEstimates').textContent = allEstimates.length - synced;
+                document.getElementById('estimatesStats').style.display = 'flex';
+                document.getElementById('estimatesFilterBar').style.display = 'flex';
+
+                renderEstimatesList();
+            } catch (e) {
+                document.getElementById('estimatesLoading').style.display = 'none';
+                document.getElementById('estimatesList').innerHTML = '<div class="result-message error">Failed to load estimates: ' + e.message + '</div>';
+            }
+        }
+
+        function renderEstimatesList() {
+            var filtered = getFilteredEstimates();
+
+            if (filtered.length === 0) {
+                document.getElementById('estimatesList').innerHTML = '<div class="empty-state"><div class="icon">🔍</div><h3>No Matching Estimates</h3><p>Try adjusting your search or filter.</p></div>';
+                return;
+            }
+
+            var html = '';
+            filtered.forEach(function(est) {
+                var isSelected = selectedEstimates.has(est.id);
+                html += '<div class="estimate-card' + (est.is_synced ? ' synced' : '') + (isSelected ? ' selected' : '') + '" id="estimate-' + est.id + '">' +
+                    '<input type="checkbox" class="estimate-checkbox" ' +
+                    (est.is_synced ? 'disabled title="Already imported"' : '') +
+                    (isSelected ? 'checked' : '') +
+                    ' onclick="toggleEstimateSelection(\'' + est.id + '\', event)">' +
+                    '<div class="estimate-icon">&#x1F4CB;</div>' +
+                    '<div class="estimate-info">' +
+                    '<div class="estimate-title">' + escapeHtml(est.customer_name) +
+                    (est.is_synced && est.synced_job_number ? ' <span class="qb-linked-badge">Job #' + est.synced_job_number + '</span>' : '') +
+                    '</div>' +
+                    '<div class="estimate-meta">' +
+                    'Estimate #' + (est.doc_number || est.id) + ' | ' +
+                    formatDate(est.txn_date) + ' | ' +
+                    est.line_count + ' line items' +
+                    (est.is_synced ? ' <span class="sync-badge synced">Imported</span>' : ' <span class="sync-badge pending">Not Imported</span>') +
+                    '</div>' +
+                    '<button class="expand-btn" onclick="event.stopPropagation();toggleLineItems(\'' + est.id + '\')">Show Line Items</button>' +
+                    '<div class="line-items-preview" id="lines-' + est.id + '">' +
+                    renderLineItems(est.lines) +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="estimate-amount">$' + est.total.toLocaleString('en-US', {minimumFractionDigits: 2}) + '</div>' +
+                    '<div class="estimate-actions">' +
+                    '<button class="btn ' + (est.is_synced ? 'btn-secondary' : 'btn-primary') + '" onclick="' + (est.is_synced ? 'viewLinkedJob(\'' + est.synced_job_id + '\')' : 'openSingleImportPreview(\'' + est.id + '\')') + '">' +
+                    (est.is_synced ? 'View Job' : 'Import') +
+                    '</button>' +
+                    '</div>' +
+                    '</div>';
+            });
+
+            document.getElementById('estimatesList').innerHTML = html;
+        }
+
+        function getFilteredEstimates() {
+            var searchTerm = document.getElementById('estimateSearch').value.toLowerCase();
+
+            return allEstimates.filter(function(est) {
+                // Filter by import status
+                if (estimateFilter === 'pending' && est.is_synced) return false;
+                if (estimateFilter === 'synced' && !est.is_synced) return false;
+
+                // Search filter
+                if (searchTerm) {
+                    var customerMatch = est.customer_name && est.customer_name.toLowerCase().includes(searchTerm);
+                    var docMatch = est.doc_number && est.doc_number.toLowerCase().includes(searchTerm);
+                    if (!customerMatch && !docMatch) return false;
+                }
+
+                return true;
+            });
+        }
+
+        function setEstimateFilter(filter, btn) {
+            estimateFilter = filter;
+            document.querySelectorAll('.filter-tab').forEach(function(b) { b.classList.remove('active'); });
+            btn.classList.add('active');
+            renderEstimatesList();
+        }
+
+        function filterEstimates() {
+            renderEstimatesList();
+        }
+
+        function toggleEstimateSelection(estId, event) {
+            event.stopPropagation();
+            if (selectedEstimates.has(estId)) {
+                selectedEstimates.delete(estId);
+            } else {
+                selectedEstimates.add(estId);
+            }
+            var card = document.getElementById('estimate-' + estId);
+            if (card) {
+                card.classList.toggle('selected', selectedEstimates.has(estId));
+            }
+            updateBulkActions();
+        }
+
+        function updateBulkActions() {
+            var count = selectedEstimates.size;
+            document.getElementById('selectedCount').textContent = count;
+            document.getElementById('bulkActions').style.display = count > 0 ? 'flex' : 'none';
+        }
+
+        function viewLinkedJob(jobId) {
+            if (jobId) {
+                window.location.href = '/job-costing.html?job=' + jobId;
+            }
+        }
+
+        // ========== SINGLE IMPORT PREVIEW ==========
+        function openSingleImportPreview(estId) {
+            selectedEstimates.clear();
+            selectedEstimates.add(estId);
+            openImportPreview();
+        }
+
+        // ========== BULK IMPORT PREVIEW ==========
+        function openImportPreview() {
+            if (selectedEstimates.size === 0) {
+                alert('Please select at least one estimate to import.');
+                return;
+            }
+
+            var selected = allEstimates.filter(function(e) { return selectedEstimates.has(e.id) && !e.is_synced; });
+            if (selected.length === 0) {
+                alert('All selected estimates have already been imported.');
+                return;
+            }
+
+            document.getElementById('previewSubtitle').textContent = selected.length + ' estimate' + (selected.length > 1 ? 's' : '') + ' will be imported as new jobs';
+
+            var totalValue = selected.reduce(function(sum, e) { return sum + e.total; }, 0);
+
+            var html = '<div class="preview-section">' +
+                '<h4>Estimates to Import</h4>';
+
+            selected.forEach(function(est, idx) {
+                html += '<div style="display:flex;align-items:center;gap:12px;padding:12px;background:#f9fafb;border-radius:8px;margin-bottom:8px;">' +
+                    '<div style="flex:1;">' +
+                    '<div style="font-weight:600;">' + escapeHtml(est.customer_name) + '</div>' +
+                    '<div style="font-size:12px;color:#666;">Estimate #' + (est.doc_number || est.id) + ' • ' + est.line_count + ' items</div>' +
+                    '</div>' +
+                    '<div style="font-weight:700;color:#22c55e;">$' + est.total.toLocaleString('en-US', {minimumFractionDigits: 2}) + '</div>' +
+                    '</div>';
+            });
+
+            html += '</div>';
+
+            html += '<div class="preview-section">' +
+                '<h4>Import Settings</h4>' +
+                '<div class="job-match-option create-new-option selected" onclick="setImportOption(\'create\')">' +
+                '<div class="match-type">Create New Jobs</div>' +
+                '<div style="font-size:14px;">Each estimate will become a new job with contract value set automatically</div>' +
+                '</div>' +
+                '</div>';
+
+            html += '<div class="preview-section" style="background:#f0fdf4;padding:15px;border-radius:8px;border:1px solid #86efac;">' +
+                '<div style="display:flex;justify-content:space-between;align-items:center;">' +
+                '<div><strong>Total Contract Value:</strong></div>' +
+                '<div style="font-size:20px;font-weight:700;color:#22c55e;">$' + totalValue.toLocaleString('en-US', {minimumFractionDigits: 2}) + '</div>' +
+                '</div>' +
+                '</div>';
+
+            document.getElementById('previewBody').innerHTML = html;
+            document.getElementById('importPreviewModal').classList.add('show');
+        }
+
+        function closeImportPreview() {
+            document.getElementById('importPreviewModal').classList.remove('show');
+        }
+
+        function setImportOption(option) {
+            // Future: support linking to existing jobs
+        }
+
+        async function confirmBulkImport() {
+            var selected = allEstimates.filter(function(e) { return selectedEstimates.has(e.id) && !e.is_synced; });
+            if (selected.length === 0) return;
+
+            var btn = document.getElementById('confirmImportBtn');
+            btn.disabled = true;
+            btn.textContent = 'Importing...';
+
+            var imported = 0;
+            var failed = 0;
+
+            for (var i = 0; i < selected.length; i++) {
+                var est = selected[i];
+                try {
+                    var res = await fetch(API_BASE + '/quickbooks/import-estimate/' + est.id, { method: 'POST' });
+                    var data = await res.json();
+                    if (data.error) {
+                        failed++;
+                    } else {
+                        imported++;
+                    }
+                } catch (e) {
+                    failed++;
+                }
+            }
+
+            closeImportPreview();
+
+            if (failed > 0) {
+                showMessage('error', 'Imported ' + imported + ' estimates. ' + failed + ' failed.');
+            } else {
+                showMessage('success', 'Successfully imported ' + imported + ' estimate' + (imported > 1 ? 's' : '') + ' as jobs!');
+            }
+
+            selectedEstimates.clear();
+            loadEstimates();
+
+            btn.disabled = false;
+            btn.textContent = 'Import All Selected';
+        }
+
+        function renderLineItems(lines) {
+            if (!lines || lines.length === 0) return '<p style="color:#666;font-size:12px;">No line items</p>';
+
+            var html = '<table><thead><tr><th>Item</th><th>Description</th><th class="number">Qty</th><th class="number">Rate</th><th class="number">Amount</th></tr></thead><tbody>';
+            lines.forEach(function(line) {
+                html += '<tr>' +
+                    '<td>' + escapeHtml(line.item_name || '-') + '</td>' +
+                    '<td>' + escapeHtml(line.description || '-') + '</td>' +
+                    '<td class="number">' + (line.qty || 0) + '</td>' +
+                    '<td class="number">$' + (line.rate || 0).toFixed(2) + '</td>' +
+                    '<td class="number">$' + (line.amount || 0).toFixed(2) + '</td>' +
+                    '</tr>';
+            });
+            html += '</tbody></table>';
+            return html;
+        }
+
+        function toggleLineItems(id) {
+            var el = document.getElementById('lines-' + id);
+            el.classList.toggle('show');
+        }
+
+        async function importEstimate(id) {
+            var btn = event.target;
+            btn.disabled = true;
+            btn.textContent = 'Importing...';
+
+            try {
+                var res = await fetch(API_BASE + '/quickbooks/import-estimate/' + id, { method: 'POST' });
+                var data = await res.json();
+
+                if (data.error) {
+                    alert('Import failed: ' + data.error);
+                    btn.disabled = false;
+                    btn.textContent = 'Import as Job';
+                    return;
+                }
+
+                // Update UI
+                var card = document.getElementById('estimate-' + id);
+                card.classList.add('synced');
+                btn.textContent = 'Imported';
+
+                // Show success
+                showMessage('success', 'Imported as job: #' + data.job_number + ' - ' + data.job_name + ' ($' + data.income_set.toLocaleString('en-US', {minimumFractionDigits: 2}) + ')');
+
+                // Reload to update stats
+                setTimeout(loadEstimates, 1500);
+            } catch (e) {
+                alert('Import failed: ' + e.message);
+                btn.disabled = false;
+                btn.textContent = 'Import as Job';
+            }
+        }
+
+        async function syncAllEstimates() {
+            if (!confirm('Import all pending estimates as jobs?')) return;
+
+            var btn = event.target;
+            btn.disabled = true;
+            btn.textContent = 'Syncing...';
+
+            try {
+                var res = await fetch(API_BASE + '/quickbooks/sync-all-estimates', { method: 'POST' });
+                var data = await res.json();
+
+                if (data.error) {
+                    alert('Sync failed: ' + data.error);
+                } else {
+                    showMessage('success', 'Synced ' + data.imported + ' estimates. Skipped ' + data.skipped + ' already synced.');
+                    loadEstimates();
+                }
+            } catch (e) {
+                alert('Sync failed: ' + e.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Sync All New';
+            }
+        }
+
+        var invoicesData = [];
+
+        async function loadInvoices() {
+            document.getElementById('invoicesLoading').style.display = 'block';
+            document.getElementById('invoicesList').innerHTML = '';
+            document.getElementById('invoicesStats').style.display = 'none';
+
+            try {
+                var res = await fetch(API_BASE + '/quickbooks/invoices');
+                var data = await res.json();
+
+                document.getElementById('invoicesLoading').style.display = 'none';
+
+                if (data.error) {
+                    document.getElementById('invoicesList').innerHTML = '<div class="result-message error">' + data.error + '</div>';
+                    return;
+                }
+
+                var invoices = data.invoices || [];
+                invoicesData = invoices;
+
+                if (invoices.length === 0) {
+                    document.getElementById('invoicesList').innerHTML = '<div class="empty-state"><div class="icon">&#x1F9FE;</div><h3>No Invoices</h3></div>';
+                    return;
+                }
+
+                // Update stats
+                var paid = invoices.filter(function(i) { return i.balance === 0; }).length;
+                var totalAmount = invoices.reduce(function(sum, i) { return sum + i.total; }, 0);
+                document.getElementById('totalInvoices').textContent = invoices.length;
+                document.getElementById('paidInvoices').textContent = paid;
+                document.getElementById('unpaidInvoices').textContent = invoices.length - paid;
+                document.getElementById('invoicesStats').style.display = 'flex';
+
+                var html = '';
+                invoices.forEach(function(inv) {
+                    var isPaid = inv.balance === 0;
+                    var isSynced = inv.synced_job_id;
+                    html += '<div class="estimate-card' + (isSynced ? ' synced' : '') + '" id="invoice-' + inv.id + '">' +
+                        '<div class="estimate-icon">' + (isPaid ? '&#x2705;' : '&#x1F9FE;') + '</div>' +
+                        '<div class="estimate-info">' +
+                        '<div class="estimate-title">' + escapeHtml(inv.customer_name) + '</div>' +
+                        '<div class="estimate-meta">' +
+                        'Invoice #' + (inv.doc_number || inv.id) + ' | ' +
+                        formatDate(inv.txn_date) + ' | ' +
+                        'Due: ' + formatDate(inv.due_date) +
+                        (isSynced ? ' <span class="sync-badge synced">Linked to Job #' + inv.synced_job_number + '</span>' : '') +
+                        '</div>' +
+                        '</div>' +
+                        '<div style="text-align:right;">' +
+                        '<div class="estimate-amount">$' + inv.total.toLocaleString('en-US', {minimumFractionDigits: 2}) + '</div>' +
+                        (isPaid ? '<div style="color:#22c55e;font-size:12px;">Paid</div>' :
+                            '<div style="color:#ef4444;font-size:12px;">Balance: $' + inv.balance.toLocaleString('en-US', {minimumFractionDigits: 2}) + '</div>') +
+                        '</div>' +
+                        '<div class="estimate-actions">' +
+                        '<button class="btn ' + (isSynced ? 'btn-secondary' : 'btn-primary') + '" onclick="openSyncInvoiceModal(\'' + inv.id + '\')">' +
+                        (isSynced ? 'Change Job' : 'Link to Job') +
+                        '</button>' +
+                        '</div>' +
+                        '</div>';
+                });
+
+                document.getElementById('invoicesList').innerHTML = html;
+            } catch (e) {
+                document.getElementById('invoicesLoading').style.display = 'none';
+                document.getElementById('invoicesList').innerHTML = '<div class="result-message error">Failed to load invoices: ' + e.message + '</div>';
+            }
+        }
+
+        async function loadCustomers() {
+            document.getElementById('customersLoading').style.display = 'block';
+            document.getElementById('customersList').innerHTML = '';
+
+            try {
+                var res = await fetch(API_BASE + '/quickbooks/customers');
+                var data = await res.json();
+
+                document.getElementById('customersLoading').style.display = 'none';
+
+                if (data.error) {
+                    document.getElementById('customersList').innerHTML = '<div class="result-message error">' + data.error + '</div>';
+                    return;
+                }
+
+                var customers = data.customers || [];
+
+                if (customers.length === 0) {
+                    document.getElementById('customersList').innerHTML = '<div class="empty-state"><div class="icon">&#x1F465;</div><h3>No Customers</h3></div>';
+                    return;
+                }
+
+                var html = '';
+                customers.forEach(function(cust) {
+                    html += '<div class="estimate-card">' +
+                        '<div class="estimate-icon">&#x1F464;</div>' +
+                        '<div class="estimate-info">' +
+                        '<div class="estimate-title">' + escapeHtml(cust.name) + '</div>' +
+                        '<div class="estimate-meta">' +
+                        (cust.company ? escapeHtml(cust.company) + ' | ' : '') +
+                        (cust.email || 'No email') + ' | ' +
+                        (cust.phone || 'No phone') +
+                        '</div>' +
+                        '</div>' +
+                        '<div class="estimate-amount' + (cust.balance > 0 ? '" style="color:#ef4444;"' : '"') + '>' +
+                        (cust.balance > 0 ? 'Owes: $' + cust.balance.toLocaleString('en-US', {minimumFractionDigits: 2}) : '$0.00') +
+                        '</div>' +
+                        '</div>';
+                });
+
+                document.getElementById('customersList').innerHTML = html;
+            } catch (e) {
+                document.getElementById('customersLoading').style.display = 'none';
+                document.getElementById('customersList').innerHTML = '<div class="result-message error">Failed to load customers: ' + e.message + '</div>';
+            }
+        }
+
+        // Bills and Expenses
+        var billsData = [];
+
+        async function loadBills() {
+            document.getElementById('billsLoading').style.display = 'block';
+            document.getElementById('billsList').innerHTML = '';
+            document.getElementById('billsStats').style.display = 'none';
+
+            try {
+                var res = await fetch(API_BASE + '/quickbooks/bills');
+                var data = await res.json();
+
+                document.getElementById('billsLoading').style.display = 'none';
+
+                if (data.error) {
+                    document.getElementById('billsList').innerHTML = '<div class="result-message error">' + data.error + '</div>';
+                    return;
+                }
+
+                var bills = data.bills || [];
+                billsData = bills;
+
+                if (bills.length === 0) {
+                    document.getElementById('billsList').innerHTML = '<div class="empty-state"><div class="icon">&#x1F4B8;</div><h3>No Bills or Expenses</h3></div>';
+                    return;
+                }
+
+                // Update stats
+                var synced = bills.filter(function(b) { return b.synced_job_id; }).length;
+                var totalAmount = bills.reduce(function(sum, b) { return sum + b.total; }, 0);
+                document.getElementById('totalBills').textContent = bills.length;
+                document.getElementById('syncedBills').textContent = synced;
+                document.getElementById('pendingBills').textContent = bills.length - synced;
+                document.getElementById('billsStats').style.display = 'flex';
+
+                var html = '';
+                bills.forEach(function(bill) {
+                    var isSynced = bill.synced_job_id;
+                    var isConcrete = bill.is_concrete;
+                    html += '<div class="estimate-card' + (isSynced ? ' synced' : '') + '" id="bill-' + bill.id + '">' +
+                        '<div class="estimate-icon">' + (bill.type === 'Bill' ? '&#x1F4C4;' : '&#x1F4B8;') + '</div>' +
+                        '<div class="estimate-info">' +
+                        '<div class="estimate-title">' + escapeHtml(bill.vendor_name) +
+                        (isConcrete ? ' <span class="concrete-badge">Concrete</span>' : '') + '</div>' +
+                        '<div class="estimate-meta">' +
+                        bill.type + ' #' + (bill.doc_number || bill.id) + ' | ' +
+                        formatDate(bill.txn_date) +
+                        (isSynced ? ' <span class="sync-badge synced">Linked to Job #' + bill.synced_job_number + '</span>' : '') +
+                        '</div>' +
+                        '</div>' +
+                        '<div style="text-align:right;">' +
+                        '<div class="estimate-amount" style="color:#ef4444;">$' + bill.total.toLocaleString('en-US', {minimumFractionDigits: 2}) + '</div>' +
+                        '<div style="font-size:12px;color:#666;">' + bill.type + '</div>' +
+                        '</div>' +
+                        '<div class="estimate-actions">' +
+                        '<button class="btn ' + (isSynced ? 'btn-secondary' : 'btn-primary') + '" onclick="openSyncBillModal(\'' + bill.id + '\')">' +
+                        (isSynced ? 'Change Job' : 'Link to Job') +
+                        '</button>' +
+                        '</div>' +
+                        '</div>';
+                });
+
+                document.getElementById('billsList').innerHTML = html;
+            } catch (e) {
+                document.getElementById('billsLoading').style.display = 'none';
+                document.getElementById('billsList').innerHTML = '<div class="result-message error">Failed to load bills: ' + e.message + '</div>';
+            }
+        }
+
+        // Job selection modal
+        var jobsList = [];
+        var selectedJobId = null;
+        var pendingItemType = null; // 'invoice' or 'bill'
+        var pendingItemId = null;
+
+        async function loadJobsList() {
+            try {
+                var res = await fetch('/api/jobs');
+                var data = await res.json();
+                jobsList = data || [];
+            } catch (e) {
+                console.error('Failed to load jobs:', e);
+                jobsList = [];
+            }
+        }
+
+        function openSyncInvoiceModal(invoiceId) {
+            pendingItemType = 'invoice';
+            pendingItemId = invoiceId;
+            var invoice = invoicesData.find(function(i) { return i.id == invoiceId; });
+            document.getElementById('jobModalTitle').textContent = 'Link Invoice to Job';
+            document.getElementById('jobModalDesc').textContent = 'Invoice #' + (invoice ? invoice.doc_number || invoice.id : invoiceId) +
+                ' - $' + (invoice ? invoice.total.toLocaleString('en-US', {minimumFractionDigits: 2}) : '0.00');
+            openJobModal(invoice ? invoice.synced_job_id : null);
+        }
+
+        function openSyncBillModal(billId) {
+            pendingItemType = 'bill';
+            pendingItemId = billId;
+            var bill = billsData.find(function(b) { return b.id == billId; });
+            document.getElementById('jobModalTitle').textContent = 'Link Bill to Job';
+            document.getElementById('jobModalDesc').textContent = (bill ? bill.vendor_name : 'Bill') +
+                ' - $' + (bill ? bill.total.toLocaleString('en-US', {minimumFractionDigits: 2}) : '0.00');
+            openJobModal(bill ? bill.synced_job_id : null);
+        }
+
+        async function openJobModal(preselectedJobId) {
+            selectedJobId = preselectedJobId || null;
+
+            if (jobsList.length === 0) {
+                await loadJobsList();
+            }
+
+            var html = '';
+            jobsList.forEach(function(job) {
+                var isSelected = job.id == selectedJobId;
+                html += '<div class="job-select-item' + (isSelected ? ' selected' : '') + '" onclick="selectJob(' + job.id + ')">' +
+                    '<div>' +
+                    '<div class="job-name">#' + job.job_number + ' - ' + escapeHtml(job.name || job.customer_name) + '</div>' +
+                    '<div class="job-meta">' + escapeHtml(job.customer_name || '') + ' | ' + escapeHtml(job.address || '') + '</div>' +
+                    '</div>' +
+                    '<div>' +
+                    (job.income ? '<div style="color:#22c55e;font-weight:600;">$' + parseFloat(job.income).toLocaleString('en-US', {minimumFractionDigits: 2}) + '</div>' : '') +
+                    '</div>' +
+                    '</div>';
+            });
+
+            if (jobsList.length === 0) {
+                html = '<div class="empty-state"><p>No jobs found. Create a job first.</p></div>';
+            }
+
+            document.getElementById('jobSelectList').innerHTML = html;
+            document.getElementById('confirmLinkBtn').disabled = !selectedJobId;
+            document.getElementById('jobSelectModal').classList.add('show');
+        }
+
+        function selectJob(jobId) {
+            selectedJobId = jobId;
+            document.querySelectorAll('.job-select-item').forEach(function(el) {
+                el.classList.remove('selected');
+            });
+            event.currentTarget.classList.add('selected');
+            document.getElementById('confirmLinkBtn').disabled = false;
+        }
+
+        function closeJobModal() {
+            document.getElementById('jobSelectModal').classList.remove('show');
+            pendingItemType = null;
+            pendingItemId = null;
+            selectedJobId = null;
+        }
+
+        async function confirmJobLink() {
+            if (!selectedJobId || !pendingItemId) return;
+
+            var btn = document.getElementById('confirmLinkBtn');
+            btn.disabled = true;
+            btn.textContent = 'Linking...';
+
+            try {
+                var endpoint = pendingItemType === 'invoice'
+                    ? API_BASE + '/quickbooks/sync-invoice/' + pendingItemId
+                    : API_BASE + '/quickbooks/sync-bill/' + pendingItemId;
+
+                var res = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ job_id: selectedJobId })
+                });
+
+                var data = await res.json();
+
+                if (data.error) {
+                    alert('Failed to link: ' + data.error);
+                    btn.disabled = false;
+                    btn.textContent = 'Link to Job';
+                    return;
+                }
+
+                closeJobModal();
+                showMessage('success', (pendingItemType === 'invoice' ? 'Invoice' : 'Bill') + ' linked to job successfully!');
+
+                // Refresh the list
+                if (pendingItemType === 'invoice') {
+                    loadInvoices();
+                } else {
+                    loadBills();
+                }
+            } catch (e) {
+                alert('Failed to link: ' + e.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Link to Job';
+            }
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return '-';
+            var d = new Date(dateStr);
+            return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            var div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        // Initialize
+        checkConnection();
+    </script>
+</body>
+</html>
