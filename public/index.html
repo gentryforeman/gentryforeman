@@ -2421,63 +2421,49 @@ async function openDailyModalForDate(dateStr, presetJobId) {
           </select>\
         </div>\
         <div id="running-totals-container"></div>\
-        \
-        <div class="modal-tabs">\
-          <button class="modal-tab active" onclick="switchRecordTab(\'info\')">INFO</button>\
-          <button class="modal-tab" onclick="switchRecordTab(\'detail\')">DETAIL</button>\
-          <button class="modal-tab" onclick="switchRecordTab(\'work\')">WORK / ITEMS</button>\
+        <div class="yards-input-group">\
+          <div class="icon">🏗️</div>\
+          <div class="input-wrapper">\
+            <label>YARDS POURED TODAY</label>\
+            <input type="number" id="record-yards" class="yards-input" placeholder="0" step="0.25" min="0" inputmode="decimal">\
+          </div>\
+        </div>\
+        <div class="input-group">\
+          <label>Foreman / Crew</label>\
+          <select id="record-foreman">\
+            <option value="">Select Foreman</option>\
+            ' + (crewLeads || []).map(function(c) { return '<option value="' + c.id + '">' + c.name + '</option>'; }).join('') + '\
+          </select>\
         </div>\
         \
-        <div id="tab-info" class="modal-tab-content active">\
-          <div class="yards-input-group">\
-            <div class="icon">🏗️</div>\
-            <div class="input-wrapper">\
-              <label>YARDS POURED TODAY</label>\
-              <input type="number" id="record-yards" class="yards-input" placeholder="0" step="0.25" min="0" inputmode="decimal">\
-            </div>\
-          </div>\
-          <div class="input-group">\
-            <label>Foreman / Crew</label>\
-            <select id="record-foreman">\
-              <option value="">Select Foreman</option>\
-              ' + (crewLeads || []).map(function(c) { return '<option value="' + c.id + '">' + c.name + '</option>'; }).join('') + '\
-            </select>\
-          </div>\
-          <div class="input-group">\
-            <label>Additional Notes</label>\
-            <textarea id="record-notes" rows="3" placeholder="Any additional notes for this day..."></textarea>\
+        <div id="work-items-container" class="work-items-container" style="border:1px solid #e5e7eb;border-radius:12px;margin-top:20px;">\
+          <div class="work-items-empty">\
+            <div class="work-items-empty-icon">📋</div>\
+            <p>Select a job to see work items</p>\
           </div>\
         </div>\
         \
-        <div id="tab-detail" class="modal-tab-content">\
-          <div class="worker-hours-section" style="margin-top:0;">\
-            <div class="worker-hours-header">\
-              <h4>👷 Worker Hours</h4>\
-              <button type="button" class="add-worker-btn" onclick="openAddWorkerHoursModal()">+ Add Worker</button>\
-            </div>\
-            <div id="worker-hours-list">\
-              <p style="color:var(--text-secondary);font-size:14px;text-align:center;padding:12px;">No workers added yet</p>\
-            </div>\
+        <div class="input-group" style="margin-top:20px;">\
+          <label>Additional Notes</label>\
+          <textarea id="record-notes" rows="2" placeholder="Any additional notes for this day..."></textarea>\
+        </div>\
+        <div class="worker-hours-section">\
+          <div class="worker-hours-header">\
+            <h4>👷 Worker Hours</h4>\
+            <button type="button" class="add-worker-btn" onclick="openAddWorkerHoursModal()">+ Add Worker</button>\
           </div>\
-          <div class="input-group" style="margin-top:20px;">\
-            <label>📷 Photos</label>\
-            <div class="photo-upload-area" id="photo-upload-area" onclick="document.getElementById(\'photo-input\').click()">\
-              <input type="file" id="photo-input" multiple accept="image/*" capture="environment" style="display:none;" onchange="handlePhotoSelect(event)">\
-              <div class="upload-icon">📷</div>\
-              <p>Tap to take photo or select from gallery</p>\
-            </div>\
-            <div class="photo-preview" id="photo-preview"></div>\
+          <div id="worker-hours-list">\
+            <p style="color:var(--text-secondary);font-size:14px;text-align:center;padding:12px;">No workers added yet</p>\
           </div>\
         </div>\
-        \
-        <div id="tab-work" class="modal-tab-content">\
-          <div id="work-items-container" class="work-items-container" style="border:1px solid #e5e7eb;border-radius:12px;">\
-            <div class="work-items-empty">\
-              <div class="work-items-empty-icon">📋</div>\
-              <p>Select a job to see work items</p>\
-              <p class="sub">Items will load from job takeoffs</p>\
-            </div>\
+        <div class="input-group">\
+          <label>📷 Photos</label>\
+          <div class="photo-upload-area" id="photo-upload-area" onclick="document.getElementById(\'photo-input\').click()">\
+            <input type="file" id="photo-input" multiple accept="image/*" capture="environment" style="display:none;" onchange="handlePhotoSelect(event)">\
+            <div class="upload-icon">📷</div>\
+            <p>Tap to take photo or select from gallery</p>\
           </div>\
+          <div class="photo-preview" id="photo-preview"></div>\
         </div>\
       </div>\
       <div class="modal-footer">\
@@ -2530,11 +2516,20 @@ async function loadWeather() {
 }
 
 async function onJobSelected() {
+  console.log('=== onJobSelected FIRED ===');
   var jobId = document.getElementById('record-job').value;
   var dateStr = document.getElementById('record-date').value;
   var foremanSelect = document.getElementById('record-foreman');
+  console.log('Job ID:', jobId, 'Date:', dateStr);
+
+  // Visual debug
+  var container = document.getElementById('work-items-container');
+  if (container) {
+    container.innerHTML = '<div style="padding:20px;background:#ffe4e6;border-radius:8px;"><strong>DEBUG:</strong> onJobSelected fired. Job ID: ' + jobId + '</div>';
+  }
 
   if (!jobId) {
+    console.log('No job selected, resetting...');
     document.getElementById('running-totals-container').innerHTML = '';
     pendingWorkerHours = [];
     renderWorkerHoursList();
@@ -2544,7 +2539,7 @@ async function onJobSelected() {
     takeoffEntries = {};
     var container = document.getElementById('work-items-container');
     if (container) {
-      container.innerHTML = '<div class="work-items-empty"><div class="work-items-empty-icon">📋</div><p>Select a job to see work items</p><p class="sub">Items will load from job takeoffs</p></div>';
+      container.innerHTML = '<div class="work-items-empty"><div class="work-items-empty-icon">📋</div><p>Select a job to see work items</p></div>';
     }
     return;
   }
@@ -2589,20 +2584,38 @@ async function onJobSelected() {
   } catch(e) {}
 
   // Load job takeoffs
+  var fetchUrl = API_BASE + '/jobs/' + jobId + '/takeoffs';
+  console.log('Fetching takeoffs from:', fetchUrl);
+
+  // Visual debug - show loading
+  container = document.getElementById('work-items-container');
+  if (container) {
+    container.innerHTML = '<div style="padding:20px;background:#fef9c3;border-radius:8px;"><strong>Loading takeoffs...</strong><br>URL: ' + fetchUrl + '</div>';
+  }
+
   try {
-    var res = await fetch(API_BASE + '/jobs/' + jobId + '/takeoffs');
+    var res = await fetch(fetchUrl);
+    console.log('Takeoffs response status:', res.status);
     if (res.ok) {
       currentJobTakeoffs = await res.json();
       takeoffEntries = {}; // Reset entries
+      console.log('Loaded takeoffs:', currentJobTakeoffs.length, currentJobTakeoffs);
+
+      // Visual debug before render
+      if (container) {
+        container.innerHTML = '<div style="padding:20px;background:#d1fae5;border-radius:8px;"><strong>Got ' + currentJobTakeoffs.length + ' takeoffs!</strong> Calling renderTakeoffsTable...</div>';
+      }
+
       renderTakeoffsTable();
-      console.log('Loaded takeoffs:', currentJobTakeoffs.length);
     } else {
       console.log('Takeoffs response not ok:', res.status);
+      container.innerHTML = '<div style="padding:20px;background:#fee2e2;border-radius:8px;"><strong>ERROR:</strong> Response status ' + res.status + '</div>';
       currentJobTakeoffs = [];
       renderTakeoffsTable();
     }
   } catch(e) {
     console.error('Error loading takeoffs:', e);
+    container.innerHTML = '<div style="padding:20px;background:#fee2e2;border-radius:8px;"><strong>FETCH ERROR:</strong> ' + e.message + '</div>';
     currentJobTakeoffs = [];
     renderTakeoffsTable();
   }
@@ -2617,9 +2630,12 @@ function toggleNote(btn, note) {
 
 // Render work items table for daily record (Ultimate Foreman style)
 function renderTakeoffsTable() {
+  console.log('=== renderTakeoffsTable CALLED ===');
   var container = document.getElementById('work-items-container');
+  console.log('Container found:', !!container);
   if (!container) return;
 
+  console.log('currentJobTakeoffs:', currentJobTakeoffs ? currentJobTakeoffs.length : 'null');
   if (!currentJobTakeoffs || currentJobTakeoffs.length === 0) {
     container.innerHTML = '<div class="work-items-empty"><div class="work-items-empty-icon">📋</div><p>No work items for this job</p><p class="sub">Add takeoff items in Job Costing to track production</p></div>';
     return;
@@ -2690,7 +2706,9 @@ function renderTakeoffsTable() {
     html += '</div></div>';
   });
 
+  console.log('Setting container innerHTML, html length:', html.length);
   container.innerHTML = html;
+  console.log('=== renderTakeoffsTable COMPLETE ===');
 }
 
 // Toggle work category collapse
