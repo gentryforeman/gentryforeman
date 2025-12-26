@@ -29,12 +29,13 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static('public'));
 
-// Serve home.html as the default landing page
+// Serve home.html as the default landing page (must be before static middleware)
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'home.html'));
 });
+
+app.use(express.static('public'));
 
 // Serve uploaded files statically
 app.use('/uploads', express.static('uploads'));
