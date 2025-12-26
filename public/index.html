@@ -2370,7 +2370,15 @@ async function saveSchedule() {
 }
 
 // ========== DAILY RECORD MODAL ==========
-function openDailyModal() { openDailyModalForDate(new Date().toISOString().split('T')[0]); }
+function openDailyModal() {
+  var today = new Date().toISOString().split('T')[0];
+  // Smart default: auto-select job scheduled for today
+  var todaySchedule = schedule.find(function(s) {
+    return s.scheduled_date && s.scheduled_date.split('T')[0] === today;
+  });
+  var presetJobId = todaySchedule ? todaySchedule.job_id : null;
+  openDailyModalForDate(today, presetJobId);
+}
 function openDailyModalForJob(jobId) { openDailyModalForDate(new Date().toISOString().split('T')[0], jobId); }
 
 async function openDailyModalForDate(dateStr, presetJobId) {
@@ -2578,77 +2586,63 @@ function toggleNote(btn, note) {
   else selectedNotes.push(note);
 }
 
-// Ultimate Foreman style takeoffs table
+// Mobile-first tap-to-enter work items
 function renderTakeoffsTable() {
   var container = document.getElementById('work-items-container');
   if (!container) return;
 
   if (!currentJobTakeoffs || currentJobTakeoffs.length === 0) {
-    container.innerHTML = '<p style="padding:20px;text-align:center;color:#999;">No takeoffs for this job</p>';
+    container.innerHTML = '<p style="padding:24px;text-align:center;color:#999;font-size:14px;">No work items for this job</p>';
     return;
   }
 
-  // Categorize takeoffs by unit type
-  var categories = {
-    items: { label: 'Items', items: [] },
-    material: { label: "Mat'l", items: [] },
-    misc: { label: 'Misc', items: [] }
-  };
+  var html = '';
 
   currentJobTakeoffs.forEach(function(t) {
-    var unit = (t.unit || 'EA').toUpperCase();
-    if (unit === 'CYD' || unit === 'CY' || unit === 'YD' || unit === 'YARD') {
-      categories.material.items.push(t);
-    } else if (unit === 'MI' || unit === 'MILE' || unit === 'HR' || unit === 'DAY') {
-      categories.misc.items.push(t);
-    } else {
-      categories.items.items.push(t);
-    }
-  });
+    var qty = parseFloat(t.quantity) || 0;
+    var done = parseFloat(t.quantity_completed) || 0;
+    var todayVal = takeoffEntries[t.id] || '';
+    var hasValue = todayVal !== '';
+    var remaining = qty - done;
 
-  // Compact styles
-  var headerStyle = 'display:flex;align-items:center;padding:6px 10px;background:#f3f4f6;font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;border-bottom:1px solid #e5e7eb;';
-  var rowStyle = 'display:flex;align-items:center;padding:8px 10px;border-bottom:1px solid #f3f4f6;font-size:13px;';
-  var catHeaderStyle = 'display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:#f9fafb;cursor:pointer;font-weight:600;font-size:13px;border-bottom:1px solid #e5e7eb;';
+    // Full-width tappable row - min 52px height for touch
+    html += '<div class="work-row" data-id="' + t.id + '" onclick="focusWorkInput(' + t.id + ')" style="';
+    html += 'display:flex;align-items:center;padding:12px 14px;min-height:52px;';
+    html += 'border-bottom:1px solid #e5e7eb;cursor:pointer;';
+    html += hasValue ? 'background:#dcfce7;' : 'background:white;';
+    html += '">';
 
-  // Header row
-  var html = '<div style="' + headerStyle + '">';
-  html += '<div style="width:28px;"></div>';
-  html += '<div style="flex:1;">Name</div>';
-  html += '<div style="width:55px;text-align:right;">Qty</div>';
-  html += '<div style="width:40px;text-align:center;">UOM</div>';
-  html += '<div style="width:60px;text-align:right;">Done</div>';
-  html += '</div>';
-
-  // Render each category
-  ['items', 'material', 'misc'].forEach(function(catKey) {
-    var cat = categories[catKey];
-    if (cat.items.length === 0) return;
-
-    html += '<div class="work-category" id="work-cat-' + catKey + '">';
-    html += '<div style="' + catHeaderStyle + '" onclick="toggleWorkCategory(\'' + catKey + '\')">';
-    html += '<span>▼ ' + cat.label + ' (' + cat.items.length + ')</span>';
+    // Left: Item info
+    html += '<div style="flex:1;min-width:0;">';
+    html += '<div style="font-size:15px;font-weight:500;color:#1f2937;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (t.item_name || t.source || 'Unknown') + '</div>';
+    html += '<div style="font-size:12px;color:#6b7280;margin-top:2px;">' + qty + ' ' + (t.unit || 'EA');
+    if (done > 0) html += ' • ' + done + ' done';
+    if (remaining > 0 && done > 0) html += ' • ' + remaining + ' left';
     html += '</div>';
-    html += '<div class="work-items-list">';
+    html += '</div>';
 
-    cat.items.forEach(function(t) {
-      var qty = parseFloat(t.quantity) || 0;
-      var todayVal = takeoffEntries[t.id] || '';
-      var isChecked = todayVal !== '';
+    // Right: Input field
+    html += '<div onclick="event.stopPropagation()" style="margin-left:12px;">';
+    html += '<input type="number" id="work-input-' + t.id + '" value="' + todayVal + '" placeholder="0" ';
+    html += 'inputmode="decimal" step="0.01" min="0" ';
+    html += 'style="width:64px;padding:10px 8px;border:2px solid ' + (hasValue ? '#22c55e' : '#e5e7eb') + ';';
+    html += 'border-radius:8px;text-align:center;font-size:16px;font-weight:600;';
+    html += hasValue ? 'background:#dcfce7;color:#166534;' : 'background:white;color:#374151;';
+    html += '" onchange="updateTodayValue(' + t.id + ', this.value)" onfocus="this.select()">';
+    html += '</div>';
 
-      html += '<div class="work-item-row' + (isChecked ? ' checked' : '') + '" data-takeoff-id="' + t.id + '" style="' + rowStyle + (isChecked ? 'background:#fff7ed;' : '') + '">';
-      html += '<div style="width:28px;"><div class="work-item-checkbox' + (isChecked ? ' checked' : '') + '" onclick="toggleWorkItemCheck(' + t.id + ')" style="width:18px;height:18px;border:2px solid ' + (isChecked ? '#f97316' : '#d1d5db') + ';border-radius:3px;cursor:pointer;display:flex;align-items:center;justify-content:center;background:' + (isChecked ? '#f97316' : 'white') + ';">' + (isChecked ? '<span style="color:white;font-size:12px;">✓</span>' : '') + '</div></div>';
-      html += '<div style="flex:1;color:#374151;">' + (t.item_name || t.source || 'Unknown') + '</div>';
-      html += '<div style="width:55px;text-align:right;color:#6b7280;">' + qty + '</div>';
-      html += '<div style="width:40px;text-align:center;color:#9ca3af;font-size:11px;">' + (t.unit || 'EA') + '</div>';
-      html += '<div style="width:60px;text-align:right;"><input type="number" value="' + todayVal + '" placeholder="0" style="width:50px;padding:4px;border:1px solid #e5e7eb;border-radius:4px;text-align:center;font-size:13px;" onchange="updateTodayValue(' + t.id + ', this.value)" onfocus="this.parentElement.parentElement.classList.add(\'checked\');this.parentElement.parentElement.style.background=\'#fff7ed\';"></div>';
-      html += '</div>';
-    });
-
-    html += '</div></div>';
+    html += '</div>';
   });
 
   container.innerHTML = html;
+}
+
+function focusWorkInput(takeoffId) {
+  var input = document.getElementById('work-input-' + takeoffId);
+  if (input) {
+    input.focus();
+    input.select();
+  }
 }
 
 // Update today's value for a takeoff item
@@ -2903,7 +2897,12 @@ function renderWorkerHoursList() {
   var foremanId = document.getElementById('record-foreman') ? document.getElementById('record-foreman').value : null;
 
   if (pendingWorkerHours.length === 0 && !foremanId) {
-    container.innerHTML = '<p style="color:var(--text-secondary);font-size:14px;text-align:center;padding:12px;">Select a foreman to see crew</p>';
+    container.innerHTML = '<p style="color:#9ca3af;font-size:14px;text-align:center;padding:16px;">Select a foreman to load crew</p>';
+    return;
+  }
+
+  if (pendingWorkerHours.length === 0 && foremanId) {
+    container.innerHTML = '<p style="color:#9ca3af;font-size:14px;text-align:center;padding:16px;">No crew assigned to this foreman<br><button onclick="openAddWorkerHoursModal()" style="margin-top:8px;padding:8px 16px;background:#f97316;color:white;border:none;border-radius:6px;cursor:pointer;">+ Add Worker</button></p>';
     return;
   }
 
@@ -2911,28 +2910,56 @@ function renderWorkerHoursList() {
   var totalHours = checkedWorkers.reduce(function(sum, wh) { return sum + parseFloat(wh.hours_worked || 0); }, 0);
 
   var html = '';
+
+  // Summary bar
   if (checkedWorkers.length > 0) {
-    html += '<div style="font-size:12px;color:var(--text-secondary);margin-bottom:8px;padding:0 4px;">Total: ' + totalHours.toFixed(1) + ' hours (' + checkedWorkers.length + ' workers)</div>';
+    html += '<div style="padding:10px 14px;background:#f8fafc;border-bottom:1px solid #e5e7eb;font-size:13px;color:#6b7280;">';
+    html += '<strong>' + checkedWorkers.length + '</strong> workers • <strong>' + totalHours.toFixed(1) + '</strong> total hours';
+    html += '</div>';
   }
 
-  // Render each worker with checkbox
+  // Mobile-first tap-to-enter worker rows
   pendingWorkerHours.forEach(function(wh, idx) {
     var isChecked = wh.checked !== false;
-    var rowBg = isChecked ? '#fff7ed' : 'white';
-    var checkBg = isChecked ? '#f97316' : 'white';
-    var checkBorder = isChecked ? '#f97316' : '#d1d5db';
+    var hasHours = isChecked && wh.hours_worked > 0;
 
-    html += '<div style="display:flex;align-items:center;padding:8px 4px;border-bottom:1px solid #f3f4f6;background:' + rowBg + ';">';
-    html += '<div onclick="toggleWorkerCheck(' + idx + ')" style="width:22px;height:22px;border:2px solid ' + checkBorder + ';border-radius:4px;cursor:pointer;display:flex;align-items:center;justify-content:center;background:' + checkBg + ';margin-right:10px;flex-shrink:0;">' + (isChecked ? '<span style="color:white;font-size:12px;">✓</span>' : '') + '</div>';
-    html += '<span style="flex:1;font-size:14px;color:#374151;">' + wh.worker_name + '</span>';
-    html += '<input type="number" value="' + (isChecked ? wh.hours_worked : '') + '" placeholder="0" ' + (isChecked ? '' : 'disabled') + ' style="width:50px;padding:6px;border:1px solid #e5e7eb;border-radius:4px;text-align:center;font-size:14px;' + (isChecked ? '' : 'opacity:0.4;') + '" onchange="updateWorkerHours(' + idx + ', this.value)">';
+    html += '<div class="worker-row" onclick="focusWorkerInput(' + idx + ')" style="';
+    html += 'display:flex;align-items:center;padding:12px 14px;min-height:52px;';
+    html += 'border-bottom:1px solid #e5e7eb;cursor:pointer;';
+    html += hasHours ? 'background:#dcfce7;' : (isChecked ? 'background:#fefce8;' : 'background:white;');
+    html += '">';
+
+    // Worker name
+    html += '<div style="flex:1;font-size:15px;color:#1f2937;">' + wh.worker_name + '</div>';
+
+    // Hours input
+    html += '<div onclick="event.stopPropagation()" style="display:flex;align-items:center;gap:8px;">';
+    html += '<input type="number" id="worker-input-' + idx + '" value="' + (isChecked ? wh.hours_worked : '') + '" ';
+    html += 'placeholder="0" inputmode="decimal" step="0.5" min="0" max="24" ';
+    html += 'style="width:56px;padding:10px 6px;border:2px solid ' + (hasHours ? '#22c55e' : '#e5e7eb') + ';';
+    html += 'border-radius:8px;text-align:center;font-size:16px;font-weight:600;';
+    html += hasHours ? 'background:#dcfce7;color:#166534;' : 'background:white;color:#374151;';
+    html += '" onchange="updateWorkerHours(' + idx + ', this.value)" onfocus="this.select()">';
+    html += '<span style="font-size:13px;color:#9ca3af;">hrs</span>';
+    html += '</div>';
+
     html += '</div>';
   });
 
-  // Add "Add Worker" button
-  html += '<div style="padding:10px 4px;"><button type="button" onclick="openAddWorkerHoursModal()" style="width:100%;padding:10px;border:1px dashed #d1d5db;border-radius:6px;background:white;color:#6b7280;cursor:pointer;font-size:14px;">+ Add Worker</button></div>';
+  // Add worker button
+  html += '<div style="padding:12px 14px;">';
+  html += '<button type="button" onclick="openAddWorkerHoursModal()" style="width:100%;padding:12px;border:2px dashed #d1d5db;border-radius:8px;background:white;color:#6b7280;cursor:pointer;font-size:14px;font-weight:500;">+ Add Worker</button>';
+  html += '</div>';
 
   container.innerHTML = html;
+}
+
+function focusWorkerInput(idx) {
+  var input = document.getElementById('worker-input-' + idx);
+  if (input) {
+    input.focus();
+    input.select();
+  }
 }
 
 function toggleWorkerCheck(idx) {
@@ -2950,6 +2977,10 @@ function updateWorkerHours(idx, hours) {
   if (isNaN(parsedHours) || parsedHours < 0) parsedHours = 0;
   else if (parsedHours > 24) { parsedHours = 24; showToast('Hours cannot exceed 24', 'warning'); }
   pendingWorkerHours[idx].hours_worked = parsedHours;
+  // Auto-check worker when hours are entered
+  if (parsedHours > 0) {
+    pendingWorkerHours[idx].checked = true;
+  }
   renderWorkerHoursList();
 }
 
