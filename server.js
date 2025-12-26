@@ -2116,6 +2116,41 @@ app.delete('/api/jobs/:id/plans/:planId', async (req, res) => {
     }
 });
 
+// Serve PDF file by plan ID
+app.get('/api/plans/:planId/file', async (req, res) => {
+    try {
+        const result = await pool.query(
+            'SELECT file_path, file_name FROM job_plans WHERE id = $1',
+            [req.params.planId]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Plan not found' });
+        }
+
+        const plan = result.rows[0];
+        const filePath = path.join(__dirname, plan.file_path.replace(/^\//, ''));
+
+        // Check if file exists
+        try {
+            await fs.access(filePath);
+        } catch {
+            return res.status(404).json({ error: 'File not found on disk' });
+        }
+
+        // Set headers for PDF viewing in browser
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `inline; filename="${plan.file_name || 'plan.pdf'}"`);
+
+        // Stream the file
+        const fileStream = require('fs').createReadStream(filePath);
+        fileStream.pipe(res);
+    } catch (error) {
+        console.error('Error serving plan file:', error);
+        res.status(500).json({ error: 'Failed to serve file' });
+    }
+});
+
 // ========== PLAN ANNOTATIONS ==========
 
 // Get annotations for a plan
