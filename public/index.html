@@ -2130,8 +2130,20 @@ async function editScheduledJob(scheduleId) {
     console.error('Failed to load crew leads:', e);
   }
 
+  // Ensure we have crew leads
+  if (!crewLeads || crewLeads.length === 0) {
+    crewLeads = [
+      { id: 2, name: 'Juan' },
+      { id: 5, name: 'Matt' },
+      { id: 6, name: 'Gordy' },
+      { id: 7, name: 'Dusty' },
+      { id: 8, name: 'Stringline' },
+      { id: 9, name: 'GPS' }
+    ];
+  }
+
   var jobOpts = jobs.map(function(j) { return '<option value="' + j.id + '"' + (sched.job_id == j.id ? ' selected' : '') + '>#' + j.job_number + ' - ' + j.job_name + '</option>'; }).join('');
-  var crewOpts = (crewLeads || []).map(function(c) { return '<option value="' + c.id + '"' + (sched.crew_lead_id == c.id ? ' selected' : '') + '>' + c.name + '</option>'; }).join('');
+  var crewOpts = crewLeads.map(function(c) { return '<option value="' + c.id + '"' + (sched.crew_lead_id == c.id ? ' selected' : '') + '>' + c.name + '</option>'; }).join('');
 
   var modal = document.createElement('div');
   modal.id = 'edit-schedule-modal';
@@ -2356,14 +2368,29 @@ async function openScheduleModal(presetDate, presetJobId, presetCrewId) {
     var response = await fetch(API_BASE + '/crew-leads');
     if (response.ok) {
       crewLeads = await response.json();
-      console.log('Loaded crew leads:', crewLeads.length);
+    } else {
+      console.error('Failed to fetch crew leads:', response.status);
     }
   } catch(e) {
     console.error('Failed to load crew leads:', e);
   }
 
+  // Ensure we have crew leads
+  if (!crewLeads || crewLeads.length === 0) {
+    console.warn('No crew leads loaded, using defaults');
+    crewLeads = [
+      { id: 2, name: 'Juan' },
+      { id: 5, name: 'Matt' },
+      { id: 6, name: 'Gordy' },
+      { id: 7, name: 'Dusty' },
+      { id: 8, name: 'Stringline' },
+      { id: 9, name: 'GPS' }
+    ];
+  }
+
   var jobOpts = jobs.map(function(j) { return '<option value="' + j.id + '"' + (presetJobId == j.id ? ' selected' : '') + '>#' + j.job_number + ' - ' + j.job_name + '</option>'; }).join('');
-  var crewOpts = (crewLeads || []).map(function(c) { return '<option value="' + c.id + '"' + (presetCrewId == c.id ? ' selected' : '') + '>' + c.name + '</option>'; }).join('');
+  var crewOpts = crewLeads.map(function(c) { return '<option value="' + c.id + '"' + (presetCrewId == c.id ? ' selected' : '') + '>' + c.name + '</option>'; }).join('');
+
   var modal = document.createElement('div');
   modal.id = 'schedule-modal';
   modal.className = 'modal';
