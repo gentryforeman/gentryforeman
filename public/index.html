@@ -2922,6 +2922,10 @@ function renderWorkerHoursList() {
     return;
   }
 
+  // Separate crew members from added workers
+  var crewMembers = pendingWorkerHours.filter(function(wh) { return wh.is_crew === true; });
+  var addedWorkers = pendingWorkerHours.filter(function(wh) { return wh.is_crew !== true; });
+
   var checkedWorkers = pendingWorkerHours.filter(function(wh) { return wh.checked; });
   var totalHours = checkedWorkers.reduce(function(sum, wh) { return sum + parseFloat(wh.hours_worked || 0); }, 0);
 
@@ -2934,40 +2938,79 @@ function renderWorkerHoursList() {
     html += '</div>';
   }
 
-  // Mobile-first tap-to-enter worker rows
-  pendingWorkerHours.forEach(function(wh, idx) {
-    var isChecked = wh.checked !== false;
-    var hasHours = isChecked && wh.hours_worked > 0;
+  // Crew members section
+  if (crewMembers.length > 0) {
+    html += '<div style="padding:8px 14px;background:#f0fdf4;border-bottom:1px solid #e5e7eb;font-size:11px;font-weight:600;color:#166534;text-transform:uppercase;">Crew Members</div>';
+  }
 
-    html += '<div class="worker-row" onclick="focusWorkerInput(' + idx + ')" style="';
-    html += 'display:flex;align-items:center;padding:12px 14px;min-height:52px;';
-    html += 'border-bottom:1px solid #e5e7eb;cursor:pointer;';
-    html += hasHours ? 'background:#dcfce7;' : (isChecked ? 'background:#fefce8;' : 'background:white;');
-    html += '">';
+  crewMembers.forEach(function(wh) {
+    var idx = pendingWorkerHours.indexOf(wh);
+    html += renderWorkerRow(wh, idx, true);
+  });
 
-    // Worker name
-    html += '<div style="flex:1;font-size:15px;color:#1f2937;">' + wh.worker_name + '</div>';
+  // Added workers section
+  if (addedWorkers.length > 0) {
+    html += '<div style="padding:8px 14px;background:#fef3c7;border-bottom:1px solid #e5e7eb;font-size:11px;font-weight:600;color:#92400e;text-transform:uppercase;">Added for Today</div>';
+  }
 
-    // Hours input
-    html += '<div onclick="event.stopPropagation()" style="display:flex;align-items:center;gap:8px;">';
-    html += '<input type="number" id="worker-input-' + idx + '" value="' + (isChecked ? wh.hours_worked : '') + '" ';
+  addedWorkers.forEach(function(wh) {
+    var idx = pendingWorkerHours.indexOf(wh);
+    html += renderWorkerRow(wh, idx, false);
+  });
+
+  // Add worker button
+  html += '<div style="padding:12px 14px;">';
+  html += '<button type="button" onclick="openAddWorkerHoursModal()" style="width:100%;padding:12px;border:2px dashed #d1d5db;border-radius:8px;background:white;color:#6b7280;cursor:pointer;font-size:14px;font-weight:500;">+ Add Worker from Another Crew</button>';
+  html += '</div>';
+
+  container.innerHTML = html;
+}
+
+function renderWorkerRow(wh, idx, isCrew) {
+  var isChecked = wh.checked !== false;
+  var hasHours = isChecked && wh.hours_worked > 0;
+
+  var html = '<div class="worker-row" style="';
+  html += 'display:flex;align-items:center;padding:12px 14px;min-height:52px;';
+  html += 'border-bottom:1px solid #e5e7eb;';
+  html += hasHours ? 'background:#dcfce7;' : (isChecked ? 'background:#fefce8;' : 'background:white;');
+  html += '">';
+
+  // Checkbox
+  var checkboxStyle = 'width:24px;height:24px;border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-right:12px;';
+  if (isChecked) {
+    checkboxStyle += 'background:#f97316;border:2px solid #f97316;';
+    html += '<div onclick="toggleWorkerCheck(' + idx + ')" style="' + checkboxStyle + '"><span style="color:white;font-size:14px;font-weight:bold;">✓</span></div>';
+  } else {
+    checkboxStyle += 'background:white;border:2px solid #d1d5db;';
+    html += '<div onclick="toggleWorkerCheck(' + idx + ')" style="' + checkboxStyle + '"></div>';
+  }
+
+  // Worker name (tappable to focus input)
+  html += '<div onclick="focusWorkerInput(' + idx + ')" style="flex:1;cursor:pointer;">';
+  html += '<div style="font-size:15px;color:' + (isChecked ? '#1f2937' : '#9ca3af') + ';' + (isChecked ? '' : 'text-decoration:line-through;') + '">' + wh.worker_name + '</div>';
+  if (!isCrew) {
+    html += '<div style="font-size:11px;color:#f59e0b;margin-top:2px;">Guest worker</div>';
+  }
+  html += '</div>';
+
+  // Hours input (only show if checked)
+  html += '<div onclick="event.stopPropagation()" style="display:flex;align-items:center;gap:8px;">';
+  if (isChecked) {
+    html += '<input type="number" id="worker-input-' + idx + '" value="' + wh.hours_worked + '" ';
     html += 'placeholder="0" inputmode="decimal" step="0.5" min="0" max="24" ';
     html += 'style="width:56px;padding:10px 6px;border:2px solid ' + (hasHours ? '#22c55e' : '#e5e7eb') + ';';
     html += 'border-radius:8px;text-align:center;font-size:16px;font-weight:600;';
     html += hasHours ? 'background:#dcfce7;color:#166534;' : 'background:white;color:#374151;';
     html += '" onchange="updateWorkerHours(' + idx + ', this.value)" onfocus="this.select()">';
     html += '<span style="font-size:13px;color:#9ca3af;">hrs</span>';
-    html += '</div>';
-
-    html += '</div>';
-  });
-
-  // Add worker button
-  html += '<div style="padding:12px 14px;">';
-  html += '<button type="button" onclick="openAddWorkerHoursModal()" style="width:100%;padding:12px;border:2px dashed #d1d5db;border-radius:8px;background:white;color:#6b7280;cursor:pointer;font-size:14px;font-weight:500;">+ Add Worker</button>';
+  } else {
+    html += '<span style="font-size:13px;color:#d1d5db;padding:10px 0;">—</span>';
+  }
   html += '</div>';
 
-  container.innerHTML = html;
+  html += '</div>';
+  return html;
 }
 
 function focusWorkerInput(idx) {
@@ -3023,9 +3066,11 @@ function openAddWorkerHoursModal() {
 }
 
 function addWorkerHours(workerId, workerName) {
-  pendingWorkerHours.push({ worker_id: workerId, worker_name: workerName, hours_worked: 8 });
+  // Added workers start unchecked (not on this foreman's regular crew)
+  pendingWorkerHours.push({ worker_id: workerId, worker_name: workerName, hours_worked: 0, checked: false, is_crew: false });
   document.getElementById('add-worker-modal').remove();
   renderWorkerHoursList();
+  showToast(workerName + ' added - tap to enter hours', 'info');
 }
 
 function toggleItemDropdown() {
