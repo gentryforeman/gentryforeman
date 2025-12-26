@@ -4573,6 +4573,111 @@ app.delete("/api/public/schedule/:id", async (req, res) => {
     }
 })();
 
+// ========== REPORTS API ==========
+
+// Payroll Report - Worker hours grouped by worker
+app.get('/api/reports/payroll', async (req, res) => {
+    try {
+        const { from, to } = req.query;
+
+        let dateFilter = '';
+        const params = [];
+
+        if (from) {
+            params.push(from);
+            dateFilter += ` AND dr.record_date >= $${params.length}`;
+        }
+        if (to) {
+            params.push(to);
+            dateFilter += ` AND dr.record_date <= $${params.length}`;
+        }
+
+        const result = await pool.query(`
+            SELECT
+                w.id as worker_id,
+                w.full_name as worker_name,
+                COALESCE(SUM(wh.hours_worked), 0) as total_hours,
+                COALESCE(AVG(wh.labor_rate), w.labor_rate, 25) as avg_rate,
+                COALESCE(SUM(wh.hours_worked * wh.labor_rate), 0) as total_cost
+            FROM workers w
+            LEFT JOIN worker_hours wh ON w.id = wh.worker_id
+            LEFT JOIN daily_records dr ON wh.daily_record_id = dr.id
+            WHERE w.active = true ${dateFilter}
+            GROUP BY w.id, w.full_name, w.labor_rate
+            HAVING COALESCE(SUM(wh.hours_worked), 0) > 0
+            ORDER BY w.full_name
+        `, params);
+
+        // Calculate regular vs OT (simplified: all hours as regular for now)
+        const workers = result.rows.map(r => ({
+            worker_id: r.worker_id,
+            worker_name: r.worker_name,
+            regular_hours: parseFloat(r.total_hours) || 0,
+            ot_hours: 0, // Would need weekly calculation for true OT
+            total_hours: parseFloat(r.total_hours) || 0,
+            avg_rate: parseFloat(r.avg_rate) || 25,
+            total_cost: parseFloat(r.total_cost) || 0
+        }));
+
+        res.json({ workers });
+    } catch (error) {
+        console.error('Payroll report error:', error);
+        res.status(500).json({ error: 'Failed to generate payroll report' });
+    }
+});
+
+// Worker Timesheet - Individual worker hours by day
+app.get('/api/reports/timesheet', async (req, res) => {
+    try {
+        const { worker_id, from, to } = req.query;
+
+        if (!worker_id) {
+            return res.status(400).json({ error: 'worker_id is required' });
+        }
+
+        let dateFilter = '';
+        const params = [worker_id];
+
+        if (from) {
+            params.push(from);
+            dateFilter += ` AND dr.record_date >= $${params.length}`;
+        }
+        if (to) {
+            params.push(to);
+            dateFilter += ` AND dr.record_date <= $${params.length}`;
+        }
+
+        const result = await pool.query(`
+            SELECT
+                dr.record_date,
+                j.id as job_id,
+                j.job_number,
+                j.job_name,
+                wh.hours_worked,
+                wh.labor_rate
+            FROM worker_hours wh
+            JOIN daily_records dr ON wh.daily_record_id = dr.id
+            JOIN jobs j ON dr.job_id = j.id
+            WHERE wh.worker_id = $1 ${dateFilter}
+            ORDER BY dr.record_date DESC
+        `, params);
+
+        const entries = result.rows.map(r => ({
+            record_date: r.record_date,
+            job_id: r.job_id,
+            job_number: r.job_number,
+            job_name: r.job_name,
+            hours_worked: parseFloat(r.hours_worked) || 0,
+            labor_rate: parseFloat(r.labor_rate) || 25
+        }));
+
+        res.json({ entries });
+    } catch (error) {
+        console.error('Timesheet report error:', error);
+        res.status(500).json({ error: 'Failed to generate timesheet report' });
+    }
+});
+
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });
