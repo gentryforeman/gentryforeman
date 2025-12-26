@@ -480,12 +480,19 @@ app.post('/api/daily-records', async (req, res) => {
                 }
             }
 
-            // Add worker hours
+            // Add worker hours with labor_rate snapshot from workers table
             if (worker_hours && worker_hours.length > 0) {
                 for (const wh of worker_hours) {
+                    // Get worker's current labor rate
+                    const workerResult = await client.query(
+                        'SELECT labor_rate FROM workers WHERE id = $1',
+                        [wh.worker_id]
+                    );
+                    const laborRate = workerResult.rows[0]?.labor_rate || 25.00; // Default $25/hr
+
                     await client.query(
-                        'INSERT INTO worker_hours (daily_record_id, worker_id, hours_worked) VALUES ($1, $2, $3)',
-                        [dailyRecordId, wh.worker_id, wh.hours_worked]
+                        'INSERT INTO worker_hours (daily_record_id, worker_id, hours_worked, labor_rate) VALUES ($1, $2, $3, $4)',
+                        [dailyRecordId, wh.worker_id, wh.hours_worked, laborRate]
                     );
                 }
             }
@@ -4496,6 +4503,8 @@ app.delete("/api/public/schedule/:id", async (req, res) => {
         await pool.query(`ALTER TABLE job_takeoffs ADD COLUMN IF NOT EXISTS quantity_completed DECIMAL(12,2) DEFAULT 0;`);
         await pool.query(`ALTER TABLE job_takeoffs ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'pending';`);
         await pool.query(`ALTER TABLE job_takeoffs ADD COLUMN IF NOT EXISTS unit VARCHAR(20) DEFAULT 'EA';`);
+        await pool.query(`ALTER TABLE job_takeoffs ADD COLUMN IF NOT EXISTS unit_cost DECIMAL(10,2) DEFAULT 0;`);
+        await pool.query(`ALTER TABLE job_takeoffs ADD COLUMN IF NOT EXISTS item_name VARCHAR(255);`);
 
         // Add foreman_id to workers for crew assignments
         await pool.query(`ALTER TABLE workers ADD COLUMN IF NOT EXISTS foreman_id INTEGER REFERENCES crew_leads(id);`);
