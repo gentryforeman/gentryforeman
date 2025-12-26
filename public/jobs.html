@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jobs - Commander Concrete</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f1f5f9; min-height: 100vh; }
+
+.header {
+  background: #1e293b;
+  color: white;
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.header h1 { font-size: 20px; font-weight: 600; }
+.nav-btn {
+  color: white;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  opacity: 0.8;
+  font-size: 14px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+.nav-btn:hover { opacity: 1; background: rgba(255,255,255,0.1); }
+
+.container {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 24px 16px;
+}
+
+/* Toolbar */
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 20px;
+  align-items: center;
+}
+.search-box {
+  flex: 1;
+  min-width: 200px;
+  position: relative;
+}
+.search-box input {
+  width: 100%;
+  padding: 12px 16px 12px 42px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 15px;
+  background: white;
+}
+.search-box input:focus { outline: none; border-color: #f97316; }
+.search-box::before {
+  content: '🔍';
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 16px;
+  opacity: 0.5;
+}
+.add-btn {
+  padding: 12px 20px;
+  background: #f97316;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: background 0.2s;
+}
+.add-btn:hover { background: #ea580c; }
+
+/* Status Tabs */
+.status-tabs {
+  display: flex;
+  gap: 4px;
+  background: white;
+  padding: 4px;
+  border-radius: 10px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  margin-bottom: 20px;
+}
+.status-tab {
+  flex: 1;
+  padding: 10px 16px;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.status-tab:hover { background: #f3f4f6; }
+.status-tab.active {
+  background: #1e293b;
+  color: white;
+}
+.status-tab .count {
+  display: inline-block;
+  background: rgba(0,0,0,0.1);
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 12px;
+  margin-left: 6px;
+}
+.status-tab.active .count { background: rgba(255,255,255,0.2); }
+
+/* Jobs List */
+.jobs-list {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  overflow: hidden;
+}
+
+/* Desktop Table Header */
+.table-header {
+  display: none;
+  padding: 12px 16px;
+  background: #f8fafc;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+@media (min-width: 768px) {
+  .table-header {
+    display: grid;
+    grid-template-columns: 100px 1fr 180px 100px 140px 80px;
+    gap: 12px;
+  }
+}
+
+/* Job Item */
+.job-item {
+  border-bottom: 1px solid #f3f4f6;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.job-item:last-child { border-bottom: none; }
+.job-item:hover { background: #fefce8; }
+.job-item.expanded { background: #fffbeb; }
+
+.job-row {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Mobile Card Layout */
+.job-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+.job-info { flex: 1; }
+.job-number {
+  font-size: 13px;
+  font-weight: 600;
+  color: #f97316;
+  margin-bottom: 4px;
+}
+.job-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1f2937;
+}
+.job-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 8px;
+  font-size: 13px;
+  color: #6b7280;
+}
+.job-meta span { display: flex; align-items: center; gap: 4px; }
+
+.job-status {
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+.job-status.active { background: #dcfce7; color: #166534; }
+.job-status.closed { background: #f3f4f6; color: #6b7280; }
+
+/* Desktop Row Layout */
+@media (min-width: 768px) {
+  .job-row {
+    display: grid;
+    grid-template-columns: 100px 1fr 180px 100px 140px 80px;
+    gap: 12px;
+    align-items: center;
+    padding: 14px 16px;
+  }
+  .job-main { display: contents; }
+  .job-info { display: contents; }
+  .job-number { margin-bottom: 0; }
+  .job-name { font-size: 15px; }
+  .job-meta { display: contents; margin: 0; }
+  .job-meta span { font-size: 14px; }
+  .job-contractor { color: #374151; }
+  .job-crew { color: #374151; }
+}
+
+/* Expanded Details */
+.job-details {
+  display: none;
+  padding: 0 16px 16px;
+  border-top: 1px solid #f3f4f6;
+  background: #fefce8;
+}
+.job-item.expanded .job-details { display: block; }
+
+.details-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.detail-item label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: #9ca3af;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+.detail-item span {
+  font-size: 14px;
+  color: #374151;
+}
+
+.job-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-top: 12px;
+  border-top: 1px solid #e5e7eb;
+}
+.action-btn {
+  padding: 10px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s;
+}
+.action-btn.primary { background: #f97316; color: white; }
+.action-btn.primary:hover { background: #ea580c; }
+.action-btn.secondary { background: #e5e7eb; color: #374151; }
+.action-btn.secondary:hover { background: #d1d5db; }
+.action-btn.danger { background: #fee2e2; color: #dc2626; }
+.action-btn.danger:hover { background: #fecaca; }
+.action-btn.success { background: #dcfce7; color: #166534; }
+.action-btn.success:hover { background: #bbf7d0; }
+
+/* Empty State */
+.empty-state {
+  padding: 60px 24px;
+  text-align: center;
+  color: #9ca3af;
+}
+.empty-state-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.5; }
+.empty-state p { font-size: 15px; }
+
+/* Modal */
+.modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+.modal.show { display: flex; }
+.modal-content {
+  background: white;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e5e7eb;
+}
+.modal-header h2 { font-size: 18px; color: #1f2937; }
+.close-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: #f3f4f6;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 18px;
+  color: #6b7280;
+}
+.close-btn:hover { background: #e5e7eb; }
+.modal-body { padding: 24px; }
+
+.form-group { margin-bottom: 20px; }
+.form-group label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 6px;
+}
+.form-group input, .form-group select {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 15px;
+}
+.form-group input:focus, .form-group select:focus {
+  outline: none;
+  border-color: #f97316;
+}
+.submit-btn {
+  width: 100%;
+  padding: 14px;
+  background: #f97316;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.submit-btn:hover { background: #ea580c; }
+
+/* Toast */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1e293b;
+  color: white;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 14px;
+  z-index: 1001;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.toast.show { opacity: 1; }
+
+/* Stats Bar */
+.stats-bar {
+  display: flex;
+  gap: 24px;
+  padding: 12px 16px;
+  background: #f8fafc;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 13px;
+  color: #6b7280;
+}
+.stats-bar strong { color: #374151; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <a href="/home.html" class="nav-btn">← Home</a>
+  <h1>Jobs</h1>
+  <a href="/index.html" class="nav-btn">Calendar →</a>
+</div>
+
+<div class="container">
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <div class="search-box">
+      <input type="text" id="search" placeholder="Search jobs..." oninput="filterJobs()">
+    </div>
+    <button class="add-btn" onclick="openAddJobModal()">+ Add Job</button>
+  </div>
+
+  <!-- Status Tabs -->
+  <div class="status-tabs">
+    <button class="status-tab active" data-status="all" onclick="setStatusFilter('all')">
+      All <span class="count" id="count-all">0</span>
+    </button>
+    <button class="status-tab" data-status="active" onclick="setStatusFilter('active')">
+      Active <span class="count" id="count-active">0</span>
+    </button>
+    <button class="status-tab" data-status="closed" onclick="setStatusFilter('closed')">
+      Closed <span class="count" id="count-closed">0</span>
+    </button>
+  </div>
+
+  <!-- Jobs List -->
+  <div class="jobs-list">
+    <div class="table-header">
+      <div>Job #</div>
+      <div>Job Name</div>
+      <div>Contractor</div>
+      <div>Status</div>
+      <div>Crew Lead</div>
+      <div></div>
+    </div>
+    <div id="jobs-container">
+      <div class="empty-state">
+        <div class="empty-state-icon">🏗️</div>
+        <p>Loading jobs...</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Add Job Modal -->
+<div class="modal" id="add-job-modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>Add New Job</h2>
+      <button class="close-btn" onclick="closeModal('add-job-modal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Job Number *</label>
+        <input type="text" id="new-job-number" placeholder="e.g. QB-1234">
+      </div>
+      <div class="form-group">
+        <label>Job Name *</label>
+        <input type="text" id="new-job-name" placeholder="Enter job name">
+      </div>
+      <div class="form-group">
+        <label>Location</label>
+        <input type="text" id="new-job-location" placeholder="Enter location">
+      </div>
+      <div class="form-group">
+        <label>Contractor</label>
+        <input type="text" id="new-job-contractor" placeholder="Enter contractor name">
+      </div>
+      <div class="form-group">
+        <label>Crew Lead</label>
+        <select id="new-job-crew-lead">
+          <option value="">Select crew lead...</option>
+        </select>
+      </div>
+      <button class="submit-btn" onclick="saveNewJob()">Add Job</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Job Modal -->
+<div class="modal" id="edit-job-modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>Edit Job</h2>
+      <button class="close-btn" onclick="closeModal('edit-job-modal')">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="edit-job-id">
+      <div class="form-group">
+        <label>Job Number *</label>
+        <input type="text" id="edit-job-number" placeholder="e.g. QB-1234">
+      </div>
+      <div class="form-group">
+        <label>Job Name *</label>
+        <input type="text" id="edit-job-name" placeholder="Enter job name">
+      </div>
+      <div class="form-group">
+        <label>Location</label>
+        <input type="text" id="edit-job-location" placeholder="Enter location">
+      </div>
+      <div class="form-group">
+        <label>Contractor</label>
+        <input type="text" id="edit-job-contractor" placeholder="Enter contractor name">
+      </div>
+      <div class="form-group">
+        <label>Crew Lead</label>
+        <select id="edit-job-crew-lead">
+          <option value="">Select crew lead...</option>
+        </select>
+      </div>
+      <button class="submit-btn" onclick="saveEditJob()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+var API_BASE = '/api';
+var jobs = [];
+var crewLeads = [];
+var statusFilter = 'all';
+var searchTerm = '';
+var expandedJobId = null;
+
+// Load data on page load
+loadData();
+
+async function loadData() {
+  try {
+    var [jobsRes, crewRes] = await Promise.all([
+      fetch(API_BASE + '/jobs'),
+      fetch(API_BASE + '/crew-leads')
+    ]);
+    jobs = await jobsRes.json();
+    crewLeads = await crewRes.json();
+    updateCounts();
+    renderJobs();
+    populateCrewLeadDropdowns();
+  } catch(e) {
+    console.error('Error loading data:', e);
+    showToast('Failed to load data');
+  }
+}
+
+function populateCrewLeadDropdowns() {
+  var opts = '<option value="">Select crew lead...</option>';
+  crewLeads.forEach(function(cl) {
+    opts += '<option value="' + cl.id + '">' + cl.name + '</option>';
+  });
+  document.getElementById('new-job-crew-lead').innerHTML = opts;
+  document.getElementById('edit-job-crew-lead').innerHTML = opts;
+}
+
+function updateCounts() {
+  var all = jobs.length;
+  var active = jobs.filter(function(j) { return j.status === 'active'; }).length;
+  var closed = jobs.filter(function(j) { return j.status === 'closed'; }).length;
+
+  document.getElementById('count-all').textContent = all;
+  document.getElementById('count-active').textContent = active;
+  document.getElementById('count-closed').textContent = closed;
+}
+
+function setStatusFilter(status) {
+  statusFilter = status;
+  document.querySelectorAll('.status-tab').forEach(function(tab) {
+    tab.classList.toggle('active', tab.dataset.status === status);
+  });
+  renderJobs();
+}
+
+function filterJobs() {
+  searchTerm = document.getElementById('search').value.toLowerCase();
+  renderJobs();
+}
+
+function renderJobs() {
+  var container = document.getElementById('jobs-container');
+
+  var filtered = jobs.filter(function(j) {
+    // Status filter
+    if (statusFilter !== 'all' && j.status !== statusFilter) return false;
+    // Search filter
+    if (searchTerm) {
+      var searchable = (j.job_number + ' ' + j.job_name + ' ' + (j.contractor_name || '')).toLowerCase();
+      if (!searchable.includes(searchTerm)) return false;
+    }
+    return true;
+  });
+
+  // Sort: active first, then by job number
+  filtered.sort(function(a, b) {
+    if (a.status === 'active' && b.status !== 'active') return -1;
+    if (a.status !== 'active' && b.status === 'active') return 1;
+    return (a.job_number || '').localeCompare(b.job_number || '');
+  });
+
+  if (filtered.length === 0) {
+    container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🏗️</div><p>' +
+      (searchTerm ? 'No jobs match your search' : 'No jobs found') + '</p></div>';
+    return;
+  }
+
+  var html = '';
+  filtered.forEach(function(job) {
+    var isExpanded = expandedJobId === job.id;
+    var crewLead = crewLeads.find(function(cl) { return cl.id === job.crew_lead_id; });
+    var crewLeadName = crewLead ? crewLead.name : '—';
+
+    html += '<div class="job-item' + (isExpanded ? ' expanded' : '') + '" data-id="' + job.id + '">';
+    html += '<div class="job-row" onclick="toggleJob(' + job.id + ')">';
+
+    // Mobile & Desktop layout
+    html += '<div class="job-main">';
+    html += '<div class="job-info">';
+    html += '<div class="job-number">' + (job.job_number || 'N/A') + '</div>';
+    html += '<div class="job-name">' + (job.job_name || 'Unnamed Job') + '</div>';
+    html += '<div class="job-meta">';
+    html += '<span class="job-contractor">🏢 ' + (job.contractor_name || '—') + '</span>';
+    html += '<span class="job-crew">👷 ' + crewLeadName + '</span>';
+    html += '</div>';
+    html += '</div>';
+    html += '<div class="job-status ' + (job.status || 'active') + '">' + (job.status || 'active') + '</div>';
+    html += '</div>';
+
+    html += '</div>'; // job-row
+
+    // Expanded details
+    html += '<div class="job-details">';
+    html += '<div class="details-grid">';
+    html += '<div class="detail-item"><label>Location</label><span>' + (job.location || '—') + '</span></div>';
+    html += '<div class="detail-item"><label>Created</label><span>' + formatDate(job.created_at) + '</span></div>';
+    html += '<div class="detail-item"><label>Contract Amount</label><span>' + formatCurrency(job.contract_amount) + '</span></div>';
+    html += '<div class="detail-item"><label>Job Type</label><span>' + (job.job_type || '—') + '</span></div>';
+    html += '</div>';
+
+    html += '<div class="job-actions">';
+    html += '<button class="action-btn primary" onclick="event.stopPropagation(); openEditJobModal(' + job.id + ')">Edit</button>';
+    html += '<button class="action-btn secondary" onclick="event.stopPropagation(); viewOnCalendar(' + job.id + ')">View on Calendar</button>';
+    html += '<button class="action-btn secondary" onclick="event.stopPropagation(); viewJobCosting(' + job.id + ')">Job Costing</button>';
+
+    if (job.status === 'active') {
+      html += '<button class="action-btn danger" onclick="event.stopPropagation(); closeJob(' + job.id + ')">Close Job</button>';
+    } else {
+      html += '<button class="action-btn success" onclick="event.stopPropagation(); reopenJob(' + job.id + ')">Reopen Job</button>';
+    }
+    html += '</div>';
+    html += '</div>'; // job-details
+
+    html += '</div>'; // job-item
+  });
+
+  container.innerHTML = html;
+}
+
+function toggleJob(jobId) {
+  expandedJobId = expandedJobId === jobId ? null : jobId;
+  renderJobs();
+}
+
+function formatDate(dateStr) {
+  if (!dateStr) return '—';
+  var d = new Date(dateStr);
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function formatCurrency(amount) {
+  if (!amount) return '—';
+  return '$' + parseFloat(amount).toLocaleString('en-US', { minimumFractionDigits: 2 });
+}
+
+// Modal functions
+function openAddJobModal() {
+  document.getElementById('new-job-number').value = '';
+  document.getElementById('new-job-name').value = '';
+  document.getElementById('new-job-location').value = '';
+  document.getElementById('new-job-contractor').value = '';
+  document.getElementById('new-job-crew-lead').value = '';
+  document.getElementById('add-job-modal').classList.add('show');
+}
+
+function openEditJobModal(jobId) {
+  var job = jobs.find(function(j) { return j.id === jobId; });
+  if (!job) return;
+
+  document.getElementById('edit-job-id').value = job.id;
+  document.getElementById('edit-job-number').value = job.job_number || '';
+  document.getElementById('edit-job-name').value = job.job_name || '';
+  document.getElementById('edit-job-location').value = job.location || '';
+  document.getElementById('edit-job-contractor').value = job.contractor_name || '';
+  document.getElementById('edit-job-crew-lead').value = job.crew_lead_id || '';
+  document.getElementById('edit-job-modal').classList.add('show');
+}
+
+function closeModal(modalId) {
+  document.getElementById(modalId).classList.remove('show');
+}
+
+async function saveNewJob() {
+  var data = {
+    job_number: document.getElementById('new-job-number').value.trim(),
+    job_name: document.getElementById('new-job-name').value.trim(),
+    location: document.getElementById('new-job-location').value.trim(),
+    contractor_name: document.getElementById('new-job-contractor').value.trim(),
+    crew_lead_id: document.getElementById('new-job-crew-lead').value || null
+  };
+
+  if (!data.job_number || !data.job_name) {
+    showToast('Job Number and Name are required');
+    return;
+  }
+
+  try {
+    var res = await fetch(API_BASE + '/jobs', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+
+    if (res.ok) {
+      closeModal('add-job-modal');
+      await loadData();
+      showToast('Job added successfully');
+    } else {
+      var err = await res.json();
+      showToast(err.error || 'Failed to add job');
+    }
+  } catch(e) {
+    console.error('Error:', e);
+    showToast('Failed to add job');
+  }
+}
+
+async function saveEditJob() {
+  var jobId = document.getElementById('edit-job-id').value;
+  var data = {
+    job_number: document.getElementById('edit-job-number').value.trim(),
+    job_name: document.getElementById('edit-job-name').value.trim(),
+    location: document.getElementById('edit-job-location').value.trim(),
+    contractor_name: document.getElementById('edit-job-contractor').value.trim(),
+    crew_lead_id: document.getElementById('edit-job-crew-lead').value || null
+  };
+
+  if (!data.job_number || !data.job_name) {
+    showToast('Job Number and Name are required');
+    return;
+  }
+
+  try {
+    var res = await fetch(API_BASE + '/jobs/' + jobId, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+
+    if (res.ok) {
+      closeModal('edit-job-modal');
+      expandedJobId = parseInt(jobId);
+      await loadData();
+      showToast('Job updated successfully');
+    } else {
+      var err = await res.json();
+      showToast(err.error || 'Failed to update job');
+    }
+  } catch(e) {
+    console.error('Error:', e);
+    showToast('Failed to update job');
+  }
+}
+
+async function closeJob(jobId) {
+  if (!confirm('Close this job? It will be marked as complete.')) return;
+
+  try {
+    var res = await fetch(API_BASE + '/jobs/' + jobId, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'closed' })
+    });
+
+    if (res.ok) {
+      await loadData();
+      showToast('Job closed');
+    }
+  } catch(e) {
+    showToast('Failed to close job');
+  }
+}
+
+async function reopenJob(jobId) {
+  try {
+    var res = await fetch(API_BASE + '/jobs/' + jobId, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'active' })
+    });
+
+    if (res.ok) {
+      await loadData();
+      showToast('Job reopened');
+    }
+  } catch(e) {
+    showToast('Failed to reopen job');
+  }
+}
+
+function viewOnCalendar(jobId) {
+  window.location.href = '/index.html?job=' + jobId;
+}
+
+function viewJobCosting(jobId) {
+  window.location.href = '/job-costing.html?job=' + jobId;
+}
+
+function showToast(message) {
+  var toast = document.getElementById('toast');
+  toast.textContent = message;
+  toast.classList.add('show');
+  setTimeout(function() { toast.classList.remove('show'); }, 2500);
+}
+
+// Close modals on outside click
+document.querySelectorAll('.modal').forEach(function(modal) {
+  modal.addEventListener('click', function(e) {
+    if (e.target === modal) closeModal(modal.id);
+  });
+});
+</script>
+
+</body>
+</html>
