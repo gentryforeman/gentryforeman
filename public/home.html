@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Commander Concrete - Dashboard</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f1f5f9; min-height: 100vh; }
+
+.header {
+  background: #1e293b;
+  color: white;
+  padding: 20px 24px;
+  text-align: center;
+}
+.header h1 {
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+.header p {
+  font-size: 14px;
+  opacity: 0.7;
+  margin-top: 4px;
+}
+
+.container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 24px 16px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+@media (min-width: 640px) {
+  .grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+  .container {
+    padding: 32px 24px;
+  }
+}
+
+@media (min-width: 900px) {
+  .grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.tile {
+  background: white;
+  border-radius: 16px;
+  padding: 24px 16px;
+  text-align: center;
+  text-decoration: none;
+  color: #1f2937;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+  transition: all 0.2s ease;
+  min-height: 140px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.tile:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(0,0,0,0.1), 0 4px 10px rgba(0,0,0,0.05);
+}
+
+.tile:active {
+  transform: translateY(0);
+}
+
+.tile-icon {
+  font-size: 40px;
+  margin-bottom: 12px;
+  line-height: 1;
+}
+
+.tile-label {
+  font-size: 15px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.tile-desc {
+  font-size: 12px;
+  color: #9ca3af;
+  margin-top: 4px;
+}
+
+/* Color accents for each tile */
+.tile-calendar { border-top: 4px solid #3b82f6; }
+.tile-daily { border-top: 4px solid #f97316; }
+.tile-costing { border-top: 4px solid #10b981; }
+.tile-workers { border-top: 4px solid #8b5cf6; }
+.tile-crews { border-top: 4px solid #ec4899; }
+.tile-jobs { border-top: 4px solid #f59e0b; }
+.tile-quickbooks { border-top: 4px solid #2563eb; }
+.tile-stack { border-top: 4px solid #06b6d4; }
+.tile-reports { border-top: 4px solid #6b7280; }
+
+.tile-placeholder {
+  opacity: 0.6;
+  cursor: default;
+}
+.tile-placeholder:hover {
+  transform: none;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+}
+
+.coming-soon {
+  font-size: 10px;
+  background: #e5e7eb;
+  color: #6b7280;
+  padding: 2px 8px;
+  border-radius: 10px;
+  margin-top: 8px;
+}
+
+.section-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 12px;
+  margin-top: 24px;
+}
+
+.section-label:first-of-type {
+  margin-top: 0;
+}
+
+.footer {
+  text-align: center;
+  padding: 24px;
+  color: #9ca3af;
+  font-size: 12px;
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Commander Concrete</h1>
+  <p>Foreman Management System</p>
+</div>
+
+<div class="container">
+  <div class="section-label">Daily Operations</div>
+  <div class="grid">
+    <a href="/index.html" class="tile tile-calendar">
+      <div class="tile-icon">📅</div>
+      <div class="tile-label">Calendar</div>
+      <div class="tile-desc">Job scheduling</div>
+    </a>
+
+    <a href="/index.html#daily" class="tile tile-daily" onclick="localStorage.setItem('openDailyRecord','true')">
+      <div class="tile-icon">📋</div>
+      <div class="tile-label">Daily Record</div>
+      <div class="tile-desc">Log work & hours</div>
+    </a>
+
+    <a href="/job-costing.html" class="tile tile-costing">
+      <div class="tile-icon">💰</div>
+      <div class="tile-label">Job Costing</div>
+      <div class="tile-desc">Costs & profitability</div>
+    </a>
+  </div>
+
+  <div class="section-label">Team Management</div>
+  <div class="grid">
+    <a href="/index.html#workers" class="tile tile-workers" onclick="localStorage.setItem('openSection','workers')">
+      <div class="tile-icon">👷</div>
+      <div class="tile-label">Workers</div>
+      <div class="tile-desc">Manage worker list</div>
+    </a>
+
+    <a href="/crew-management.html" class="tile tile-crews">
+      <div class="tile-icon">👥</div>
+      <div class="tile-label">Crew Management</div>
+      <div class="tile-desc">Assign to foremen</div>
+    </a>
+
+    <a href="/index.html#jobs" class="tile tile-jobs" onclick="localStorage.setItem('openSection','jobs')">
+      <div class="tile-icon">🏗️</div>
+      <div class="tile-label">Jobs</div>
+      <div class="tile-desc">View all jobs</div>
+    </a>
+  </div>
+
+  <div class="section-label">Integrations</div>
+  <div class="grid">
+    <a href="/quickbooks.html" class="tile tile-quickbooks">
+      <div class="tile-icon">📊</div>
+      <div class="tile-label">QuickBooks</div>
+      <div class="tile-desc">Sync & import</div>
+    </a>
+
+    <a href="/stack.html" class="tile tile-stack">
+      <div class="tile-icon">📐</div>
+      <div class="tile-label">STACK</div>
+      <div class="tile-desc">Takeoff imports</div>
+    </a>
+
+    <div class="tile tile-reports tile-placeholder">
+      <div class="tile-icon">📈</div>
+      <div class="tile-label">Reports</div>
+      <div class="tile-desc">Analytics & insights</div>
+      <span class="coming-soon">Coming Soon</span>
+    </div>
+  </div>
+</div>
+
+<div class="footer">
+  Commander Concrete Foreman System
+</div>
+
+<script>
+// Check if we should open daily record on index load
+if (window.location.hash === '#daily') {
+  localStorage.setItem('openDailyRecord', 'true');
+}
+</script>
+
+</body>
+</html>

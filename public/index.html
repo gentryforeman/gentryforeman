@@ -602,8 +602,9 @@ if (localStorage.getItem('foreman_logged_in') === 'true') {
   <!-- Top Header -->
   <header class="top-header">
     <button class="mobile-menu-btn" onclick="toggleSidebar()">☰</button>
-    <h1>FOREMAN SYSTEM</h1>
+    <a href="/home.html" style="text-decoration:none;color:white;"><h1>FOREMAN SYSTEM</h1></a>
     <div class="header-nav">
+      <button onclick="window.location.href='/home.html'">Home</button>
       <button class="active" onclick="showView('calendar')">Calendar</button>
       <button onclick="showView('today')">Today</button>
       <button onclick="window.location.href='/job-costing.html'">Costing</button>
@@ -988,7 +989,22 @@ function doLogout() {
     document.getElementById('login-screen').classList.remove('active');
     document.getElementById('dashboard-screen').classList.add('active');
     loadAllData().then(function() {
-      showView('calendar');
+      // Check for navigation flags from home.html
+      if (localStorage.getItem('openDailyRecord') === 'true') {
+        localStorage.removeItem('openDailyRecord');
+        showView('calendar');
+        setTimeout(function() { openDailyModal(); }, 300);
+      } else if (localStorage.getItem('openSection') === 'workers') {
+        localStorage.removeItem('openSection');
+        showView('calendar');
+        showSidebarSection('workers');
+      } else if (localStorage.getItem('openSection') === 'jobs') {
+        localStorage.removeItem('openSection');
+        showView('calendar');
+        showSidebarSection('jobs');
+      } else {
+        showView('calendar');
+      }
     });
   }
 })();
