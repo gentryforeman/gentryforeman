@@ -7,7 +7,11 @@
       "Bash(pkill:*)",
       "Bash(cat:*)",
       "Bash(ls:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nFix takeoffs loading in Daily Record modal\n\nChanged API URL from /api/public/jobs/:id/takeoffs \\(doesn''t exist\\)\nto /api/jobs/:id/takeoffs \\(correct endpoint\\).\n\nReverted tabs layout changes - modal shows work items directly.\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(git remote set-url:*)"
     ]
   }
 }

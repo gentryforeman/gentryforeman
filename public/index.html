@@ -2563,13 +2563,11 @@ async function onJobSelected() {
     var res = await fetch(API_BASE + '/jobs/' + jobId + '/takeoffs');
     if (res.ok) {
       currentJobTakeoffs = await res.json();
-      takeoffEntries = {}; // Reset entries
+      takeoffEntries = {};
       renderTakeoffsTable();
     }
   } catch(e) {
     console.error('Error loading takeoffs:', e);
-    currentJobTakeoffs = [];
-    renderTakeoffsTable();
   }
 }
 
@@ -2580,21 +2578,21 @@ function toggleNote(btn, note) {
   else selectedNotes.push(note);
 }
 
-// Render work items table for daily record (Ultimate Foreman style)
+// Ultimate Foreman style takeoffs table
 function renderTakeoffsTable() {
   var container = document.getElementById('work-items-container');
   if (!container) return;
 
   if (!currentJobTakeoffs || currentJobTakeoffs.length === 0) {
-    container.innerHTML = '<div class="work-items-empty"><div class="work-items-empty-icon">📋</div><p>No work items for this job</p><p class="sub">Add takeoff items in Job Costing to track production</p></div>';
+    container.innerHTML = '<p style="padding:20px;text-align:center;color:#999;">No takeoffs for this job</p>';
     return;
   }
 
-  // Categorize takeoffs
+  // Categorize takeoffs by unit type
   var categories = {
-    items: { label: 'Items', icon: '📦', items: [] },
-    material: { label: "Mat'l", icon: '🧱', items: [] },
-    misc: { label: 'Misc', icon: '📝', items: [] }
+    items: { label: 'Items', items: [] },
+    material: { label: "Mat'l", items: [] },
+    misc: { label: 'Misc', items: [] }
   };
 
   currentJobTakeoffs.forEach(function(t) {
@@ -2608,13 +2606,18 @@ function renderTakeoffsTable() {
     }
   });
 
+  // Compact styles
+  var headerStyle = 'display:flex;align-items:center;padding:6px 10px;background:#f3f4f6;font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;border-bottom:1px solid #e5e7eb;';
+  var rowStyle = 'display:flex;align-items:center;padding:8px 10px;border-bottom:1px solid #f3f4f6;font-size:13px;';
+  var catHeaderStyle = 'display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:#f9fafb;cursor:pointer;font-weight:600;font-size:13px;border-bottom:1px solid #e5e7eb;';
+
   // Header row
-  var html = '<div class="work-items-header">';
-  html += '<div class="col-check"></div>';
-  html += '<div class="col-name">Name</div>';
-  html += '<div class="col-qty">Qty</div>';
-  html += '<div class="col-uom">UOM</div>';
-  html += '<div class="col-done">Done</div>';
+  var html = '<div style="' + headerStyle + '">';
+  html += '<div style="width:28px;"></div>';
+  html += '<div style="flex:1;">Name</div>';
+  html += '<div style="width:55px;text-align:right;">Qty</div>';
+  html += '<div style="width:40px;text-align:center;">UOM</div>';
+  html += '<div style="width:60px;text-align:right;">Done</div>';
   html += '</div>';
 
   // Render each category
@@ -2623,32 +2626,22 @@ function renderTakeoffsTable() {
     if (cat.items.length === 0) return;
 
     html += '<div class="work-category" id="work-cat-' + catKey + '">';
-    html += '<div class="work-category-header" onclick="toggleWorkCategory(\'' + catKey + '\')">';
-    html += '<div class="category-left">';
-    html += '<span class="category-icon">' + cat.icon + '</span>';
-    html += '<span class="category-name">' + cat.label + '</span>';
-    html += '<span class="category-count">' + cat.items.length + '</span>';
-    html += '</div>';
-    html += '<span class="category-arrow">▼</span>';
+    html += '<div style="' + catHeaderStyle + '" onclick="toggleWorkCategory(\'' + catKey + '\')">';
+    html += '<span>▼ ' + cat.label + ' (' + cat.items.length + ')</span>';
     html += '</div>';
     html += '<div class="work-items-list">';
 
     cat.items.forEach(function(t) {
       var qty = parseFloat(t.quantity) || 0;
-      var isChecked = takeoffEntries[t.id] !== undefined;
+      var todayVal = takeoffEntries[t.id] || '';
+      var isChecked = todayVal !== '';
 
-      html += '<div class="work-item-row' + (isChecked ? ' checked' : '') + '" data-takeoff-id="' + t.id + '">';
-      html += '<div class="work-item-checkbox' + (isChecked ? ' checked' : '') + '" onclick="toggleWorkItemCheck(' + t.id + ')"></div>';
-      html += '<div class="work-item-name">' + (t.item_name || t.source || 'Unknown') + '</div>';
-      html += '<div class="work-item-qty">' + qty.toLocaleString() + '</div>';
-      html += '<div class="work-item-uom">' + (t.unit || 'EA') + '</div>';
-      html += '<div class="work-item-done">';
-      html += '<input type="number" placeholder="0" min="0" step="0.01" inputmode="decimal" ';
-      html += 'value="' + (takeoffEntries[t.id] || '') + '" ';
-      html += 'onchange="updateWorkItemDone(' + t.id + ', this)" ';
-      html += 'onfocus="this.parentElement.parentElement.querySelector(\'.work-item-checkbox\').classList.add(\'checked\');this.parentElement.parentElement.classList.add(\'checked\')" ';
-      html += 'class="' + (isChecked ? 'has-value' : '') + '">';
-      html += '</div>';
+      html += '<div class="work-item-row' + (isChecked ? ' checked' : '') + '" data-takeoff-id="' + t.id + '" style="' + rowStyle + (isChecked ? 'background:#fff7ed;' : '') + '">';
+      html += '<div style="width:28px;"><div class="work-item-checkbox' + (isChecked ? ' checked' : '') + '" onclick="toggleWorkItemCheck(' + t.id + ')" style="width:18px;height:18px;border:2px solid ' + (isChecked ? '#f97316' : '#d1d5db') + ';border-radius:3px;cursor:pointer;display:flex;align-items:center;justify-content:center;background:' + (isChecked ? '#f97316' : 'white') + ';">' + (isChecked ? '<span style="color:white;font-size:12px;">✓</span>' : '') + '</div></div>';
+      html += '<div style="flex:1;color:#374151;">' + (t.item_name || t.source || 'Unknown') + '</div>';
+      html += '<div style="width:55px;text-align:right;color:#6b7280;">' + qty + '</div>';
+      html += '<div style="width:40px;text-align:center;color:#9ca3af;font-size:11px;">' + (t.unit || 'EA') + '</div>';
+      html += '<div style="width:60px;text-align:right;"><input type="number" value="' + todayVal + '" placeholder="0" style="width:50px;padding:4px;border:1px solid #e5e7eb;border-radius:4px;text-align:center;font-size:13px;" onchange="updateTodayValue(' + t.id + ', this.value)" onfocus="this.parentElement.parentElement.classList.add(\'checked\');this.parentElement.parentElement.style.background=\'#fff7ed\';"></div>';
       html += '</div>';
     });
 
@@ -2656,6 +2649,38 @@ function renderTakeoffsTable() {
   });
 
   container.innerHTML = html;
+}
+
+// Update today's value for a takeoff item
+function updateTodayValue(takeoffId, value) {
+  var qty = parseFloat(value) || 0;
+  if (qty > 0) {
+    takeoffEntries[takeoffId] = qty;
+  } else {
+    delete takeoffEntries[takeoffId];
+  }
+  // Update checkbox visual
+  var row = document.querySelector('.work-item-row[data-takeoff-id="' + takeoffId + '"]');
+  if (row) {
+    var checkbox = row.querySelector('.work-item-checkbox');
+    if (qty > 0) {
+      row.classList.add('checked');
+      row.style.background = '#fff7ed';
+      if (checkbox) {
+        checkbox.style.background = '#f97316';
+        checkbox.style.borderColor = '#f97316';
+        checkbox.innerHTML = '<span style="color:white;font-size:12px;">✓</span>';
+      }
+    } else {
+      row.classList.remove('checked');
+      row.style.background = '';
+      if (checkbox) {
+        checkbox.style.background = 'white';
+        checkbox.style.borderColor = '#d1d5db';
+        checkbox.innerHTML = '';
+      }
+    }
+  }
 }
 
 // Toggle work category collapse
@@ -2667,20 +2692,33 @@ function toggleWorkCategory(catKey) {
 // Toggle work item checkbox
 function toggleWorkItemCheck(takeoffId) {
   var row = document.querySelector('.work-item-row[data-takeoff-id="' + takeoffId + '"]');
-  var checkbox = row ? row.querySelector('.work-item-checkbox') : null;
-  var input = row ? row.querySelector('.work-item-done input') : null;
+  if (!row) return;
+  var checkbox = row.querySelector('.work-item-checkbox');
+  var input = row.querySelector('input[type="number"]');
 
-  if (checkbox && row) {
-    var isChecked = checkbox.classList.toggle('checked');
-    row.classList.toggle('checked', isChecked);
+  var isCurrentlyChecked = row.classList.contains('checked');
 
-    if (!isChecked && input) {
-      input.value = '';
-      input.classList.remove('has-value');
-      delete takeoffEntries[takeoffId];
-    } else if (isChecked && input) {
-      input.focus();
+  if (isCurrentlyChecked) {
+    // Uncheck - clear the input and remove highlight
+    row.classList.remove('checked');
+    row.style.background = '';
+    if (checkbox) {
+      checkbox.style.background = 'white';
+      checkbox.style.borderColor = '#d1d5db';
+      checkbox.innerHTML = '';
     }
+    if (input) input.value = '';
+    delete takeoffEntries[takeoffId];
+  } else {
+    // Check - add highlight and focus input
+    row.classList.add('checked');
+    row.style.background = '#fff7ed';
+    if (checkbox) {
+      checkbox.style.background = '#f97316';
+      checkbox.style.borderColor = '#f97316';
+      checkbox.innerHTML = '<span style="color:white;font-size:12px;">✓</span>';
+    }
+    if (input) input.focus();
   }
 }
 
@@ -2897,14 +2935,17 @@ function toggleItemDropdown() {
 function filterItemsList() { renderItemDropdown(); }
 
 function renderItemDropdown() {
-  var search = (document.getElementById('item-search').value || '').toLowerCase();
+  var searchEl = document.getElementById('item-search');
+  var dropdownEl = document.getElementById('item-dropdown');
+  if (!searchEl || !dropdownEl) return; // Elements don't exist in this modal
+  var search = (searchEl.value || '').toLowerCase();
   var filtered = items.filter(function(item) { return item.name.toLowerCase().includes(search); }).slice(0, 20);
   var html = '';
   filtered.forEach(function(item) {
     html += '<div onclick="selectWorkItem(' + item.id + ')" style="padding:14px 16px;cursor:pointer;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;min-height:52px;" onmouseover="this.style.background=\'var(--bg-light)\'" onmouseout="this.style.background=\'white\'"><span style="font-size:15px;">' + item.name + '</span><span style="color:var(--text-secondary);font-size:13px;">' + item.unit_of_measure + '</span></div>';
   });
   if (filtered.length === 0) html = '<div style="padding:16px;color:var(--text-secondary);text-align:center;">No items found</div>';
-  document.getElementById('item-dropdown').innerHTML = html;
+  dropdownEl.innerHTML = html;
 }
 
 function selectWorkItem(itemId) {
