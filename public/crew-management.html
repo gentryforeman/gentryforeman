@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Crew Management - Foreman System</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f8fafc; min-height: 100vh; }
+.header { background: #1e293b; color: white; padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; }
+.header h1 { font-size: 20px; font-weight: 600; }
+.back-btn { color: white; text-decoration: none; display: flex; align-items: center; gap: 8px; opacity: 0.8; }
+.back-btn:hover { opacity: 1; }
+.container { display: flex; max-width: 1200px; margin: 24px auto; gap: 24px; padding: 0 24px; }
+.panel { background: white; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); overflow: hidden; }
+.panel-header { background: #f8fafc; padding: 16px; border-bottom: 1px solid #e5e7eb; font-weight: 600; color: #374151; }
+.foremen-list { width: 280px; flex-shrink: 0; }
+.foreman-item { padding: 14px 16px; cursor: pointer; border-bottom: 1px solid #f3f4f6; display: flex; align-items: center; gap: 12px; transition: background 0.15s; }
+.foreman-item:hover { background: #f8fafc; }
+.foreman-item.active { background: #fff7ed; border-left: 3px solid #f97316; }
+.foreman-color { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+.foreman-name { font-size: 15px; color: #374151; }
+.foreman-count { font-size: 12px; color: #9ca3af; margin-left: auto; }
+.workers-panel { flex: 1; }
+.workers-list { max-height: 600px; overflow-y: auto; }
+.worker-item { padding: 12px 16px; border-bottom: 1px solid #f3f4f6; display: flex; align-items: center; gap: 12px; }
+.worker-item:hover { background: #fefce8; }
+.worker-item.assigned { background: #fff7ed; }
+.worker-checkbox { width: 20px; height: 20px; border: 2px solid #d1d5db; border-radius: 4px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s; flex-shrink: 0; }
+.worker-checkbox:hover { border-color: #f97316; }
+.worker-checkbox.checked { background: #f97316; border-color: #f97316; }
+.worker-checkbox.checked::after { content: '✓'; color: white; font-size: 12px; font-weight: bold; }
+.worker-name { font-size: 14px; color: #374151; }
+.worker-role { font-size: 12px; color: #9ca3af; margin-left: auto; }
+.empty-state { padding: 40px; text-align: center; color: #9ca3af; }
+.empty-state-icon { font-size: 48px; margin-bottom: 12px; opacity: 0.5; }
+.stats { padding: 12px 16px; background: #f8fafc; border-top: 1px solid #e5e7eb; font-size: 13px; color: #6b7280; }
+.toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #1e293b; color: white; padding: 12px 24px; border-radius: 8px; font-size: 14px; z-index: 1000; opacity: 0; transition: opacity 0.3s; }
+.toast.show { opacity: 1; }
+.search-box { padding: 12px 16px; border-bottom: 1px solid #e5e7eb; }
+.search-box input { width: 100%; padding: 10px 12px; border: 1px solid #e5e7eb; border-radius: 6px; font-size: 14px; }
+.search-box input:focus { outline: none; border-color: #f97316; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Crew Management</h1>
+  <a href="/index.html" class="back-btn">← Back to Dashboard</a>
+</div>
+
+<div class="container">
+  <div class="panel foremen-list">
+    <div class="panel-header">Foremen</div>
+    <div id="foremen-container"></div>
+  </div>
+
+  <div class="panel workers-panel">
+    <div class="panel-header" id="workers-header">Select a Foreman</div>
+    <div class="search-box" id="search-box" style="display:none;">
+      <input type="text" id="worker-search" placeholder="Search workers..." oninput="filterWorkers()">
+    </div>
+    <div class="workers-list" id="workers-container">
+      <div class="empty-state">
+        <div class="empty-state-icon">👷</div>
+        <p>Select a foreman to manage their crew</p>
+      </div>
+    </div>
+    <div class="stats" id="stats" style="display:none;"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+var API_BASE = '/api';
+var foremen = [];
+var workers = [];
+var selectedForemanId = null;
+
+async function loadData() {
+  try {
+    var [foremenRes, workersRes] = await Promise.all([
+      fetch(API_BASE + '/crew-leads'),
+      fetch(API_BASE + '/workers')
+    ]);
+    foremen = await foremenRes.json();
+    workers = await workersRes.json();
+    renderForemen();
+  } catch(e) {
+    console.error('Error loading data:', e);
+    showToast('Failed to load data');
+  }
+}
+
+function renderForemen() {
+  var container = document.getElementById('foremen-container');
+  var html = '';
+
+  foremen.forEach(function(f) {
+    var crewCount = workers.filter(function(w) { return w.foreman_id === f.id; }).length;
+    var isActive = selectedForemanId === f.id;
+    html += '<div class="foreman-item' + (isActive ? ' active' : '') + '" onclick="selectForeman(' + f.id + ')">';
+    html += '<div class="foreman-color" style="background:' + (f.color || '#6b7280') + ';"></div>';
+    html += '<span class="foreman-name">' + f.name + '</span>';
+    html += '<span class="foreman-count">' + crewCount + ' workers</span>';
+    html += '</div>';
+  });
+
+  container.innerHTML = html;
+}
+
+function selectForeman(foremanId) {
+  selectedForemanId = foremanId;
+  var foreman = foremen.find(function(f) { return f.id === foremanId; });
+
+  document.getElementById('workers-header').textContent = foreman.name + "'s Crew";
+  document.getElementById('search-box').style.display = 'block';
+  document.getElementById('stats').style.display = 'block';
+  document.getElementById('worker-search').value = '';
+
+  renderForemen();
+  renderWorkers();
+}
+
+function renderWorkers() {
+  var container = document.getElementById('workers-container');
+  var searchTerm = (document.getElementById('worker-search').value || '').toLowerCase();
+
+  // Filter active workers and by search
+  var filtered = workers.filter(function(w) {
+    if (!w.active && w.active !== undefined) return false;
+    if (searchTerm && !w.full_name.toLowerCase().includes(searchTerm)) return false;
+    return true;
+  });
+
+  // Sort: assigned first, then alphabetically
+  filtered.sort(function(a, b) {
+    var aAssigned = a.foreman_id === selectedForemanId;
+    var bAssigned = b.foreman_id === selectedForemanId;
+    if (aAssigned && !bAssigned) return -1;
+    if (!aAssigned && bAssigned) return 1;
+    return a.full_name.localeCompare(b.full_name);
+  });
+
+  var html = '';
+  var assignedCount = 0;
+
+  filtered.forEach(function(w) {
+    var isAssigned = w.foreman_id === selectedForemanId;
+    if (isAssigned) assignedCount++;
+
+    html += '<div class="worker-item' + (isAssigned ? ' assigned' : '') + '">';
+    html += '<div class="worker-checkbox' + (isAssigned ? ' checked' : '') + '" onclick="toggleWorker(' + w.id + ', ' + (isAssigned ? 'false' : 'true') + ')"></div>';
+    html += '<span class="worker-name">' + w.full_name + '</span>';
+    html += '<span class="worker-role">' + (w.role || '') + '</span>';
+    html += '</div>';
+  });
+
+  if (filtered.length === 0) {
+    html = '<div class="empty-state"><p>No workers found</p></div>';
+  }
+
+  container.innerHTML = html;
+  document.getElementById('stats').textContent = assignedCount + ' of ' + filtered.length + ' workers assigned to this foreman';
+}
+
+function filterWorkers() {
+  renderWorkers();
+}
+
+async function toggleWorker(workerId, assign) {
+  var foremanId = assign ? selectedForemanId : null;
+
+  try {
+    var res = await fetch(API_BASE + '/workers/' + workerId + '/foreman', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ foreman_id: foremanId })
+    });
+
+    if (res.ok) {
+      // Update local data
+      var worker = workers.find(function(w) { return w.id === workerId; });
+      if (worker) worker.foreman_id = foremanId;
+
+      renderForemen();
+      renderWorkers();
+      showToast(assign ? 'Worker added to crew' : 'Worker removed from crew');
+    } else {
+      showToast('Failed to update');
+    }
+  } catch(e) {
+    console.error('Error:', e);
+    showToast('Failed to update');
+  }
+}
+
+function showToast(message) {
+  var toast = document.getElementById('toast');
+  toast.textContent = message;
+  toast.classList.add('show');
+  setTimeout(function() { toast.classList.remove('show'); }, 2000);
+}
+
+// Initialize
+loadData();
+</script>
+
+</body>
+</html>
