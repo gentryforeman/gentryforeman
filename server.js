@@ -345,6 +345,35 @@ app.post('/api/workers', async (req, res) => {
     }
 });
 
+// Assign worker to foreman
+app.put('/api/workers/:id/foreman', async (req, res) => {
+    try {
+        const { foreman_id } = req.body;
+        const result = await pool.query(
+            'UPDATE workers SET foreman_id = $1 WHERE id = $2 RETURNING *',
+            [foreman_id, req.params.id]
+        );
+        res.json(result.rows[0]);
+    } catch (error) {
+        console.error('Error assigning foreman:', error);
+        res.status(500).json({ error: 'Failed to assign foreman' });
+    }
+});
+
+// Get workers by foreman
+app.get('/api/workers/by-foreman/:foremanId', async (req, res) => {
+    try {
+        const result = await pool.query(
+            'SELECT * FROM workers WHERE foreman_id = $1 AND active = true ORDER BY full_name',
+            [req.params.foremanId]
+        );
+        res.json(result.rows);
+    } catch (error) {
+        console.error('Error fetching workers by foreman:', error);
+        res.status(500).json({ error: 'Failed to fetch workers' });
+    }
+});
+
 // ========== ITEMS ROUTES ==========
 
 // Get all items
@@ -4462,6 +4491,9 @@ app.delete("/api/public/schedule/:id", async (req, res) => {
         await pool.query(`ALTER TABLE job_takeoffs ADD COLUMN IF NOT EXISTS quantity_completed DECIMAL(12,2) DEFAULT 0;`);
         await pool.query(`ALTER TABLE job_takeoffs ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'pending';`);
         await pool.query(`ALTER TABLE job_takeoffs ADD COLUMN IF NOT EXISTS unit VARCHAR(20) DEFAULT 'EA';`);
+
+        // Add foreman_id to workers for crew assignments
+        await pool.query(`ALTER TABLE workers ADD COLUMN IF NOT EXISTS foreman_id INTEGER REFERENCES crew_leads(id);`);
 
         // Create job_plans table for PDF storage
         await pool.query(`

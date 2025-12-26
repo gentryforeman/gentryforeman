@@ -2426,7 +2426,7 @@ async function openDailyModalForDate(dateStr, presetJobId) {
         </div>\
         <div class="input-group">\
           <label>Foreman / Crew</label>\
-          <select id="record-foreman">\
+          <select id="record-foreman" onchange="onForemanSelected()">\
             <option value="">Select Foreman</option>\
             ' + (crewLeads || []).map(function(c) { return '<option value="' + c.id + '">' + c.name + '</option>'; }).join('') + '\
           </select>\
@@ -2873,18 +2873,76 @@ document.addEventListener('click', function(e) {
   }
 });
 
-function renderWorkerHoursList() {
-  var container = document.getElementById('worker-hours-list');
-  if (pendingWorkerHours.length === 0) {
-    container.innerHTML = '<p style="color:var(--text-secondary);font-size:14px;text-align:center;padding:12px;">No workers added yet</p>';
+// Load workers when foreman is selected
+async function onForemanSelected() {
+  var foremanId = document.getElementById('record-foreman').value;
+  if (!foremanId) {
+    pendingWorkerHours = [];
+    renderWorkerHoursList();
     return;
   }
-  var totalHours = pendingWorkerHours.reduce(function(sum, wh) { return sum + parseFloat(wh.hours_worked || 0); }, 0);
-  var html = '<div style="font-size:12px;color:var(--text-secondary);margin-bottom:8px;">Total: ' + totalHours.toFixed(1) + ' hours</div>';
+
+  // Get foreman's assigned workers
+  try {
+    var res = await fetch(API_BASE + '/workers/by-foreman/' + foremanId);
+    var foremanWorkers = res.ok ? await res.json() : [];
+
+    // Add foreman's workers as checked by default with 8 hours
+    pendingWorkerHours = foremanWorkers.map(function(w) {
+      return { worker_id: w.id, worker_name: w.full_name, hours_worked: 8, checked: true, is_crew: true };
+    });
+
+    renderWorkerHoursList();
+  } catch(e) {
+    console.error('Error loading foreman workers:', e);
+  }
+}
+
+function renderWorkerHoursList() {
+  var container = document.getElementById('worker-hours-list');
+  var foremanId = document.getElementById('record-foreman') ? document.getElementById('record-foreman').value : null;
+
+  if (pendingWorkerHours.length === 0 && !foremanId) {
+    container.innerHTML = '<p style="color:var(--text-secondary);font-size:14px;text-align:center;padding:12px;">Select a foreman to see crew</p>';
+    return;
+  }
+
+  var checkedWorkers = pendingWorkerHours.filter(function(wh) { return wh.checked; });
+  var totalHours = checkedWorkers.reduce(function(sum, wh) { return sum + parseFloat(wh.hours_worked || 0); }, 0);
+
+  var html = '';
+  if (checkedWorkers.length > 0) {
+    html += '<div style="font-size:12px;color:var(--text-secondary);margin-bottom:8px;padding:0 4px;">Total: ' + totalHours.toFixed(1) + ' hours (' + checkedWorkers.length + ' workers)</div>';
+  }
+
+  // Render each worker with checkbox
   pendingWorkerHours.forEach(function(wh, idx) {
-    html += '<div class="worker-row"><span class="worker-name">' + wh.worker_name + '</span><input type="number" class="worker-hours-input" value="' + wh.hours_worked + '" step="0.5" min="0" max="24" inputmode="decimal" onchange="updateWorkerHours(' + idx + ', this.value)"><button type="button" onclick="removeWorkerHours(' + idx + ')" style="background:var(--error);color:white;border:none;border-radius:8px;padding:8px 12px;cursor:pointer;min-width:44px;min-height:44px;">✕</button></div>';
+    var isChecked = wh.checked !== false;
+    var rowBg = isChecked ? '#fff7ed' : 'white';
+    var checkBg = isChecked ? '#f97316' : 'white';
+    var checkBorder = isChecked ? '#f97316' : '#d1d5db';
+
+    html += '<div style="display:flex;align-items:center;padding:8px 4px;border-bottom:1px solid #f3f4f6;background:' + rowBg + ';">';
+    html += '<div onclick="toggleWorkerCheck(' + idx + ')" style="width:22px;height:22px;border:2px solid ' + checkBorder + ';border-radius:4px;cursor:pointer;display:flex;align-items:center;justify-content:center;background:' + checkBg + ';margin-right:10px;flex-shrink:0;">' + (isChecked ? '<span style="color:white;font-size:12px;">✓</span>' : '') + '</div>';
+    html += '<span style="flex:1;font-size:14px;color:#374151;">' + wh.worker_name + '</span>';
+    html += '<input type="number" value="' + (isChecked ? wh.hours_worked : '') + '" placeholder="0" ' + (isChecked ? '' : 'disabled') + ' style="width:50px;padding:6px;border:1px solid #e5e7eb;border-radius:4px;text-align:center;font-size:14px;' + (isChecked ? '' : 'opacity:0.4;') + '" onchange="updateWorkerHours(' + idx + ', this.value)">';
+    html += '</div>';
   });
+
+  // Add "Add Worker" button
+  html += '<div style="padding:10px 4px;"><button type="button" onclick="openAddWorkerHoursModal()" style="width:100%;padding:10px;border:1px dashed #d1d5db;border-radius:6px;background:white;color:#6b7280;cursor:pointer;font-size:14px;">+ Add Worker</button></div>';
+
   container.innerHTML = html;
+}
+
+function toggleWorkerCheck(idx) {
+  pendingWorkerHours[idx].checked = !pendingWorkerHours[idx].checked;
+  if (!pendingWorkerHours[idx].checked) {
+    pendingWorkerHours[idx].hours_worked = 0;
+  } else {
+    pendingWorkerHours[idx].hours_worked = 8;
+  }
+  renderWorkerHoursList();
 }
 
 function updateWorkerHours(idx, hours) {
@@ -3039,7 +3097,7 @@ async function saveDailyRecord() {
   if (additionalNotes) allNotes.push(additionalNotes);
   var notes = allNotes.join('. ');
 
-  var workerHours = pendingWorkerHours.filter(function(wh) { return wh.hours_worked > 0; }).map(function(wh) { return { worker_id: wh.worker_id, hours_worked: wh.hours_worked }; });
+  var workerHours = pendingWorkerHours.filter(function(wh) { return wh.checked && wh.hours_worked > 0; }).map(function(wh) { return { worker_id: wh.worker_id, hours_worked: wh.hours_worked }; });
   var data = {
     job_id: jobId,
     foreman_id: foremanId,
