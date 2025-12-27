@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Concrete Deliveries - Commander Concrete</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f1f5f9; min-height: 100vh; }
+
+.header {
+  background: #1e293b;
+  color: white;
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.header h1 { font-size: 20px; font-weight: 600; }
+.nav-btn {
+  color: white;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  opacity: 0.8;
+  font-size: 14px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+.nav-btn:hover { opacity: 1; background: rgba(255,255,255,0.1); }
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px 16px;
+}
+
+/* Toolbar */
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 20px;
+  align-items: center;
+}
+.sync-btn {
+  padding: 12px 20px;
+  background: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: background 0.2s;
+}
+.sync-btn:hover { background: #1d4ed8; }
+.sync-btn:disabled { background: #94a3b8; cursor: not-allowed; }
+
+/* Stats Cards */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.stat-card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+.stat-card .label { font-size: 13px; color: #6b7280; margin-bottom: 4px; }
+.stat-card .value { font-size: 28px; font-weight: 700; color: #1f2937; }
+.stat-card .sub { font-size: 13px; color: #9ca3af; margin-top: 4px; }
+.stat-card.highlight { background: #fef3c7; border: 1px solid #f59e0b; }
+.stat-card.highlight .value { color: #b45309; }
+
+/* Deliveries Table */
+.deliveries-card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  overflow: hidden;
+}
+.card-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.card-header h2 { font-size: 16px; font-weight: 600; color: #1f2937; }
+
+.deliveries-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.deliveries-table th {
+  padding: 12px 16px;
+  text-align: left;
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  background: #f8fafc;
+  border-bottom: 1px solid #e5e7eb;
+}
+.deliveries-table th.number { text-align: right; }
+.deliveries-table td {
+  padding: 12px 16px;
+  font-size: 14px;
+  color: #374151;
+  border-bottom: 1px solid #f3f4f6;
+}
+.deliveries-table td.number {
+  text-align: right;
+  font-family: 'SF Mono', Monaco, monospace;
+}
+.deliveries-table tr:hover { background: #fefce8; }
+
+.job-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  background: #dbeafe;
+  color: #1d4ed8;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+}
+.job-badge.unlinked { background: #fee2e2; color: #dc2626; }
+
+/* Import Modal */
+.modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 1000;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 24px 16px;
+  overflow-y: auto;
+}
+.modal.show { display: flex; }
+.modal-content {
+  background: white;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 1000px;
+  margin: auto;
+}
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e5e7eb;
+}
+.modal-header h2 { font-size: 18px; color: #1f2937; }
+.close-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: #f3f4f6;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 18px;
+  color: #6b7280;
+}
+.close-btn:hover { background: #e5e7eb; }
+.modal-body { padding: 24px; }
+
+/* Import Preview Table */
+.import-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.import-table th {
+  padding: 10px 12px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  background: #f8fafc;
+  border-bottom: 1px solid #e5e7eb;
+  white-space: nowrap;
+}
+.import-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #f3f4f6;
+  vertical-align: middle;
+}
+.import-table tr.skipped { opacity: 0.5; background: #f3f4f6; }
+.import-table input, .import-table select {
+  padding: 8px 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 13px;
+  width: 100%;
+}
+.import-table input:focus, .import-table select:focus {
+  outline: none;
+  border-color: #f97316;
+}
+.import-table input[type="number"] { width: 80px; }
+.import-table .match-status {
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.import-table .match-status.auto { background: #dcfce7; color: #166534; }
+.import-table .match-status.manual { background: #fef3c7; color: #92400e; }
+.import-table .match-status.none { background: #fee2e2; color: #991b1b; }
+
+.import-table .skip-checkbox {
+  width: auto;
+  margin: 0;
+}
+
+.import-summary {
+  margin-top: 16px;
+  padding: 16px;
+  background: #f8fafc;
+  border-radius: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.import-summary .stats { font-size: 14px; color: #374151; }
+.import-summary .stats span { font-weight: 600; color: #1f2937; }
+
+.btn {
+  padding: 12px 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-primary { background: #f97316; color: white; }
+.btn-primary:hover { background: #ea580c; }
+.btn-primary:disabled { background: #fdba74; cursor: not-allowed; }
+.btn-secondary { background: #e5e7eb; color: #374151; }
+.btn-secondary:hover { background: #d1d5db; }
+
+/* Loading & Empty States */
+.loading, .empty-state {
+  padding: 48px 24px;
+  text-align: center;
+  color: #9ca3af;
+}
+.loading .spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid #e5e7eb;
+  border-top-color: #f97316;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto 16px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.empty-state-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.5; }
+
+/* Toast */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1e293b;
+  color: white;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 14px;
+  z-index: 1001;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.toast.show { opacity: 1; }
+.toast.success { background: #166534; }
+.toast.error { background: #dc2626; }
+
+/* Responsive */
+@media (max-width: 768px) {
+  .import-table { font-size: 12px; }
+  .import-table th, .import-table td { padding: 8px 6px; }
+  .modal-body { padding: 16px; }
+}
+
+.table-wrapper {
+  overflow-x: auto;
+  max-height: 400px;
+  overflow-y: auto;
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <a href="/home.html" class="nav-btn">← Home</a>
+  <h1>Concrete Deliveries</h1>
+  <a href="/job-costing.html" class="nav-btn">Job Costing →</a>
+</div>
+
+<div class="container">
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <button class="sync-btn" id="sync-btn" onclick="syncFromQuickBooks()">
+      📊 Sync from QuickBooks
+    </button>
+    <button class="btn btn-secondary" onclick="loadDeliveries()">↻ Refresh</button>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-row" id="stats-row">
+    <div class="stat-card">
+      <div class="label">Total Deliveries</div>
+      <div class="value" id="stat-count">-</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Total Yards</div>
+      <div class="value" id="stat-yards">-</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Total Cost</div>
+      <div class="value" id="stat-cost">-</div>
+    </div>
+    <div class="stat-card highlight">
+      <div class="label">Avg Cost/Yard</div>
+      <div class="value" id="stat-avg">-</div>
+    </div>
+  </div>
+
+  <!-- Deliveries Table -->
+  <div class="deliveries-card">
+    <div class="card-header">
+      <h2>Recent Deliveries</h2>
+    </div>
+    <div class="table-wrapper">
+      <table class="deliveries-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Invoice #</th>
+            <th>Vendor</th>
+            <th>Job</th>
+            <th class="number">Yards</th>
+            <th class="number">Cost/Yd</th>
+            <th class="number">Total</th>
+          </tr>
+        </thead>
+        <tbody id="deliveries-body">
+          <tr><td colspan="7"><div class="loading"><div class="spinner"></div>Loading deliveries...</div></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Import Modal -->
+<div class="modal" id="import-modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>Import Concrete Deliveries from QuickBooks</h2>
+      <button class="close-btn" onclick="closeImportModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div id="import-content">
+        <div class="loading"><div class="spinner"></div>Loading concrete bills from QuickBooks...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+var API_BASE = '/api';
+var deliveries = [];
+var jobs = [];
+var importData = [];
+
+// Load on page ready
+document.addEventListener('DOMContentLoaded', function() {
+  loadDeliveries();
+  loadJobs();
+});
+
+async function loadJobs() {
+  try {
+    var res = await fetch(API_BASE + '/jobs');
+    jobs = await res.json();
+  } catch(e) {
+    console.error('Failed to load jobs:', e);
+  }
+}
+
+async function loadDeliveries() {
+  var tbody = document.getElementById('deliveries-body');
+  tbody.innerHTML = '<tr><td colspan="7"><div class="loading"><div class="spinner"></div>Loading...</div></td></tr>';
+
+  try {
+    var res = await fetch(API_BASE + '/concrete-deliveries');
+    deliveries = await res.json();
+
+    updateStats();
+    renderDeliveries();
+  } catch(e) {
+    console.error('Failed to load deliveries:', e);
+    tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state"><div class="empty-state-icon">⚠️</div>Failed to load deliveries</div></td></tr>';
+  }
+}
+
+function updateStats() {
+  var count = deliveries.length;
+  var totalYards = 0;
+  var totalCost = 0;
+
+  deliveries.forEach(function(d) {
+    totalYards += parseFloat(d.yards || d.cubic_yards || 0);
+    totalCost += parseFloat(d.cost || d.total_cost || 0);
+  });
+
+  var avgCost = totalYards > 0 ? totalCost / totalYards : 0;
+
+  document.getElementById('stat-count').textContent = count;
+  document.getElementById('stat-yards').textContent = totalYards.toFixed(1);
+  document.getElementById('stat-cost').textContent = '$' + totalCost.toLocaleString('en-US', {minimumFractionDigits: 2});
+  document.getElementById('stat-avg').textContent = '$' + avgCost.toFixed(2);
+}
+
+function renderDeliveries() {
+  var tbody = document.getElementById('deliveries-body');
+
+  if (deliveries.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state"><div class="empty-state-icon">🚚</div>No concrete deliveries yet<br><small>Click "Sync from QuickBooks" to import</small></div></td></tr>';
+    return;
+  }
+
+  var html = '';
+  deliveries.forEach(function(d) {
+    var yards = parseFloat(d.yards || d.cubic_yards || 0);
+    var cost = parseFloat(d.cost || d.total_cost || 0);
+    var costPerYard = yards > 0 ? cost / yards : 0;
+    var job = jobs.find(function(j) { return j.id === d.job_id; });
+
+    html += '<tr>';
+    html += '<td>' + formatDate(d.delivery_date) + '</td>';
+    html += '<td>' + (d.invoice_number || '-') + '</td>';
+    html += '<td>' + (d.supplier || d.vendor || '-') + '</td>';
+    html += '<td>';
+    if (job) {
+      html += '<span class="job-badge">#' + job.job_number + '</span>';
+    } else if (d.job_id) {
+      html += '<span class="job-badge">Job #' + d.job_id + '</span>';
+    } else {
+      html += '<span class="job-badge unlinked">Unlinked</span>';
+    }
+    html += '</td>';
+    html += '<td class="number">' + yards.toFixed(1) + '</td>';
+    html += '<td class="number">$' + costPerYard.toFixed(2) + '</td>';
+    html += '<td class="number">$' + cost.toLocaleString('en-US', {minimumFractionDigits: 2}) + '</td>';
+    html += '</tr>';
+  });
+
+  tbody.innerHTML = html;
+}
+
+// ========== QUICKBOOKS SYNC ==========
+async function syncFromQuickBooks() {
+  var btn = document.getElementById('sync-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner" style="width:16px;height:16px;border-width:2px;display:inline-block;vertical-align:middle;margin-right:8px;"></div> Loading...';
+
+  document.getElementById('import-modal').classList.add('show');
+  document.getElementById('import-content').innerHTML = '<div class="loading"><div class="spinner"></div>Fetching concrete bills from QuickBooks...</div>';
+
+  try {
+    // Fetch bills from QB
+    var res = await fetch(API_BASE + '/quickbooks/bills');
+    if (!res.ok) throw new Error('Not connected to QuickBooks');
+    var data = await res.json();
+
+    // Filter for concrete vendors
+    var concreteVendors = ['geneva', 'parson', 'quikrete', 'cascade', 'altaview', 'sunroc', 'suncore', 'rock', 'concrete', 'staker'];
+    var concreteBills = data.bills.filter(function(b) {
+      var vendor = (b.vendor_name || '').toLowerCase();
+      return concreteVendors.some(function(v) { return vendor.includes(v); });
+    });
+
+    // Also check purchases
+    var concretePurchases = (data.purchases || []).filter(function(p) {
+      var vendor = (p.vendor_name || '').toLowerCase();
+      return concreteVendors.some(function(v) { return vendor.includes(v); });
+    });
+
+    var allConcrete = concreteBills.concat(concretePurchases);
+
+    if (allConcrete.length === 0) {
+      document.getElementById('import-content').innerHTML = '<div class="empty-state"><div class="empty-state-icon">🚚</div>No concrete bills found in QuickBooks<br><small>Looking for vendors: Geneva Rock, Jack B Parsons, Quikrete, etc.</small></div>';
+      return;
+    }
+
+    // Check which are already imported
+    var existingRes = await fetch(API_BASE + '/concrete-deliveries');
+    var existingDeliveries = await existingRes.json();
+    var existingInvoices = {};
+    existingDeliveries.forEach(function(d) {
+      if (d.invoice_number) existingInvoices[d.invoice_number] = true;
+    });
+
+    // Prepare import data with auto-matching
+    importData = allConcrete.map(function(bill) {
+      var alreadyImported = existingInvoices[bill.doc_number] || existingInvoices['QB-' + bill.id];
+
+      // Try to auto-match job from memo/description
+      var matchedJob = null;
+      var matchType = 'none';
+      var searchText = (bill.memo || '') + ' ' + (bill.lines ? bill.lines.map(function(l) { return l.description || ''; }).join(' ') : '');
+
+      // Try to find job number in text (e.g., "4022", "#4022")
+      var jobNumMatch = searchText.match(/[#]?(\d{4,})/);
+      if (jobNumMatch) {
+        var potentialJobNum = jobNumMatch[1];
+        matchedJob = jobs.find(function(j) {
+          return j.job_number && j.job_number.includes(potentialJobNum);
+        });
+        if (matchedJob) matchType = 'auto';
+      }
+
+      // If no match by number, try by name keywords
+      if (!matchedJob && searchText.length > 5) {
+        var words = searchText.toLowerCase().split(/\s+/).filter(function(w) { return w.length > 4; });
+        jobs.forEach(function(j) {
+          if (matchedJob) return;
+          var jobName = (j.job_name || '').toLowerCase();
+          words.forEach(function(w) {
+            if (jobName.includes(w) && w !== 'concrete' && w !== 'yards') {
+              matchedJob = j;
+              matchType = 'auto';
+            }
+          });
+        });
+      }
+
+      return {
+        qb_id: bill.id,
+        type: bill.type,
+        invoice_number: bill.doc_number || 'QB-' + bill.id,
+        vendor: bill.vendor_name,
+        date: bill.txn_date,
+        amount: bill.total,
+        memo: bill.memo || (bill.lines ? bill.lines.map(function(l) { return l.description; }).join(', ') : ''),
+        matched_job_id: matchedJob ? matchedJob.id : null,
+        matched_job: matchedJob,
+        match_type: matchType,
+        yards: 0,
+        skip: alreadyImported,
+        already_imported: alreadyImported
+      };
+    });
+
+    renderImportPreview();
+
+  } catch(e) {
+    console.error('QB sync error:', e);
+    document.getElementById('import-content').innerHTML = '<div class="empty-state"><div class="empty-state-icon">⚠️</div>Failed to connect to QuickBooks<br><small>' + e.message + '</small></div>';
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '📊 Sync from QuickBooks';
+  }
+}
+
+function renderImportPreview() {
+  var autoMatched = importData.filter(function(d) { return d.match_type === 'auto' && !d.skip; }).length;
+  var needsMatch = importData.filter(function(d) { return d.match_type === 'none' && !d.skip; }).length;
+  var skipped = importData.filter(function(d) { return d.skip; }).length;
+  var toImport = importData.filter(function(d) { return !d.skip; }).length;
+
+  var html = '<div class="table-wrapper"><table class="import-table">';
+  html += '<thead><tr>';
+  html += '<th>Skip</th>';
+  html += '<th>Date</th>';
+  html += '<th>Vendor</th>';
+  html += '<th>Invoice</th>';
+  html += '<th>Amount</th>';
+  html += '<th>Match Job</th>';
+  html += '<th>Yards</th>';
+  html += '<th>$/Yard</th>';
+  html += '</tr></thead><tbody>';
+
+  importData.forEach(function(item, index) {
+    var rowClass = item.skip ? 'skipped' : '';
+    html += '<tr class="' + rowClass + '" id="import-row-' + index + '">';
+
+    // Skip checkbox
+    html += '<td><input type="checkbox" class="skip-checkbox" ' + (item.skip ? 'checked' : '') + ' onchange="toggleSkip(' + index + ')" ' + (item.already_imported ? 'disabled title="Already imported"' : '') + '></td>';
+
+    // Date
+    html += '<td>' + formatDate(item.date) + '</td>';
+
+    // Vendor
+    html += '<td>' + item.vendor + '</td>';
+
+    // Invoice
+    html += '<td>' + item.invoice_number + (item.already_imported ? ' <span class="match-status auto">Imported</span>' : '') + '</td>';
+
+    // Amount
+    html += '<td>$' + item.amount.toLocaleString('en-US', {minimumFractionDigits: 2}) + '</td>';
+
+    // Job dropdown
+    html += '<td>';
+    if (item.match_type === 'auto') {
+      html += '<span class="match-status auto">Auto</span> ';
+    }
+    html += '<select onchange="updateJobMatch(' + index + ', this.value)" ' + (item.skip ? 'disabled' : '') + '>';
+    html += '<option value="">-- Select Job --</option>';
+    jobs.forEach(function(j) {
+      var selected = item.matched_job_id === j.id ? 'selected' : '';
+      html += '<option value="' + j.id + '" ' + selected + '>#' + j.job_number + ' - ' + (j.job_name || '').substring(0, 30) + '</option>';
+    });
+    html += '</select></td>';
+
+    // Yards input
+    html += '<td><input type="number" step="0.5" min="0" value="' + (item.yards || '') + '" onchange="updateYards(' + index + ', this.value)" placeholder="0" ' + (item.skip ? 'disabled' : '') + '></td>';
+
+    // Cost per yard (calculated)
+    var costPerYard = item.yards > 0 ? item.amount / item.yards : 0;
+    html += '<td id="cost-per-yard-' + index + '">$' + costPerYard.toFixed(2) + '</td>';
+
+    html += '</tr>';
+  });
+
+  html += '</tbody></table></div>';
+
+  // Summary
+  html += '<div class="import-summary">';
+  html += '<div class="stats">';
+  html += '<span>' + toImport + '</span> to import • ';
+  html += '<span style="color:#166534">' + autoMatched + '</span> auto-matched • ';
+  html += '<span style="color:#92400e">' + needsMatch + '</span> need job • ';
+  html += '<span style="color:#6b7280">' + skipped + '</span> skipped';
+  html += '</div>';
+  html += '<div>';
+  html += '<button class="btn btn-secondary" onclick="closeImportModal()">Cancel</button> ';
+  html += '<button class="btn btn-primary" onclick="confirmImport()" id="confirm-import-btn">Import ' + toImport + ' Deliveries</button>';
+  html += '</div>';
+  html += '</div>';
+
+  document.getElementById('import-content').innerHTML = html;
+}
+
+function toggleSkip(index) {
+  importData[index].skip = !importData[index].skip;
+  renderImportPreview();
+}
+
+function updateJobMatch(index, jobId) {
+  importData[index].matched_job_id = jobId ? parseInt(jobId) : null;
+  importData[index].match_type = jobId ? 'manual' : 'none';
+}
+
+function updateYards(index, yards) {
+  importData[index].yards = parseFloat(yards) || 0;
+  var costPerYard = importData[index].yards > 0 ? importData[index].amount / importData[index].yards : 0;
+  document.getElementById('cost-per-yard-' + index).textContent = '$' + costPerYard.toFixed(2);
+}
+
+async function confirmImport() {
+  var toImport = importData.filter(function(d) { return !d.skip; });
+
+  if (toImport.length === 0) {
+    showToast('No deliveries to import', 'error');
+    return;
+  }
+
+  var btn = document.getElementById('confirm-import-btn');
+  btn.disabled = true;
+  btn.textContent = 'Importing...';
+
+  var imported = 0;
+  var autoMatched = 0;
+  var manualMatched = 0;
+  var errors = 0;
+
+  for (var i = 0; i < toImport.length; i++) {
+    var item = toImport[i];
+
+    var costPerYard = item.yards > 0 ? item.amount / item.yards : 0;
+
+    var payload = {
+      invoice_number: item.invoice_number,
+      job_id: item.matched_job_id || null,
+      delivery_date: item.date,
+      cubic_yards: item.yards || 0,
+      cost_per_yard: costPerYard,
+      total_cost: item.amount,
+      supplier: item.vendor,
+      notes: item.memo,
+      status: 'imported'
+    };
+
+    try {
+      var res = await fetch(API_BASE + '/concrete-deliveries/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (res.ok) {
+        imported++;
+        if (item.match_type === 'auto') autoMatched++;
+        else if (item.match_type === 'manual') manualMatched++;
+      } else {
+        errors++;
+      }
+    } catch(e) {
+      errors++;
+    }
+  }
+
+  closeImportModal();
+  await loadDeliveries();
+
+  var msg = 'Imported ' + imported + ' deliveries';
+  if (autoMatched > 0) msg += ', ' + autoMatched + ' auto-matched';
+  if (manualMatched > 0) msg += ', ' + manualMatched + ' manually matched';
+  if (errors > 0) msg += ' (' + errors + ' errors)';
+
+  showToast(msg, errors > 0 ? 'error' : 'success');
+}
+
+function closeImportModal() {
+  document.getElementById('import-modal').classList.remove('show');
+}
+
+// ========== HELPERS ==========
+function formatDate(dateStr) {
+  if (!dateStr) return '-';
+  var d = new Date(dateStr + 'T12:00:00');
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function showToast(message, type) {
+  var toast = document.getElementById('toast');
+  toast.textContent = message;
+  toast.className = 'toast show' + (type ? ' ' + type : '');
+  setTimeout(function() { toast.classList.remove('show'); }, 3500);
+}
+
+// Close modal on outside click
+document.getElementById('import-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeImportModal();
+});
+</script>
+
+</body>
+</html>

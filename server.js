@@ -726,6 +726,45 @@ app.post('/api/concrete-deliveries', async (req, res) => {
     }
 });
 
+// Import concrete delivery from QuickBooks (no auth required, accepts supplier name)
+app.post('/api/concrete-deliveries/import', async (req, res) => {
+    try {
+        const {
+            invoice_number,
+            supplier,
+            job_id,
+            delivery_date,
+            cubic_yards,
+            cost_per_yard,
+            total_cost,
+            notes,
+            status
+        } = req.body;
+
+        // Check for duplicate
+        const existingCheck = await pool.query(
+            'SELECT id FROM concrete_deliveries WHERE invoice_number = $1',
+            [invoice_number]
+        );
+        if (existingCheck.rows.length > 0) {
+            return res.status(409).json({ error: 'Delivery already imported', existing_id: existingCheck.rows[0].id });
+        }
+
+        const result = await pool.query(
+            `INSERT INTO concrete_deliveries
+            (invoice_number, supplier, job_id, delivery_date, cubic_yards, cost_per_yard, total_cost, status, notes)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+            RETURNING *`,
+            [invoice_number, supplier, job_id || null, delivery_date, cubic_yards || 0, cost_per_yard || 0, total_cost || 0, status || 'imported', notes || '']
+        );
+
+        res.status(201).json(result.rows[0]);
+    } catch (error) {
+        console.error('Error importing concrete delivery:', error);
+        res.status(500).json({ error: 'Failed to import concrete delivery' });
+    }
+});
+
 // ========== HELPER FUNCTIONS FOR PDF PARSING ==========
 
 function extractInvoiceNumber(text) {
@@ -4601,6 +4640,11 @@ app.delete("/api/public/schedule/:id", async (req, res) => {
         // Add yards_poured column to daily_records if it doesn't exist
         await pool.query(`
             ALTER TABLE daily_records ADD COLUMN IF NOT EXISTS yards_poured DECIMAL(12,2) DEFAULT 0;
+        `);
+
+        // Ensure concrete_deliveries has supplier column
+        await pool.query(`
+            ALTER TABLE concrete_deliveries ADD COLUMN IF NOT EXISTS supplier VARCHAR(255);
         `);
 
         console.log('Database migrations complete');
