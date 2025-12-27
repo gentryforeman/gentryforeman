@@ -472,6 +472,195 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+/* Enhanced Add Job Modal */
+.add-job-modal .modal-content {
+  max-width: 650px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+.modal-section {
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #e5e7eb;
+}
+.modal-section:last-child { border-bottom: none; margin-bottom: 0; }
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 16px;
+}
+.section-header .icon { font-size: 18px; }
+.section-header .badge {
+  font-size: 11px;
+  padding: 2px 8px;
+  background: #e5e7eb;
+  color: #6b7280;
+  border-radius: 10px;
+  font-weight: 500;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+@media (max-width: 500px) {
+  .form-row { grid-template-columns: 1fr; }
+}
+.form-group.full-width { grid-column: 1 / -1; }
+
+.form-group textarea {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 15px;
+  font-family: inherit;
+  resize: vertical;
+  min-height: 80px;
+}
+.form-group textarea:focus {
+  outline: none;
+  border-color: #f97316;
+}
+
+/* Import Buttons */
+.import-buttons {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.import-btn {
+  flex: 1;
+  min-width: 150px;
+  padding: 14px 16px;
+  border: 2px solid #e5e7eb;
+  border-radius: 10px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: left;
+}
+.import-btn:hover:not(:disabled) {
+  border-color: #f97316;
+  background: #fff7ed;
+}
+.import-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.import-btn.selected {
+  border-color: #f97316;
+  background: #fff7ed;
+}
+.import-btn-icon { font-size: 24px; margin-bottom: 8px; }
+.import-btn-title { font-size: 14px; font-weight: 600; color: #1f2937; }
+.import-btn-desc { font-size: 12px; color: #6b7280; margin-top: 2px; }
+
+.qb-estimate-selected {
+  margin-top: 12px;
+  padding: 12px 16px;
+  background: #ecfdf5;
+  border: 1px solid #10b981;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.qb-estimate-selected .info { flex: 1; }
+.qb-estimate-selected .name { font-weight: 600; color: #065f46; }
+.qb-estimate-selected .details { font-size: 13px; color: #047857; }
+.qb-estimate-selected .remove-btn {
+  padding: 6px 12px;
+  background: #fee2e2;
+  color: #dc2626;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+/* QB Estimates Dropdown */
+.qb-estimates-dropdown {
+  margin-top: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  max-height: 250px;
+  overflow-y: auto;
+  background: white;
+}
+.qb-estimate-item {
+  padding: 12px 16px;
+  border-bottom: 1px solid #f3f4f6;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.qb-estimate-item:last-child { border-bottom: none; }
+.qb-estimate-item:hover { background: #fefce8; }
+.qb-estimate-item .est-name { font-weight: 500; color: #1f2937; }
+.qb-estimate-item .est-details { font-size: 13px; color: #6b7280; margin-top: 2px; }
+.qb-loading, .qb-error, .qb-empty {
+  padding: 24px;
+  text-align: center;
+  color: #6b7280;
+}
+.qb-error { color: #dc2626; }
+
+/* Attachments */
+.attachments-upload {
+  border: 2px dashed #e5e7eb;
+  border-radius: 10px;
+  padding: 24px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: #fafafa;
+}
+.attachments-upload:hover, .attachments-upload.dragover {
+  border-color: #f97316;
+  background: #fff7ed;
+}
+.attachments-upload input { display: none; }
+.attachments-upload .icon { font-size: 32px; margin-bottom: 8px; opacity: 0.6; }
+.attachments-upload .text { font-size: 14px; color: #6b7280; }
+.attachments-upload .hint { font-size: 12px; color: #9ca3af; margin-top: 4px; }
+
+.pending-files {
+  margin-top: 12px;
+}
+.pending-file {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: #f8fafc;
+  border-radius: 6px;
+  margin-bottom: 6px;
+}
+.pending-file .file-icon { font-size: 20px; }
+.pending-file .file-info { flex: 1; min-width: 0; }
+.pending-file .file-name {
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pending-file .file-size { font-size: 11px; color: #9ca3af; }
+.pending-file .remove-file {
+  padding: 4px 8px;
+  background: #fee2e2;
+  color: #dc2626;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
 /* Stats Bar */
 .stats-bar {
   display: flex;
@@ -535,36 +724,108 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 </div>
 
 <!-- Add Job Modal -->
-<div class="modal" id="add-job-modal">
+<div class="modal add-job-modal" id="add-job-modal">
   <div class="modal-content">
     <div class="modal-header">
       <h2>Add New Job</h2>
       <button class="close-btn" onclick="closeModal('add-job-modal')">×</button>
     </div>
     <div class="modal-body">
-      <div class="form-group">
-        <label>Job Number *</label>
-        <input type="text" id="new-job-number" placeholder="e.g. QB-1234">
+      <!-- IMPORT DATA Section -->
+      <div class="modal-section">
+        <div class="section-header">
+          <span class="icon">📥</span> Import Data
+          <span class="badge">Optional</span>
+        </div>
+        <div class="import-buttons">
+          <button class="import-btn" id="qb-import-btn" onclick="toggleQBImport()">
+            <div class="import-btn-icon">📊</div>
+            <div class="import-btn-title">Import from QuickBooks</div>
+            <div class="import-btn-desc">Pull estimate data</div>
+          </button>
+          <button class="import-btn" disabled title="Coming Soon">
+            <div class="import-btn-icon">📐</div>
+            <div class="import-btn-title">Import from STACK</div>
+            <div class="import-btn-desc">Coming soon</div>
+          </button>
+        </div>
+        <div id="qb-estimates-container" style="display:none;"></div>
+        <div id="qb-selected-estimate" style="display:none;"></div>
       </div>
-      <div class="form-group">
-        <label>Job Name *</label>
-        <input type="text" id="new-job-name" placeholder="Enter job name">
+
+      <!-- BASIC INFO Section -->
+      <div class="modal-section">
+        <div class="section-header">
+          <span class="icon">📋</span> Basic Information
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Job Number *</label>
+            <input type="text" id="new-job-number" placeholder="e.g. QB-1234">
+          </div>
+          <div class="form-group">
+            <label>Job Name *</label>
+            <input type="text" id="new-job-name" placeholder="Enter job name">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Location</label>
+            <input type="text" id="new-job-location" placeholder="Enter location">
+          </div>
+          <div class="form-group">
+            <label>Contractor</label>
+            <input type="text" id="new-job-contractor" placeholder="Enter contractor name">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Status</label>
+            <select id="new-job-status">
+              <option value="active">Active</option>
+              <option value="pending">Pending</option>
+              <option value="closed">Closed</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Crew Lead</label>
+            <select id="new-job-crew-lead">
+              <option value="">Select crew lead...</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Start Date</label>
+            <input type="date" id="new-job-start-date">
+          </div>
+          <div class="form-group">
+            <label>End Date</label>
+            <input type="date" id="new-job-end-date">
+          </div>
+        </div>
+        <div class="form-group full-width">
+          <label>Notes</label>
+          <textarea id="new-job-notes" placeholder="Add any notes about this job..."></textarea>
+        </div>
       </div>
-      <div class="form-group">
-        <label>Location</label>
-        <input type="text" id="new-job-location" placeholder="Enter location">
+
+      <!-- ATTACHMENTS Section -->
+      <div class="modal-section">
+        <div class="section-header">
+          <span class="icon">📎</span> Attachments
+          <span class="badge">Optional</span>
+        </div>
+        <div class="attachments-upload" id="new-job-upload-zone">
+          <div class="icon">📄</div>
+          <div class="text">Drag & drop PDF plans here</div>
+          <div class="hint">or click to select files (PDF only, max 50MB each)</div>
+          <input type="file" id="new-job-files" accept=".pdf,application/pdf" multiple>
+        </div>
+        <div class="pending-files" id="pending-files-list"></div>
       </div>
-      <div class="form-group">
-        <label>Contractor</label>
-        <input type="text" id="new-job-contractor" placeholder="Enter contractor name">
-      </div>
-      <div class="form-group">
-        <label>Crew Lead</label>
-        <select id="new-job-crew-lead">
-          <option value="">Select crew lead...</option>
-        </select>
-      </div>
-      <button class="submit-btn" onclick="saveNewJob()">Add Job</button>
+
+      <button class="submit-btn" onclick="saveNewJob()" id="save-job-btn">Add Job</button>
     </div>
   </div>
 </div>
@@ -791,12 +1052,33 @@ function formatCurrency(amount) {
 }
 
 // Modal functions
+var pendingFiles = [];
+var selectedQBEstimate = null;
+var qbEstimatesVisible = false;
+
 function openAddJobModal() {
+  // Reset all fields
   document.getElementById('new-job-number').value = '';
   document.getElementById('new-job-name').value = '';
   document.getElementById('new-job-location').value = '';
   document.getElementById('new-job-contractor').value = '';
   document.getElementById('new-job-crew-lead').value = '';
+  document.getElementById('new-job-status').value = 'active';
+  document.getElementById('new-job-start-date').value = '';
+  document.getElementById('new-job-end-date').value = '';
+  document.getElementById('new-job-notes').value = '';
+
+  // Reset import state
+  selectedQBEstimate = null;
+  qbEstimatesVisible = false;
+  document.getElementById('qb-import-btn').classList.remove('selected');
+  document.getElementById('qb-estimates-container').style.display = 'none';
+  document.getElementById('qb-selected-estimate').style.display = 'none';
+
+  // Reset attachments
+  pendingFiles = [];
+  renderPendingFiles();
+
   document.getElementById('add-job-modal').classList.add('show');
 }
 
@@ -818,13 +1100,25 @@ function closeModal(modalId) {
 }
 
 async function saveNewJob() {
+  var saveBtn = document.getElementById('save-job-btn');
+  var originalText = saveBtn.textContent;
+
   var data = {
     job_number: document.getElementById('new-job-number').value.trim(),
     job_name: document.getElementById('new-job-name').value.trim(),
     location: document.getElementById('new-job-location').value.trim(),
     contractor_name: document.getElementById('new-job-contractor').value.trim(),
-    crew_lead_id: document.getElementById('new-job-crew-lead').value || null
+    crew_lead_id: document.getElementById('new-job-crew-lead').value || null,
+    status: document.getElementById('new-job-status').value || 'active',
+    start_date: document.getElementById('new-job-start-date').value || null,
+    end_date: document.getElementById('new-job-end-date').value || null,
+    notes: document.getElementById('new-job-notes').value.trim()
   };
+
+  // Add QB estimate ID if selected
+  if (selectedQBEstimate) {
+    data.qb_estimate_id = selectedQBEstimate.id;
+  }
 
   if (!data.job_number || !data.job_name) {
     showToast('Job Number and Name are required');
@@ -832,25 +1126,233 @@ async function saveNewJob() {
   }
 
   try {
+    saveBtn.textContent = 'Creating job...';
+    saveBtn.disabled = true;
+
+    // Step 1: Create the job
     var res = await fetch(API_BASE + '/jobs', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
     });
 
-    if (res.ok) {
-      closeModal('add-job-modal');
-      await loadData();
-      showToast('Job added successfully');
-    } else {
+    if (!res.ok) {
       var err = await res.json();
-      showToast(err.error || 'Failed to add job');
+      throw new Error(err.error || 'Failed to create job');
     }
+
+    var newJob = await res.json();
+    var jobId = newJob.id;
+    var uploadedCount = 0;
+
+    // Step 2: Upload pending files
+    if (pendingFiles.length > 0) {
+      saveBtn.textContent = 'Uploading plans...';
+
+      for (var i = 0; i < pendingFiles.length; i++) {
+        var file = pendingFiles[i];
+        var formData = new FormData();
+        formData.append('plan', file);
+
+        try {
+          var uploadRes = await fetch(API_BASE + '/jobs/' + jobId + '/plans', {
+            method: 'POST',
+            body: formData
+          });
+          if (uploadRes.ok) uploadedCount++;
+        } catch(uploadErr) {
+          console.error('Failed to upload:', file.name, uploadErr);
+        }
+      }
+    }
+
+    // Success
+    closeModal('add-job-modal');
+    await loadData();
+
+    var msg = 'Job created successfully';
+    if (uploadedCount > 0) {
+      msg += ' with ' + uploadedCount + ' plan' + (uploadedCount > 1 ? 's' : '');
+    }
+    if (selectedQBEstimate) {
+      msg += ' (linked to QB estimate)';
+    }
+    showToast(msg);
+
   } catch(e) {
     console.error('Error:', e);
-    showToast('Failed to add job');
+    showToast(e.message || 'Failed to add job');
+  } finally {
+    saveBtn.textContent = originalText;
+    saveBtn.disabled = false;
   }
 }
+
+// ========== QUICKBOOKS IMPORT ==========
+async function toggleQBImport() {
+  var container = document.getElementById('qb-estimates-container');
+  var btn = document.getElementById('qb-import-btn');
+
+  if (qbEstimatesVisible) {
+    container.style.display = 'none';
+    btn.classList.remove('selected');
+    qbEstimatesVisible = false;
+    return;
+  }
+
+  btn.classList.add('selected');
+  container.style.display = 'block';
+  container.innerHTML = '<div class="qb-loading"><div class="spinner"></div> Loading QuickBooks estimates...</div>';
+  qbEstimatesVisible = true;
+
+  try {
+    var res = await fetch(API_BASE + '/quickbooks/estimates');
+    if (!res.ok) {
+      throw new Error('Not connected to QuickBooks');
+    }
+    var data = await res.json();
+
+    if (!data.estimates || data.estimates.length === 0) {
+      container.innerHTML = '<div class="qb-empty">No estimates found in QuickBooks</div>';
+      return;
+    }
+
+    // Filter to show only unsynced estimates
+    var available = data.estimates.filter(function(e) { return !e.is_synced; });
+
+    if (available.length === 0) {
+      container.innerHTML = '<div class="qb-empty">All estimates have already been imported</div>';
+      return;
+    }
+
+    var html = '<div class="qb-estimates-dropdown">';
+    available.forEach(function(est) {
+      html += '<div class="qb-estimate-item" onclick="selectQBEstimate(' + JSON.stringify(est).replace(/"/g, '&quot;') + ')">';
+      html += '<div class="est-name">' + (est.doc_number || 'No #') + ' - ' + est.customer_name + '</div>';
+      html += '<div class="est-details">$' + (est.total || 0).toLocaleString() + ' • ' + (est.line_count || 0) + ' items</div>';
+      html += '</div>';
+    });
+    html += '</div>';
+    container.innerHTML = html;
+
+  } catch(e) {
+    console.error('QB error:', e);
+    container.innerHTML = '<div class="qb-error">Failed to load estimates. Make sure QuickBooks is connected.</div>';
+  }
+}
+
+function selectQBEstimate(estimate) {
+  selectedQBEstimate = estimate;
+
+  // Hide dropdown, show selected
+  document.getElementById('qb-estimates-container').style.display = 'none';
+
+  var selectedDiv = document.getElementById('qb-selected-estimate');
+  selectedDiv.style.display = 'block';
+  selectedDiv.innerHTML = '<div class="qb-estimate-selected">' +
+    '<div class="info">' +
+      '<div class="name">' + (estimate.doc_number || '') + ' - ' + estimate.customer_name + '</div>' +
+      '<div class="details">$' + (estimate.total || 0).toLocaleString() + ' • ' + (estimate.line_count || 0) + ' line items</div>' +
+    '</div>' +
+    '<button class="remove-btn" onclick="clearQBEstimate()">Remove</button>' +
+  '</div>';
+
+  // Auto-fill job fields
+  document.getElementById('new-job-number').value = estimate.doc_number || '';
+  document.getElementById('new-job-name').value = estimate.customer_name || '';
+  document.getElementById('new-job-contractor').value = estimate.customer_name || '';
+
+  showToast('Estimate selected - fields auto-filled');
+}
+
+function clearQBEstimate() {
+  selectedQBEstimate = null;
+  document.getElementById('qb-selected-estimate').style.display = 'none';
+  document.getElementById('qb-import-btn').classList.remove('selected');
+  qbEstimatesVisible = false;
+}
+
+// ========== ATTACHMENTS HANDLING ==========
+function renderPendingFiles() {
+  var container = document.getElementById('pending-files-list');
+  if (pendingFiles.length === 0) {
+    container.innerHTML = '';
+    return;
+  }
+
+  var html = '';
+  pendingFiles.forEach(function(file, index) {
+    var size = file.size < 1024 * 1024
+      ? (file.size / 1024).toFixed(1) + ' KB'
+      : (file.size / (1024 * 1024)).toFixed(1) + ' MB';
+
+    html += '<div class="pending-file">';
+    html += '<div class="file-icon">📄</div>';
+    html += '<div class="file-info">';
+    html += '<div class="file-name">' + file.name + '</div>';
+    html += '<div class="file-size">' + size + '</div>';
+    html += '</div>';
+    html += '<button class="remove-file" onclick="removePendingFile(' + index + ')">Remove</button>';
+    html += '</div>';
+  });
+  container.innerHTML = html;
+}
+
+function removePendingFile(index) {
+  pendingFiles.splice(index, 1);
+  renderPendingFiles();
+}
+
+function addPendingFiles(files) {
+  for (var i = 0; i < files.length; i++) {
+    var file = files[i];
+    if (file.type !== 'application/pdf') {
+      showToast('Only PDF files are allowed');
+      continue;
+    }
+    if (file.size > 50 * 1024 * 1024) {
+      showToast(file.name + ' is too large (max 50MB)');
+      continue;
+    }
+    // Check for duplicates
+    var exists = pendingFiles.some(function(f) { return f.name === file.name && f.size === file.size; });
+    if (!exists) {
+      pendingFiles.push(file);
+    }
+  }
+  renderPendingFiles();
+}
+
+// Set up attachment drag & drop
+document.addEventListener('DOMContentLoaded', function() {
+  var uploadZone = document.getElementById('new-job-upload-zone');
+  var fileInput = document.getElementById('new-job-files');
+
+  if (uploadZone && fileInput) {
+    uploadZone.addEventListener('click', function() { fileInput.click(); });
+
+    fileInput.addEventListener('change', function(e) {
+      addPendingFiles(e.target.files);
+      fileInput.value = '';
+    });
+
+    uploadZone.addEventListener('dragover', function(e) {
+      e.preventDefault();
+      uploadZone.classList.add('dragover');
+    });
+
+    uploadZone.addEventListener('dragleave', function(e) {
+      e.preventDefault();
+      uploadZone.classList.remove('dragover');
+    });
+
+    uploadZone.addEventListener('drop', function(e) {
+      e.preventDefault();
+      uploadZone.classList.remove('dragover');
+      addPendingFiles(e.dataTransfer.files);
+    });
+  }
+});
 
 async function saveEditJob() {
   var jobId = document.getElementById('edit-job-id').value;
