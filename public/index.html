@@ -50,22 +50,47 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 /* ========== THREE-PANEL LAYOUT ========== */
 .app-layout { display: flex; flex: 1; overflow: hidden; }
 
-/* Top Header Bar */
-.top-header {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 12px 20px; background: var(--bg-darker); color: white;
-  box-shadow: var(--shadow);
+/* Consistent Nav Bar */
+.nav-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: #1e293b;
+  color: white;
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 56px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
-.top-header h1 { font-size: 20px; font-weight: 700; color: var(--primary); }
-.header-nav { display: flex; gap: 8px; }
-.header-nav button {
-  background: transparent; border: none; color: white; padding: 8px 16px;
-  border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 500;
-  transition: background 0.2s;
+.nav-header h1 {
+  font-size: 18px;
+  font-weight: 600;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
 }
-.header-nav button:hover { background: rgba(255,255,255,0.1); }
-.header-nav button.active { background: var(--primary); }
-.mobile-menu-btn { display: none; background: none; border: none; color: white; font-size: 24px; cursor: pointer; padding: 8px; }
+.nav-btn {
+  color: white;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 10px 14px;
+  border-radius: 8px;
+  transition: all 0.2s;
+  min-height: 44px;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+.nav-btn:hover { background: rgba(255,255,255,0.1); }
+.nav-btn:active { background: rgba(255,255,255,0.2); }
+.mobile-menu-btn { display: none; background: none; border: none; color: white; font-size: 24px; cursor: pointer; padding: 8px; min-height: 44px; }
 
 /* Left Sidebar - Jobs List */
 .left-sidebar {
@@ -471,6 +496,21 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .worker-hours-input:focus { outline: none; border-color: var(--primary); }
 .add-worker-btn { padding: 10px 16px; background: var(--border); color: var(--text-secondary); border: none; border-radius: 10px; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 6px; min-height: 44px; }
 .add-worker-btn:hover { background: #cbd5e1; }
+
+/* Concrete deliveries section in Daily Record */
+.concrete-deliveries-section { background: #fef7ed; border-radius: 12px; padding: 16px; margin-top: 12px; border: 1px solid #fed7aa; }
+.concrete-deliveries-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.concrete-deliveries-header h4 { font-size: 14px; font-weight: 600; color: #9a3412; }
+.concrete-delivery-row { display: flex; align-items: center; padding: 12px; background: white; border-radius: 8px; margin-bottom: 8px; border: 1px solid #fed7aa; }
+.concrete-delivery-row:last-child { margin-bottom: 0; }
+.concrete-delivery-checkbox { width: 24px; height: 24px; border-radius: 6px; border: 2px solid #d1d5db; background: white; cursor: pointer; display: flex; align-items: center; justify-content: center; margin-right: 12px; flex-shrink: 0; }
+.concrete-delivery-checkbox.checked { background: #f97316; border-color: #f97316; }
+.concrete-delivery-info { flex: 1; }
+.concrete-delivery-supplier { font-size: 14px; font-weight: 500; color: #1f2937; }
+.concrete-delivery-details { font-size: 12px; color: #6b7280; margin-top: 2px; }
+.concrete-delivery-yards { font-size: 16px; font-weight: 600; color: #9a3412; text-align: right; min-width: 60px; }
+.concrete-deliveries-empty { text-align: center; padding: 16px; color: #9a3412; font-size: 14px; }
+
 .quick-notes { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
 .note-chip { padding: 10px 16px; background: var(--border); border: none; border-radius: 20px; font-size: 14px; cursor: pointer; color: var(--text-secondary); transition: all 0.2s; min-height: 40px; }
 .note-chip:hover { background: #cbd5e1; }
@@ -600,17 +640,22 @@ if (localStorage.getItem('foreman_logged_in') === 'true') {
 <div id="dashboard-screen" class="screen">
 
   <!-- Top Header -->
-  <header class="top-header">
+  <nav class="nav-header">
+    <button class="nav-btn" onclick="goBack()">← Back</button>
     <button class="mobile-menu-btn" onclick="toggleSidebar()">☰</button>
-    <a href="/home.html" style="text-decoration:none;color:white;"><h1>FOREMAN SYSTEM</h1></a>
-    <div class="header-nav">
-      <button onclick="window.location.href='/home.html'">Home</button>
-      <button class="active" onclick="showView('calendar')">Calendar</button>
-      <button onclick="showView('today')">Today</button>
-      <button onclick="window.location.href='/job-costing.html'">Costing</button>
-      <button onclick="doLogout()">Logout</button>
-    </div>
-  </header>
+    <h1>Calendar</h1>
+    <a href="/home.html" class="nav-btn">Home</a>
+  </nav>
+
+  <script>
+  function goBack() {
+    if (window.history.length > 1 && document.referrer) {
+      window.history.back();
+    } else {
+      window.location.href = '/home.html';
+    }
+  }
+  </script>
 
   <div class="app-layout">
 
@@ -2424,6 +2469,9 @@ function openDailyModal() {
 }
 function openDailyModalForJob(jobId) { openDailyModalForDate(new Date().toISOString().split('T')[0], jobId); }
 
+var currentConcreteDeliveries = [];
+var selectedDeliveryIds = [];
+
 async function openDailyModalForDate(dateStr, presetJobId) {
   pendingPhotos = [];
   pendingWorkItems = [];
@@ -2432,6 +2480,8 @@ async function openDailyModalForDate(dateStr, presetJobId) {
   selectedWorkItems = [];
   currentWeather = null;
   currentJobTotals = null;
+  currentConcreteDeliveries = [];
+  selectedDeliveryIds = [];
 
   var jobOpts = jobs.map(function(j) {
     var selected = presetJobId && presetJobId == j.id ? ' selected' : '';
@@ -2507,6 +2557,15 @@ async function openDailyModalForDate(dateStr, presetJobId) {
             <p style="color:var(--text-secondary);font-size:14px;text-align:center;padding:12px;">No workers added yet</p>\
           </div>\
         </div>\
+        <div id="concrete-deliveries-section" class="concrete-deliveries-section" style="display:none;">\
+          <div class="concrete-deliveries-header">\
+            <h4>🚚 Concrete Deliveries</h4>\
+            <span id="concrete-deliveries-count" style="font-size:12px;color:#9a3412;"></span>\
+          </div>\
+          <div id="concrete-deliveries-list">\
+            <div class="concrete-deliveries-empty">No deliveries found for this job</div>\
+          </div>\
+        </div>\
         <div class="input-group">\
           <label>📷 Photos</label>\
           <div class="photo-upload-area" id="photo-upload-area" onclick="document.getElementById(\'photo-input\').click()">\
@@ -2567,6 +2626,11 @@ async function onJobSelected() {
     if (container) {
       container.innerHTML = '<div class="work-items-empty"><div class="work-items-empty-icon">📋</div><p>Select a job to see work items</p><p class="sub">Items will load from job takeoffs</p></div>';
     }
+    // Reset concrete deliveries
+    currentConcreteDeliveries = [];
+    selectedDeliveryIds = [];
+    var concreteSection = document.getElementById('concrete-deliveries-section');
+    if (concreteSection) concreteSection.style.display = 'none';
     return;
   }
 
@@ -2620,6 +2684,71 @@ async function onJobSelected() {
   } catch(e) {
     console.error('Error loading takeoffs:', e);
   }
+
+  // Load concrete deliveries for this job
+  try {
+    var res = await fetch(API + '/concrete-deliveries/by-job-date?job_id=' + jobId + '&date=' + dateStr);
+    if (res.ok) {
+      currentConcreteDeliveries = await res.json();
+      selectedDeliveryIds = [];
+      renderConcreteDeliveries();
+    }
+  } catch(e) {
+    console.error('Error loading concrete deliveries:', e);
+  }
+}
+
+// Render concrete deliveries in Daily Record modal
+function renderConcreteDeliveries() {
+  var section = document.getElementById('concrete-deliveries-section');
+  var list = document.getElementById('concrete-deliveries-list');
+  var countEl = document.getElementById('concrete-deliveries-count');
+
+  if (!section || !list) return;
+
+  if (!currentConcreteDeliveries || currentConcreteDeliveries.length === 0) {
+    section.style.display = 'none';
+    return;
+  }
+
+  section.style.display = 'block';
+
+  var totalYards = currentConcreteDeliveries.reduce(function(sum, d) { return sum + (parseFloat(d.cubic_yards) || 0); }, 0);
+  if (countEl) countEl.textContent = currentConcreteDeliveries.length + ' delivery(s) • ' + totalYards.toFixed(1) + ' yards';
+
+  var html = '';
+  currentConcreteDeliveries.forEach(function(d) {
+    var isLinked = d.daily_record_id != null;
+    var isSelected = selectedDeliveryIds.indexOf(d.id) !== -1;
+    var dateFormatted = d.delivery_date ? new Date(d.delivery_date).toLocaleDateString() : 'N/A';
+
+    html += '<div class="concrete-delivery-row" onclick="toggleDeliverySelection(' + d.id + ')">';
+    html += '<div class="concrete-delivery-checkbox ' + (isSelected ? 'checked' : '') + '">';
+    if (isSelected) html += '<span style="color:white;font-size:14px;font-weight:bold;">✓</span>';
+    html += '</div>';
+    html += '<div class="concrete-delivery-info">';
+    html += '<div class="concrete-delivery-supplier">' + (d.supplier || 'Unknown Supplier') + '</div>';
+    html += '<div class="concrete-delivery-details">' + dateFormatted;
+    if (d.invoice_number) html += ' • #' + d.invoice_number;
+    if (isLinked) html += ' • <span style="color:#16a34a;">Already linked</span>';
+    html += '</div>';
+    html += '</div>';
+    html += '<div class="concrete-delivery-yards">' + (parseFloat(d.cubic_yards) || 0).toFixed(1) + ' yd</div>';
+    html += '</div>';
+  });
+
+  list.innerHTML = html;
+}
+
+// Toggle delivery selection
+function toggleDeliverySelection(deliveryId) {
+  var idx = selectedDeliveryIds.indexOf(deliveryId);
+  if (idx >= 0) {
+    selectedDeliveryIds.splice(idx, 1);
+  } else {
+    selectedDeliveryIds.push(deliveryId);
+  }
+  renderConcreteDeliveries();
 }
 
 function toggleNote(btn, note) {
@@ -3239,6 +3368,18 @@ async function saveDailyRecord() {
         await fetch(API_BASE + '/daily-records/' + record.id + '/photos', { method: 'POST', body: formData });
       } catch(photoError) { showToast('Record saved but some photos failed to upload', 'warning'); }
     }
+    // Link selected concrete deliveries to this daily record
+    if (selectedDeliveryIds.length > 0) {
+      try {
+        for (var i = 0; i < selectedDeliveryIds.length; i++) {
+          await fetch(API + '/concrete-deliveries/' + selectedDeliveryIds[i] + '/link', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ daily_record_id: record.id })
+          });
+        }
+      } catch(linkError) { showToast('Record saved but some deliveries failed to link', 'warning'); }
+    }
     document.getElementById('daily-modal').remove();
     await loadAllData();
     showView('today');
@@ -3250,6 +3391,7 @@ async function saveDailyRecord() {
       successParts.push(totalHours + ' worker hours');
     }
     if (pendingPhotos.length > 0) successParts.push(pendingPhotos.length + ' photo(s)');
+    if (selectedDeliveryIds.length > 0) successParts.push(selectedDeliveryIds.length + ' delivery(s) linked');
     var successMsg = 'Daily record saved';
     if (successParts.length > 0) successMsg += ': ' + successParts.join(', ');
     showToast(successMsg, 'success');

@@ -765,6 +765,73 @@ app.post('/api/concrete-deliveries/import', async (req, res) => {
     }
 });
 
+// Get concrete deliveries for a job on a specific date (for Daily Record modal)
+app.get('/api/concrete-deliveries/by-job-date', async (req, res) => {
+    try {
+        const { job_id, date } = req.query;
+        if (!job_id || !date) {
+            return res.status(400).json({ error: 'job_id and date are required' });
+        }
+
+        const result = await pool.query(
+            `SELECT cd.*,
+                    CASE WHEN cd.daily_record_id IS NOT NULL THEN true ELSE false END as is_linked
+             FROM concrete_deliveries cd
+             WHERE cd.job_id = $1 AND DATE(cd.delivery_date) = DATE($2)
+             ORDER BY cd.id`,
+            [job_id, date]
+        );
+
+        res.json(result.rows);
+    } catch (error) {
+        console.error('Error fetching deliveries by job/date:', error);
+        res.status(500).json({ error: 'Failed to fetch deliveries' });
+    }
+});
+
+// Link a concrete delivery to a daily record
+app.put('/api/concrete-deliveries/:id/link', async (req, res) => {
+    try {
+        const { daily_record_id } = req.body;
+        const deliveryId = req.params.id;
+
+        const result = await pool.query(
+            `UPDATE concrete_deliveries
+             SET daily_record_id = $1
+             WHERE id = $2
+             RETURNING *`,
+            [daily_record_id || null, deliveryId]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Delivery not found' });
+        }
+
+        res.json(result.rows[0]);
+    } catch (error) {
+        console.error('Error linking delivery:', error);
+        res.status(500).json({ error: 'Failed to link delivery' });
+    }
+});
+
+// Get concrete deliveries linked to a specific daily record
+app.get('/api/daily-records/:id/concrete', async (req, res) => {
+    try {
+        const result = await pool.query(
+            `SELECT cd.*
+             FROM concrete_deliveries cd
+             WHERE cd.daily_record_id = $1
+             ORDER BY cd.id`,
+            [req.params.id]
+        );
+
+        res.json(result.rows);
+    } catch (error) {
+        console.error('Error fetching linked deliveries:', error);
+        res.status(500).json({ error: 'Failed to fetch deliveries' });
+    }
+});
+
 // ========== HELPER FUNCTIONS FOR PDF PARSING ==========
 
 function extractInvoiceNumber(text) {
@@ -4645,6 +4712,11 @@ app.delete("/api/public/schedule/:id", async (req, res) => {
         // Ensure concrete_deliveries has supplier column
         await pool.query(`
             ALTER TABLE concrete_deliveries ADD COLUMN IF NOT EXISTS supplier VARCHAR(255);
+        `);
+
+        // Add daily_record_id to concrete_deliveries for linking to specific daily records
+        await pool.query(`
+            ALTER TABLE concrete_deliveries ADD COLUMN IF NOT EXISTS daily_record_id INTEGER REFERENCES daily_records(id) ON DELETE SET NULL;
         `);
 
         console.log('Database migrations complete');
